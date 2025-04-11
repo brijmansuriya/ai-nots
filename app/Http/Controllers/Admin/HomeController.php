@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+
+class HomeController extends Controller
+{
+    public function index()
+    {
+        return Inertia::render('admin/welcome');
+    }
+
+    // public function dashboard()
+    public function dashboard(Request $request)
+    {
+        return Inertia::render('admin/dashboard');
+    }
+}
