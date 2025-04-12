@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Tag;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -47,4 +50,10 @@ class Admin extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function tags(): MorphMany
+    {
+        return $this->morphMany(Tag::class, 'created_by');
+    }
+    
 }

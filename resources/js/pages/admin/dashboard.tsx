@@ -9,9 +9,13 @@ const breadcrumbs: BreadcrumbItem[] = [
         title: 'Dashboard',
         href: '/dashboard',
     },
+    {
+        title: 'Tags',
+        href: '/tags',
+    }
 ];
 
-export default function Dashboard() {
+export default function Dashboard( ) {
     return (
         <AdminLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />

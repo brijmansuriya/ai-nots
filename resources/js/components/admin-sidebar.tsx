@@ -7,6 +7,30 @@ import { Link } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
+const mainNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutGrid,
+    },{
+        title: 'Tags',
+        href: route('admin.tags.index'),
+        icon: LayoutGrid,
+    }
+];
+
+// const footerNavItems: NavItem[] = [
+//     {
+//         title: 'Repository',
+//         href: 'https://github.com/laravel/react-starter-kit',
+//         icon: Folder,
+//     },
+//     {
+//         title: 'Documentation',
+//         href: 'https://laravel.com/docs/starter-kits',
+//         icon: BookOpen,
+//     },
+// ];
 
 export function AdminSidebar() {
     return (
@@ -23,7 +47,14 @@ export function AdminSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-           
+            <SidebarContent>
+                <NavMain items={mainNavItems} />
+            </SidebarContent>
+
+            {/* <SidebarFooter>
+                <NavFooter items={footerNavItems} className="mt-auto" />
+                { <NavUser /> }
+            </SidebarFooter> */}
         </Sidebar>
     );
 }

@@ -18,9 +18,11 @@ class AuthAdmin
     public function handle(Request $request, Closure $next): Response
     {
 
-        if (!Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
+        if (Auth::guard('admin')->check()) {
+            Auth::shouldUse('admin');
+            return $next($request);
         }
-        return $next($request);
+        return redirect()->route('admin.login');
+
     }
 }

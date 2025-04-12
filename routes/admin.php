@@ -10,7 +10,9 @@ use App\Http\Controllers\Admin\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Admin\Auth\RegisteredUserController;
 use App\Http\Controllers\Admin\Auth\VerifyEmailController;
 use App\Http\Controllers\Admin\HomeController;
+use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
+
 
 
 
@@ -64,4 +66,8 @@ Route::middleware('auth.admin')->prefix('admin')->name('admin.')->group(function
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+
+        //tags
+        Route::resource('tags', TagController::class);
 });
