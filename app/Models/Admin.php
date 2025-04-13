@@ -56,4 +56,5 @@ class Admin extends Authenticatable
         return $this->morphMany(Tag::class, 'created_by');
     }
     
+    
 }

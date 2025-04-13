@@ -16,6 +16,12 @@ const mainNavItems: NavItem[] = [
         title: 'Tags',
         href: route('admin.tags.index'),
         icon: LayoutGrid,
+    },
+    {
+        //categories
+        title: 'Categories',
+        href: route('admin.categories.index'),
+        icon: LayoutGrid,
     }
 ];
 
