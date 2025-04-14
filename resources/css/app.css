@@ -157,3 +157,48 @@
         @apply bg-background text-foreground;
     }
 }
+
+
+/* ***********************web side css************************* */
+/* Custom CSS for header, hero, search bar */
+body {
+    animation: gradientShift 15s ease infinite;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  }
+  
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .hero {
+    animation: fadeIn 1.5s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .notes-section {
+    animation: slideUp 1s ease;
+  }
+  
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .note-card {
+    animation: fadeInCard 0.5s ease forwards;
+    opacity: 0;
+    animation-delay: calc(var(--index) * 0.1s);
+  }
+  
+  @keyframes fadeInCard {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ***********************end web side css************************* */
