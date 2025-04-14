@@ -34,7 +34,7 @@ class HomeController extends Controller
             ],
         ];
 
-        return Inertia::render('Home', [
+        return Inertia::render('home', [
             'prompts' => $prompts,
         ]);
         // return Inertia::render('home');

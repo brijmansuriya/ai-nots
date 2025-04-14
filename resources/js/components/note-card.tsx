@@ -11,9 +11,9 @@ interface NoteCardProps {
   index: number;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [isCopied, setIsCopied] = useState<boolean>(false);
+export default function NoteCard({ prompt, index }: NoteCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const visibleTags = 2;
   const tags = prompt.tags;
@@ -38,6 +38,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
       <p className="text-white/90 text-xs xs:text-sm sm:text-base mb-3 sm:mb-4 h-12 xs:h-14 sm:h-16 md:h-20 overflow-hidden text-ellipsis">
         {prompt.text}
       </p>
+
       <div className="tags flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4 min-h-[1.5rem] sm:min-h-[1.75rem]">
         {tags.slice(0, visibleTags).map((tag, idx) => (
           <span
@@ -47,6 +48,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
             {tag}
           </span>
         ))}
+
         {tags.slice(visibleTags).map((tag, idx) => (
           <span
             key={idx + visibleTags}
@@ -57,6 +59,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
             {tag}
           </span>
         ))}
+
         {hiddenCount > 0 && (
           <span
             className="more-tags bg-ai-cyan/20 text-ai-cyan text-[0.65rem] xs:text-xs sm:text-sm font-medium px-2 xs:px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full cursor-pointer hover:bg-ai-cyan/40 transition-colors"
@@ -66,6 +69,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
           </span>
         )}
       </div>
+
       <button
         className={`copy-btn w-full text-white font-semibold px-3 xs:px-4 sm:px-5 py-2 rounded-full transition-colors text-xs xs:text-sm ${
           isCopied ? 'bg-green-500 hover:bg-green-500' : 'bg-ai-cyan hover:bg-ai-coral'
@@ -76,6 +80,4 @@ const NoteCard: React.FC<NoteCardProps> = ({ prompt, index }) => {
       </button>
     </div>
   );
-};
-
-export default NoteCard;
+}
