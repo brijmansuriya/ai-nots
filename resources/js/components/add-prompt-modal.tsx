@@ -2,14 +2,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import axios from 'axios';
 
-interface NewPrompt {
-  title: string;
-  prompt: string;
-  tags: string[];
-  platform: string;
-  dynamic_variables: string[];
-}
-
 interface Tag {
   id: number;
   name: string;
@@ -23,17 +15,76 @@ interface AddPromptModalProps {
 
 export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [tags, setTags] = useState<string[]>([]);
-  const [error, setError] = useState('');
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [dynamicVariables, setDynamicVariables] = useState<string[]>([]);
+  const [detectedVars, setDetectedVars] = useState<string[]>([]);
+  const [manualVars, setManualVars] = useState<string[]>([]);
+  const [error, setError] = useState('');
 
-  // Extract dynamic variables from prompt text
-  const extractDynamicVariables = (text: string): string[] => {
-    const matches = text.match(/{(.*?)}/g);
-    return matches ? Array.from(new Set(matches.map(v => v.replace(/[{}]/g, '')))) : [];
+  const { data, setData, post, processing } = useForm({
+    title: '',
+    prompt: '',
+    tags: [] as string[],
+    platform: '',
+    dynamic_variables: [] as string[],
+  });
+
+  useEffect(() => {
+    axios
+      .get(route('tags'))
+      .then((res) => setAvailableTags(res.data.tags))
+      .catch(() => setError('Failed to load tags.'));
+  }, []);
+
+  const extractDynamicVariables = (promptText: string): string[] => {
+    const matches = [...promptText.matchAll(/\[([^\]]+)\]/g)];
+    const unique = Array.from(new Set(matches.map((m) => m[1].trim())));
+    return unique;
   };
 
-  // Tag toggle handler
+  const handlePromptChange = (text: string) => {
+    setData('prompt', text);
+    const variables = extractDynamicVariables(text);
+    setDetectedVars(variables);
+    setManualVars(variables);
+    setData('dynamic_variables', variables);
+  };
+
+  const handleManualVariablesChange = (text: string) => {
+    const variables = text
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v && v !== ',');
+
+    setManualVars(variables);
+    setDetectedVars(variables);
+    setData('dynamic_variables', variables);
+
+    // Replace outdated variable format
+    const promptWithoutOldVars = data.prompt.replace(/\[([^\]]+)\]/g, (_, variable) =>
+      variables.includes(variable) ? `[${variable}]` : variable
+    );
+
+    setData('prompt', promptWithoutOldVars);
+  };
+
+  const insertVariableIntoPrompt = (variable: string) => {
+    const textarea = document.getElementById('prompt-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const before = data.prompt.slice(0, cursorPos);
+    const after = data.prompt.slice(cursorPos);
+    const newPrompt = `${before}[${variable}]${after}`;
+
+    setData('prompt', newPrompt);
+    handlePromptChange(newPrompt);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(cursorPos + variable.length + 2, cursorPos + variable.length + 2);
+    }, 0);
+  };
+
   const handleTagToggle = (tag: string) => {
     const newTags = tags.includes(tag)
       ? tags.filter((t) => t !== tag)
@@ -42,29 +93,6 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     setTags(newTags);
     setData('tags', newTags);
   };
-
-  // Fetch tags
-  const getTagsData = async () => {
-    try {
-      const response = await axios.get(route('tags'));
-      setAvailableTags(response.data.tags);
-    } catch (error) {
-      console.error('Error fetching tags:', error);
-      setError('Failed to load tags.');
-    }
-  };
-
-  useEffect(() => {
-    getTagsData();
-  }, []);
-
-  const { data, setData, post, processing, errors } = useForm<NewPrompt>({
-    title: '',
-    prompt: '',
-    tags: [],
-    platform: '',
-    dynamic_variables: [],
-  });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,19 +112,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               type="text"
               value={data.title}
               onChange={(e) => setData('title', e.target.value)}
-              placeholder="Enter your prompt title..."
-              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
-            />
-          </div>
-
-          {/* dynamic_variables */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-white/80">Dynamic Variables</label>
-            <input
-              type="text"
-              value={data.dynamic_variables.join(', ')}
-              onChange={(e) => setData('dynamic_variables', e.target.value.split(',').map(v => v.trim()))}
-              placeholder="Enter dynamic variables separated by commas..."
+              placeholder="Prompt title..."
               className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
             />
           </div>
@@ -105,22 +121,43 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
           <div>
             <label className="mb-2 block text-sm font-medium text-white/80">AI Prompt</label>
             <textarea
+              id="prompt-textarea"
               value={data.prompt}
-              onChange={(e) => {
-                const text = e.target.value;
-                const variables = extractDynamicVariables(text);
-                setDynamicVariables(variables);
-                setData('prompt', text);
-                setData('dynamic_variables', variables);
-              }}
-              placeholder="Enter your prompt with {variables}..."
+              onChange={(e) => handlePromptChange(e.target.value)}
+              placeholder="Use [variable_name] inside your prompt..."
               className="min-h-[100px] w-full resize-none rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
             />
-            {dynamicVariables.length > 0 && (
-              <p className="mt-2 text-xs text-white/60">
-                Detected Variables: {dynamicVariables.join(', ')}
-              </p>
+            {manualVars.length > 0 && (
+              <div className="mt-2 text-xs text-white/70">
+                <p className="mb-1">Click a variable to insert:</p>
+                <div className="flex flex-wrap gap-2">
+                  {manualVars.map((v, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => insertVariableIntoPrompt(v)}
+                      className="rounded bg-ai-cyan/30 px-2 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50 transition-all"
+                    >
+                      [{v}]
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
+          </div>
+
+          {/* Manual Dynamic Variables */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">
+              Add/Edit Dynamic Variables
+            </label>
+            <textarea
+              rows={2}
+              value={manualVars.join(', ')}
+              onChange={(e) => handleManualVariablesChange(e.target.value)}
+              placeholder="val_1, val_2, val_custom"
+              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+            />
           </div>
 
           {/* Tags */}
@@ -148,14 +185,12 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
 
           {/* Platform */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-white/80">
-              Support Platform
-            </label>
+            <label className="mb-2 block text-sm font-medium text-white/80">Platform</label>
             <input
               type="text"
               value={data.platform}
               onChange={(e) => setData('platform', e.target.value)}
-              placeholder="e.g., Grok, ChatGPT..."
+              placeholder="e.g., ChatGPT, Grok..."
               className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
             />
           </div>
