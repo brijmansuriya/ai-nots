@@ -1,119 +1,178 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 
 interface NewPrompt {
-  text: string;
+  title: string;
+  prompt: string;
   tags: string[];
   platform: string;
+  dynamic_variables: string[];
+}
+
+interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
 }
 
 interface AddPromptModalProps {
   onClose: () => void;
-  onSubmit: (prompt: NewPrompt) => void;
 }
 
-const availableTags = [
-  'Creative',
-  'Sci-Fi',
-  'Writing',
-  'Fiction',
-  'Worldbuilding',
-  'Coding',
-  'Python',
-  'Data Analysis',
-  'NLP',
-  'Marketing',
-  'Branding',
-  'Advertising',
-  'AI',
-  'Fitness',
-  'Health',
-  'AI Optimization',
-  'Beginner',
-];
-
-export default function AddPromptModal({ onClose, onSubmit }: AddPromptModalProps) {
-  const [text, setText] = useState('');
+export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [tags, setTags] = useState<string[]>([]);
-  const [platform, setPlatform] = useState('');
   const [error, setError] = useState('');
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [dynamicVariables, setDynamicVariables] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Extract dynamic variables from prompt text
+  const extractDynamicVariables = (text: string): string[] => {
+    const matches = text.match(/{(.*?)}/g);
+    return matches ? Array.from(new Set(matches.map(v => v.replace(/[{}]/g, '')))) : [];
+  };
+
+  // Tag toggle handler
+  const handleTagToggle = (tag: string) => {
+    const newTags = tags.includes(tag)
+      ? tags.filter((t) => t !== tag)
+      : [...tags, tag];
+
+    setTags(newTags);
+    setData('tags', newTags);
+  };
+
+  // Fetch tags
+  const getTagsData = async () => {
+    try {
+      const response = await axios.get(route('tags'));
+      setAvailableTags(response.data.tags);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      setError('Failed to load tags.');
+    }
+  };
+
+  useEffect(() => {
+    getTagsData();
+  }, []);
+
+  const { data, setData, post, processing, errors } = useForm<NewPrompt>({
+    title: '',
+    prompt: '',
+    tags: [],
+    platform: '',
+    dynamic_variables: [],
+  });
+
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) {
-      setError('Prompt text is required.');
-      return;
-    }
-    if (tags.length === 0) {
-      setError('At least one tag is required.');
-      return;
-    }
-    setError('');
-    onSubmit({ text, tags, platform });
+    post(route('prompts.store'));
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="modal bg-white/10 backdrop-blur-lg rounded-2xl p-4 xs:p-6 sm:p-8 w-full max-w-xs xs:max-w-sm sm:max-w-md md:max-w-lg">
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-ai-cyan mb-4 sm:mb-6">Add New AI Prompt</h2>
-        
-        {error && <p className="text-red-400 text-xs sm:text-sm mb-3 sm:mb-4">{error}</p>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      <div className="w-full max-w-md rounded-2xl bg-white/10 backdrop-blur-lg p-6 shadow-lg">
+        <h2 className="mb-4 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
 
-        <form onSubmit={handleSubmit}>
-          {/* Prompt Text */}
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-white/80 text-xs sm:text-sm mb-1 sm:mb-2">AI Prompt</label>
+        <form onSubmit={submit} className="space-y-5">
+          {/* Title */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">Title</label>
             <input
               type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Enter your prompt..."
-              className="w-full bg-transparent border border-white/20 rounded-lg px-3 sm:px-4 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-ai-cyan"
+              value={data.title}
+              onChange={(e) => setData('title', e.target.value)}
+              placeholder="Enter your prompt title..."
+              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
             />
           </div>
 
-          {/* Tags Selector */}
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-white/80 text-xs sm:text-sm mb-1 sm:mb-2">Tags</label>
-            <select
-              multiple
-              value={tags}
-              onChange={(e) =>
-                setTags(Array.from(e.target.selectedOptions, (opt) => opt.value))
-              }
-              className="w-full bg-transparent border border-white/20 rounded-lg px-3 sm:px-4 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-ai-cyan max-h-32"
-            >
-              {availableTags.map((tag) => (
-                <option key={tag} value={tag} className="text-white bg-ai-dark">
-                  {tag}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Platform Input */}
-          <div className="mb-4 sm:mb-6">
-            <label className="block text-white/80 text-xs sm:text-sm mb-1 sm:mb-2">Support Platform</label>
+          {/* dynamic_variables */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">Dynamic Variables</label>
             <input
               type="text"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
+              value={data.dynamic_variables.join(', ')}
+              onChange={(e) => setData('dynamic_variables', e.target.value.split(',').map(v => v.trim()))}
+              placeholder="Enter dynamic variables separated by commas..."
+              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+            />
+          </div>
+
+          {/* Prompt */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">AI Prompt</label>
+            <textarea
+              value={data.prompt}
+              onChange={(e) => {
+                const text = e.target.value;
+                const variables = extractDynamicVariables(text);
+                setDynamicVariables(variables);
+                setData('prompt', text);
+                setData('dynamic_variables', variables);
+              }}
+              placeholder="Enter your prompt with {variables}..."
+              className="min-h-[100px] w-full resize-none rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+            />
+            {dynamicVariables.length > 0 && (
+              <p className="mt-2 text-xs text-white/60">
+                Detected Variables: {dynamicVariables.join(', ')}
+              </p>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">Tags</label>
+            <div className="max-h-32 overflow-y-auto rounded-lg bg-white/5 p-3">
+              <div className="grid grid-cols-2 gap-2">
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => handleTagToggle(tag.id.toString())}
+                    className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
+                      tags.includes(tag.id.toString())
+                        ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
+                        : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Platform */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/80">
+              Support Platform
+            </label>
+            <input
+              type="text"
+              value={data.platform}
+              onChange={(e) => setData('platform', e.target.value)}
               placeholder="e.g., Grok, ChatGPT..."
-              className="w-full bg-transparent border border-white/20 rounded-lg px-3 sm:px-4 py-2 text-white text-xs sm:text-sm focus:outline-none focus:border-ai-cyan"
+              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
             />
           </div>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <div className="flex justify-end gap-3 pt-2">
             <button
               type="submit"
-              className="bg-ai-cyan text-white font-semibold px-4 sm:px-6 py-2 rounded-full hover:bg-ai-coral transition-colors text-xs sm:text-sm"
+              disabled={processing}
+              className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80 transition-all"
             >
               Add Prompt
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="bg-white/10 text-white font-semibold px-4 sm:px-6 py-2 rounded-full hover:bg-white/20 transition-colors text-xs sm:text-sm"
+              className="rounded-lg bg-white/10 px-6 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-all"
             >
               Cancel
             </button>

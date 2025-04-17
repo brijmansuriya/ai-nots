@@ -5,6 +5,7 @@ import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
 import { useState } from 'react';
+import axios from 'axios';
 // import { type SharedData } from '@/types';
 // import { useState } from 'react';
 // import Header from '@/Components/Header';
@@ -27,14 +28,29 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
   const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddPrompt = (newPrompt: Omit<Prompt, 'id'>) => {
-    const newId = Math.max(...prompts.map((p) => p.id), 0) + 1;
-    setPrompts([...prompts, { ...newPrompt, id: newId }]);
-    setIsModalOpen(false);
-  };
+  // const handleAddPrompt = (newPrompt: Omit<Prompt, 'id'>) => {
+  //   const newId = Math.max(...prompts.map((p) => p.id), 0) + 1;
+  //   setPrompts([...prompts, { ...newPrompt, id: newId }]);
+
+  //   // Here you would typically send the new prompt to your server
+  //   // For example, using axios:
+  //   axios.post('/api/prompts', { ...newPrompt, id: newId })
+  //     .then(response => {
+  //       console.log('Prompt added:', response.data);
+  //     })
+  //     .catch(error => {
+  //       console.error('Error adding prompt:', error);
+  //     });
+  //   // For now, we'll just log it to the console
+  //   console.log('Prompt added:', { ...newPrompt, id: newId });
+  //   console.log('New prompt added:', { ...newPrompt, id: newId });
+
+  //   setIsModalOpen(false);
+  // };
 
   return (
     <div className="min-h-screen">
+      <Head title="Home" />
       <Header />
       <Hero />
 
@@ -64,7 +80,7 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
       {isModalOpen && (
         <AddPromptModal
           onClose={() => setIsModalOpen(false)}
-          onSubmit={handleAddPrompt}
+          // onSubmit={handleAddPrompt}
         />
       )}
     </div>

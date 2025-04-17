@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -10,7 +11,8 @@ class HomeController extends Controller
 {
     public function index()
     {
-       
+    
+        $tags = Tag::all();
         $prompts = [
             [
                 'id' => 1,
@@ -36,6 +38,7 @@ class HomeController extends Controller
 
         return Inertia::render('home', [
             'prompts' => $prompts,
+            'tags' => $tags,
         ]);
         // return Inertia::render('home');
     }
@@ -44,5 +47,13 @@ class HomeController extends Controller
     public function dashboard(Request $request)
     {
         return Inertia::render('dashboard');
+    }
+
+    //get tags list
+    public function tags(){
+        $tags = Tag::all();
+        return response()->json([
+            'tags' => $tags
+        ]);
     }
 }
