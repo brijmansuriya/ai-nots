@@ -1,17 +1,9 @@
-import React from 'react';
-import { Head, usePage } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Head } from '@inertiajs/react';
 import Header from '@/components/header';
 import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
-import { useState } from 'react';
-import axios from 'axios';
-// import { type SharedData } from '@/types';
-// import { useState } from 'react';
-// import Header from '@/Components/Header';
-// import Hero from '@/Components/Hero';
-// import NoteCard from '@/Components/NoteCard';
-// import AddPromptModal from '@/Components/add-prompt-modal';
 
 interface Prompt {
   id: number;
@@ -25,37 +17,22 @@ interface HomeProps {
 }
 
 export default function Home({ prompts: initialPrompts }: HomeProps) {
-  const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // const handleAddPrompt = (newPrompt: Omit<Prompt, 'id'>) => {
-  //   const newId = Math.max(...prompts.map((p) => p.id), 0) + 1;
-  //   setPrompts([...prompts, { ...newPrompt, id: newId }]);
-
-  //   // Here you would typically send the new prompt to your server
-  //   // For example, using axios:
-  //   axios.post('/api/prompts', { ...newPrompt, id: newId })
-  //     .then(response => {
-  //       console.log('Prompt added:', response.data);
-  //     })
-  //     .catch(error => {
-  //       console.error('Error adding prompt:', error);
-  //     });
-  //   // For now, we'll just log it to the console
-  //   console.log('Prompt added:', { ...newPrompt, id: newId });
-  //   console.log('New prompt added:', { ...newPrompt, id: newId });
-
-  //   setIsModalOpen(false);
-  // };
+  const [prompts] = useState<Prompt[]>(initialPrompts); // Static display for now
+  const [isModalOpen, setIsModalOpen] = useState(false); // Controls modal visibility
 
   return (
     <div className="min-h-screen">
+      {/* Page Meta Title */}
       <Head title="Home" />
+
+      {/* Header & Hero Section */}
       <Header />
       <Hero />
 
+      {/* Prompts Section */}
       <section className="notes-section mx-2 sm:mx-4 md:mx-8 lg:mx-12 xl:mx-16 py-6 sm:py-8 md:py-10 lg:py-12 rounded-3xl text-center bg-black/20 backdrop-blur-lg">
-        {/* Section Header */}
+        
+        {/* Section Heading & Button */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 md:mb-8 px-16">
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold uppercase tracking-wide bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text">
             AI Prompt Playground
@@ -68,7 +45,7 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
           </button>
         </div>
 
-        {/* Prompts Grid */}
+        {/* Prompt Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-8">
           {prompts.map((prompt, index) => (
             <NoteCard key={prompt.id} prompt={prompt} index={index} />
@@ -78,10 +55,7 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
 
       {/* Add Prompt Modal */}
       {isModalOpen && (
-        <AddPromptModal
-          onClose={() => setIsModalOpen(false)}
-          // onSubmit={handleAddPrompt}
-        />
+        <AddPromptModal onClose={() => setIsModalOpen(false)} />
       )}
     </div>
   );
