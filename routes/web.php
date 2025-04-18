@@ -15,6 +15,7 @@ Route::prefix('prompt')->group(function () {
 });
 
 Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');
+Route::get('list/platform', [HomeController::class, 'platform'])->name('platform');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');

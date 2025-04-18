@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Platform;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -54,6 +55,14 @@ class HomeController extends Controller
         $tags = Tag::all();
         return response()->json([
             'tags' => $tags
+        ]);
+    }
+
+    //platform
+    public function platform(){
+        $platform = Platform::all();
+        return response()->json([
+            'platform' => $platform
         ]);
     }
 }

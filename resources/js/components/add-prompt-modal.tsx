@@ -18,6 +18,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [detectedVars, setDetectedVars] = useState<string[]>([]);
   const [manualVars, setManualVars] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
 
   const { data, setData, post, processing } = useForm({
@@ -65,15 +66,6 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
       textarea.focus();
       textarea.setSelectionRange(cursorPos + variable.length + 2, cursorPos + variable.length + 2);
     }, 0);
-  };
-
-  const handleTagToggle = (tag: string) => {
-    const newTags = tags.includes(tag)
-      ? tags.filter((t) => t !== tag)
-      : [...tags, tag];
-
-    setTags(newTags);
-    setData('tags', newTags);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -128,7 +120,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             )}
           </div>
 
-          {/* Manual Dynamic Variables as tags */}
+          {/* Dynamic Variables */}
           <div>
             <label className="mb-2 block text-sm font-medium text-white/80">
               Dynamic Variables
@@ -182,26 +174,74 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             </div>
           </div>
 
-          {/* Tags */}
+          {/* Tags (Enhanced) */}
           <div>
             <label className="mb-2 block text-sm font-medium text-white/80">Tags</label>
-            <div className="max-h-32 overflow-y-auto rounded-lg bg-white/5 p-3">
-              <div className="grid grid-cols-2 gap-2">
-                {availableTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => handleTagToggle(tag.id.toString())}
-                    className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
-                      tags.includes(tag.id.toString())
-                        ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
-                        : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
-                    }`}
+            <div className="relative">
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-2">
+                {tags.map((tag, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white"
                   >
-                    {tag.name}
-                  </button>
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updatedTags = tags.filter((_, index) => index !== i);
+                        setTags(updatedTags);
+                        setData('tags', updatedTags);
+                      }}
+                      className="ml-1 text-white hover:text-red-400"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+                      e.preventDefault();
+                      const newTag = tagInput.trim();
+                      if (!tags.includes(newTag)) {
+                        const updatedTags = [...tags, newTag];
+                        setTags(updatedTags);
+                        setData('tags', updatedTags);
+                      }
+                      setTagInput('');
+                    }
+                  }}
+                  placeholder="Type to add or select..."
+                  className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+                />
               </div>
+
+              {tagInput && (
+                <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg">
+                  {availableTags
+                    .filter((t) =>
+                      t.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+                      !tags.includes(t.name)
+                    )
+                    .map((tag) => (
+                      <li
+                        key={tag.id}
+                        onClick={() => {
+                          const updatedTags = [...tags, tag.name];
+                          setTags(updatedTags);
+                          setData('tags', updatedTags);
+                          setTagInput('');
+                        }}
+                        className="cursor-pointer px-4 py-2 text-sm text-white hover:bg-ai-cyan/40"
+                      >
+                        {tag.name}
+                      </li>
+                    ))}
+                </ul>
+              )}
             </div>
           </div>
 
