@@ -60,9 +60,9 @@ class HomeController extends Controller
 
     //platform
     public function platform(){
-        $platform = Platform::all();
+        $platforms = Platform::all();
         return response()->json([
-            'platform' => $platform
+            'platforms' => $platforms
         ]);
     }
 }

@@ -9,6 +9,12 @@ interface Tag {
   created_at: string;
 }
 
+interface Platform {
+  id: number;
+  name: string;
+  selected?: boolean; // ✅ for managing UI state
+}
+
 interface AddPromptModalProps {
   onClose: () => void;
 }
@@ -20,12 +26,13 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [manualVars, setManualVars] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState('');
+  const [platforms, setPlatforms] = useState<Platform[]>([]); // ✅ typed array
 
   const { data, setData, post, processing } = useForm({
     title: '',
     prompt: '',
     tags: [] as string[],
-    platform: '',
+    platform: [] as string[], // ✅ array for selected platform IDs
     dynamic_variables: [] as string[],
   });
 
@@ -34,6 +41,17 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
       .get(route('tags'))
       .then((res) => setAvailableTags(res.data.tags))
       .catch(() => setError('Failed to load tags.'));
+
+    axios
+      .get(route('platform'))
+      .then((res) => {
+        const platformsWithSelected = res.data.platforms.map((p: Platform) => ({
+          ...p,
+          selected: false,
+        }));
+        setPlatforms(platformsWithSelected);
+      })
+      .catch(() => setError('Failed to load platform.'));
   }, []);
 
   const extractDynamicVariables = (promptText: string): string[] => {
@@ -66,6 +84,21 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
       textarea.focus();
       textarea.setSelectionRange(cursorPos + variable.length + 2, cursorPos + variable.length + 2);
     }, 0);
+  };
+
+  const handlePlatformToggle = (platformId: string) => {
+    const updatedPlatforms = platforms.map((platform) =>
+      platform.id.toString() === platformId
+        ? { ...platform, selected: !platform.selected }
+        : platform
+    );
+    setPlatforms(updatedPlatforms);
+
+    const selectedPlatformIds = updatedPlatforms
+      .filter((p) => p.selected)
+      .map((p) => p.id.toString());
+
+    setData('platform', selectedPlatformIds);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -122,15 +155,10 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
 
           {/* Dynamic Variables */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-white/80">
-              Dynamic Variables
-            </label>
+            <label className="mb-2 block text-sm font-medium text-white/80">Dynamic Variables</label>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-2">
               {manualVars.map((v, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white"
-                >
+                <div key={i} className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white">
                   {v}
                   <button
                     type="button"
@@ -174,16 +202,13 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             </div>
           </div>
 
-          {/* Tags (Enhanced) */}
+          {/* Tags */}
           <div>
             <label className="mb-2 block text-sm font-medium text-white/80">Tags</label>
             <div className="relative">
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-2">
                 {tags.map((tag, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white"
-                  >
+                  <div key={i} className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white">
                     {tag}
                     <button
                       type="button"
@@ -222,10 +247,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               {tagInput && (
                 <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg">
                   {availableTags
-                    .filter((t) =>
-                      t.name.toLowerCase().includes(tagInput.toLowerCase()) &&
-                      !tags.includes(t.name)
-                    )
+                    .filter((t) => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t.name))
                     .map((tag) => (
                       <li
                         key={tag.id}
@@ -245,16 +267,27 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             </div>
           </div>
 
-          {/* Platform */}
+          {/* Platform Selection */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-white/80">Platform</label>
-            <input
-              type="text"
-              value={data.platform}
-              onChange={(e) => setData('platform', e.target.value)}
-              placeholder="e.g., ChatGPT, Grok..."
-              className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
-            />
+            <label className="mb-2 block text-sm font-medium text-white/80">Platforms</label>
+            <div className="max-h-32 overflow-y-auto rounded-lg bg-white/5 p-3">
+              <div className="grid grid-cols-2 gap-2">
+                {platforms.map((platform) => (
+                  <button
+                    key={platform.id}
+                    type="button"
+                    onClick={() => handlePlatformToggle(platform.id.toString())}
+                    className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
+                      platform.selected
+                        ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
+                        : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
+                    }`}
+                  >
+                    {platform.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Buttons */}
