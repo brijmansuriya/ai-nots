@@ -5,5 +5,12 @@ php artisan migrate:rollback --step=1
 php artisan test --filter=TagTest
 
 # php artisan make:cantroller PromptController
+php artisan migrate:reset
 
-php
+  ⇂ migrate  
+  ⇂ migrate:fresh
+  ⇂ migrate:install
+  ⇂ migrate:refresh
+  ⇂ migrate:reset
+  ⇂ migrate:rollback
+  ⇂ migrate:status

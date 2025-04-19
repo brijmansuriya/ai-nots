@@ -11,7 +11,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 //create prompt
 Route::prefix('prompt')->group(function () {
     // Route::get('create', [HomeController::class, 'createPrompt'])->name('prompt.create');
-    Route::post('store', [PromptController::class, 'storePrompt'])->name('prompt.store');
+    Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
 });
 
 Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');

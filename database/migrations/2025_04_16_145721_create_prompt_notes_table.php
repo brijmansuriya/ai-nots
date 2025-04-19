@@ -16,14 +16,13 @@ return new class extends Migration
             $table->morphs('promptable');
             $table->string('title');
             $table->text('prompt');
+            $table->text('description')->nullable(); // Added description field
             $table->enum('is_public', ['0', '1', '2'])->comment('0 : pending, 1 : approved, 2 : rejected')->default('0');
+            $table->enum('status', ['0', '1', '2'])->comment('0 : pending, 1 : approved, 2 : rejected')->default('0');
             $table->foreignId('category_id')->nullable();
-            // $table->string('platform')->nullable(); // e.g., ChatGPT, Midjourney, etc.
             $table->timestamps();
             $table->softDeletes();
         });
-
-        
     }
 
     /**

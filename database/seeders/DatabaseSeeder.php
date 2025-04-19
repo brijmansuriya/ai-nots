@@ -2,12 +2,13 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Platform;
 use App\Models\PromptNote;
 use App\Models\Tag;
-use App\Models\Platform;
+use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,8 +18,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Seed platforms
-        $platforms = Platform::factory(5)->create();
+        // $platforms = Platform::factory(5)->create();
+        $platformNames = ['ChatGPT', 'Midjourney', 'DALL·E', 'Stable Diffusion', 'Bing AI'];
+        $platforms = collect();
 
+        foreach ($platformNames as $name) {
+            $platforms->push(Platform::create(['name' => $name]));
+        }
         // Seed tags
         $tags = Tag::factory(10)->create();
 

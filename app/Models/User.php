@@ -52,4 +52,10 @@ class User extends Authenticatable
     {
         return $this->morphMany(Tag::class, 'created_by');
     }
+
+    //promptable
+    public function promptable(): MorphMany
+    {
+        return $this->morphMany(PromptNote::class,'promptable');
+    }
 }

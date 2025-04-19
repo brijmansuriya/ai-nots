@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class PromptNote extends Model
 {
@@ -14,11 +15,15 @@ class PromptNote extends Model
     protected $fillable = [
         'title',
         'prompt',
-        'description',
-        'is_public',
-        'category_id'
+        'promptable_id',
+        'promptable_type',
+        // 'description',
+        'is_public', //'0 : pending, 1 : approved, 2 : rejected'
+        'status', //'0 : pending, 1 : approved, 2 : rejected'
+        'category_id',
+        // 'dynamic_variables',
     ];
-
+    
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'prompt_note_tag');
@@ -28,4 +33,16 @@ class PromptNote extends Model
     {
         return $this->belongsToMany(Platform::class, 'prompt_note_platform');
     }
+
+    public function variables()
+    {
+        return $this->hasMany(PromptNoteVariable::class);
+    }
+
+    //promptable
+     //promptable
+     public function promptable(): MorphTo
+     {
+         return $this->morphTo();
+     }
 }

@@ -26,7 +26,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [tagInput, setTagInput] = useState('');
   const [platforms, setPlatforms] = useState<Platform[]>([]);
 
-  const { data, setData, post, processing } = useForm({
+  const { data, setData, post, processing, errors } = useForm({
     title: '',
     prompt: '',
     tags: [] as string[],
@@ -39,6 +39,13 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     axios.get(route('platform')).then((res) =>
       setPlatforms(res.data.platforms.map((p: Platform) => ({ ...p, selected: false })))
     );
+    // Disable scrolling on mount
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      // Re-enable scrolling on unmount
+      document.body.style.overflow = '';
+    };
   }, []);
 
   const extractDynamicVariables = (promptText: string): string[] => {
@@ -79,38 +86,62 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post(route('prompts.store'));
+    post(route('prompt.store'), {
+      onSuccess: () => onClose(), // Close modal on success
+    });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-md rounded-2xl bg-white/10 backdrop-blur-lg p-6 shadow-lg">
-        <h2 className="mb-4 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg p-6 shadow-lg">
+        <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        {Object.keys(errors).length > 0 && (
+          <div className="mb-4 text-sm text-red-500">
+            {Object.entries(errors).map(([field, error], index) => (
+              <div key={index}>
+          <strong>{field}:</strong> {error}
+              </div>
+            ))}
+          </div>
+        )}
+
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Title */}
-          <InputField label="Title" value={data.title} onChange={(e) => setData('title', e.target.value)} />
+          <InputField
+            label="Title"
+            value={data.title}
+            onChange={(e) => setData('title', e.target.value)}
+            required
+          />
+
+          {/* title error */}
+          {errors.title && <div>{errors.title }</div>}
 
           {/* Prompt */}
           <div>
-            <label className="block mb-2 text-sm font-medium text-white/80">AI Prompt</label>
+            <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-white/80">
+              AI Prompt
+            </label>
             <textarea
               id="prompt-textarea"
               value={data.prompt}
               onChange={(e) => handlePromptChange(e.target.value)}
               placeholder="Use [variable_name] inside your prompt..."
-              className="min-h-[100px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+              className="min-h-[120px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none resize-y"
+              required
             />
             {manualVars.length > 0 && (
-              <div className="mt-2 text-xs text-white/70">
-                <p className="mb-1">Click a variable to insert:</p>
+              <div className="mt-3 text-xs text-white/70">
+                <p className="mb-2">Click a variable to insert:</p>
                 <div className="flex flex-wrap gap-2">
                   {manualVars.map((v, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => insertVariableIntoPrompt(v)}
-                      className="rounded bg-ai-cyan/30 px-2 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50"
+                      className="rounded bg-ai-cyan/30 px-3 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50 transition-colors"
                     >
                       [{v}]
                     </button>
@@ -119,6 +150,12 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               </div>
             )}
           </div>
+          {/* error */}
+          {errors.prompt && <div>{errors.prompt}</div>}
+
+          {/* Prompt error */}
+
+          {/* Title */}
 
           {/* Dynamic Variables */}
           <DynamicVariableInput
@@ -127,6 +164,9 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             data={data}
             setData={setData}
           />
+          {/* Dynamic Variables error */}
+          {errors.dynamic_variables && <div>{errors.dynamic_variables}</div>}
+          {/* Dynamic Variables error */}
 
           {/* Tags */}
           <TagSelector
@@ -137,18 +177,21 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             setTags={setTags}
             setData={setData}
           />
+          {/* Tags error */}
+          {errors.tags && <div>{errors.tags}</div>}
+          {/* Tags error */}
 
           {/* Platforms */}
           <div>
             <label className="block mb-2 text-sm font-medium text-white/80">Platforms</label>
-            <div className="max-h-32 overflow-y-auto rounded-lg bg-white/5 p-3">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="max-h-40 overflow-y-auto rounded-lg bg-white/5 p-4">
+              <div className="grid grid-cols-2 gap-3">
                 {platforms.map((platform) => (
                   <button
                     key={platform.id}
                     type="button"
                     onClick={() => handlePlatformToggle(platform.id.toString())}
-                    className={`text-sm font-medium px-3 py-1 rounded-lg transition-colors ${
+                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
                       platform.selected
                         ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
                         : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
@@ -160,20 +203,23 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               </div>
             </div>
           </div>
+          {/* Platforms error */}
+          {errors.platform && <div>{errors.platform}</div>}
+          {/* Platforms error */}
 
           {/* Buttons */}
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-4 pt-4">
             <button
               type="submit"
               disabled={processing}
-              className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80"
+              className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80 disabled:opacity-50 transition-colors"
             >
-              Add Prompt
+              {processing ? 'Adding...' : 'Add Prompt'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-white/10 px-6 py-2 text-sm font-semibold text-white hover:bg-white/20"
+              className="rounded-lg bg-white/10 px-6 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
             >
               Cancel
             </button>
@@ -184,16 +230,29 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   );
 }
 
-// ⬇️ Reusable input components for clean structure
-function InputField({ label, value, onChange }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function InputField({
+  label,
+  value,
+  onChange,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+}) {
   return (
     <div>
-      <label className="block mb-2 text-sm font-medium text-white/80">{label}</label>
+      <label htmlFor={`${label.toLowerCase()}-input`} className="block mb-2 text-sm font-medium text-white/80">
+        {label}
+      </label>
       <input
+        id={`${label.toLowerCase()}-input`}
         type="text"
         value={value}
         onChange={onChange}
-        className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+        required={required}
+        className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
         placeholder={`Enter ${label.toLowerCase()}...`}
       />
     </div>
@@ -203,11 +262,16 @@ function InputField({ label, value, onChange }: { label: string; value: string; 
 function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setData }: any) {
   return (
     <div>
-      <label className="block mb-2 text-sm font-medium text-white/80">Tags</label>
+      <label htmlFor="tags-input" className="block mb-2 text-sm font-medium text-white/80">
+        Tags
+      </label>
       <div className="relative">
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-3">
           {tags.map((tag: string, i: number) => (
-            <div key={i} className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white">
+            <div
+              key={i}
+              className="flex items-center gap-1 rounded bg-ai-cyan/40 px-3 py-1 text-sm text-white"
+            >
               {tag}
               <button
                 type="button"
@@ -216,13 +280,15 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
                   setTags(updated);
                   setData('tags', updated);
                 }}
-                className="ml-1 text-white hover:text-red-400"
+                className="ml-1 text-white hover:text-red-400 transition-colors"
+                aria-label={`Remove ${tag}`}
               >
                 ✕
               </button>
             </div>
           ))}
           <input
+            id="tags-input"
             type="text"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
@@ -239,12 +305,12 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
               }
             }}
             placeholder="Type to add or select..."
-            className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+            className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none min-w-[150px]"
           />
         </div>
 
         {tagInput && (
-          <ul className="absolute z-10 mt-1 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg">
+          <ul className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg">
             {availableTags
               .filter((t: Tag) => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t.name))
               .map((tag: Tag) => (
@@ -256,7 +322,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
                     setData('tags', updated);
                     setTagInput('');
                   }}
-                  className="cursor-pointer px-4 py-2 text-sm text-white hover:bg-ai-cyan/40"
+                  className="cursor-pointer px-4 py-2 text-sm text-white hover:bg-ai-cyan/40 transition-colors"
                 >
                   {tag.name}
                 </li>
@@ -271,10 +337,15 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
 function DynamicVariableInput({ manualVars, setManualVars, data, setData }: any) {
   return (
     <div>
-      <label className="block mb-2 text-sm font-medium text-white/80">Dynamic Variables</label>
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-2">
+      <label htmlFor="dynamic-variables-input" className="block mb-2 text-sm font-medium text-white/80">
+        Dynamic Variables
+      </label>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-white/20 bg-transparent p-3">
         {manualVars.map((v: string, i: number) => (
-          <div key={i} className="flex items-center gap-1 rounded bg-ai-cyan/40 px-2 py-1 text-sm text-white">
+          <div
+            key={i}
+            className="flex items-center gap-1 rounded bg-ai-cyan/40 px-3 py-1 text-sm text-white"
+          >
             {v}
             <button
               type="button"
@@ -285,13 +356,15 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData }: any)
                 const newPrompt = data.prompt.replaceAll(`[${v}]`, v);
                 setData('prompt', newPrompt);
               }}
-              className="ml-1 text-white hover:text-red-400"
+              className="ml-1 text-white hover:text-red-400 transition-colors"
+              aria-label={`Remove ${v}`}
             >
               ✕
             </button>
           </div>
         ))}
         <input
+          id="dynamic-variables-input"
           type="text"
           onKeyDown={(e) => {
             if ((e.key === 'Enter' || e.key === ',') && e.currentTarget.value.trim()) {
@@ -310,7 +383,7 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData }: any)
             }
           }}
           placeholder="Type and press Enter"
-          className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none"
+          className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none min-w-[150px]"
         />
       </div>
     </div>
