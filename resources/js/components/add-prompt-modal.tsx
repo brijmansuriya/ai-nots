@@ -93,138 +93,122 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg p-6 shadow-lg">
-        <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
+      <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg shadow-lg">
+        {/* Scrollable content */}
+        <div className="max-h-[80vh] overflow-y-auto p-6">
+          <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
 
-        {Object.keys(errors).length > 0 && (
-          <div className="mb-4 text-sm text-red-500">
-            {Object.entries(errors).map(([field, error], index) => (
-              <div key={index}>
-          <strong>{field}:</strong> {error}
-              </div>
-            ))}
-          </div>
-        )}
+          {Object.keys(errors).length > 0 && (
+            <div className="mb-4 text-sm text-red-500">
+              {Object.entries(errors).map(([field, error], index) => (
+                <div key={index}>
+                  <strong>{field}:</strong> {error}
+                </div>
+              ))}
+            </div>
+          )}
 
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <InputField
-            label="Title"
-            value={data.title}
-            onChange={(e) => setData('title', e.target.value)}
-            required
-          />
-
-          {/* title error */}
-          {errors.title && <div>{errors.title }</div>}
-
-          {/* Prompt */}
-          <div>
-            <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-white/80">
-              AI Prompt
-            </label>
-            <textarea
-              id="prompt-textarea"
-              value={data.prompt}
-              onChange={(e) => handlePromptChange(e.target.value)}
-              placeholder="Use [variable_name] inside your prompt..."
-              className="min-h-[120px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none resize-y"
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <InputField
+              label="Title"
+              value={data.title}
+              onChange={(e) => setData('title', e.target.value)}
               required
             />
-            {manualVars.length > 0 && (
-              <div className="mt-3 text-xs text-white/70">
-                <p className="mb-2">Click a variable to insert:</p>
-                <div className="flex flex-wrap gap-2">
-                  {manualVars.map((v, i) => (
+
+            {/* Prompt */}
+            <div>
+              <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-white/80">
+                AI Prompt
+              </label>
+              <textarea
+                id="prompt-textarea"
+                value={data.prompt}
+                onChange={(e) => handlePromptChange(e.target.value)}
+                placeholder="Use [variable_name] inside your prompt..."
+                className="min-h-[120px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none resize-y"
+                required
+              />
+              {manualVars.length > 0 && (
+                <div className="mt-3 text-xs text-white/70">
+                  <p className="mb-2">Click a variable to insert:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {manualVars.map((v, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => insertVariableIntoPrompt(v)}
+                        className="rounded bg-ai-cyan/30 px-3 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50 transition-colors"
+                      >
+                        [{v}]
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Dynamic Variables */}
+            <DynamicVariableInput
+              manualVars={manualVars}
+              setManualVars={setManualVars}
+              data={data}
+              setData={setData}
+            />
+
+            {/* Tags */}
+            <TagSelector
+              tags={tags}
+              tagInput={tagInput}
+              setTagInput={setTagInput}
+              availableTags={availableTags}
+              setTags={setTags}
+              setData={setData}
+            />
+
+            {/* Platforms */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-white/80">Platforms</label>
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-white/5 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {platforms.map((platform) => (
                     <button
-                      key={i}
+                      key={platform.id}
                       type="button"
-                      onClick={() => insertVariableIntoPrompt(v)}
-                      className="rounded bg-ai-cyan/30 px-3 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50 transition-colors"
+                      onClick={() => handlePlatformToggle(platform.id.toString())}
+                      className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
+                        platform.selected
+                          ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
+                          : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
+                      }`}
                     >
-                      [{v}]
+                      {platform.name}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-          {/* error */}
-          {errors.prompt && <div>{errors.prompt}</div>}
-
-          {/* Prompt error */}
-
-          {/* Title */}
-
-          {/* Dynamic Variables */}
-          <DynamicVariableInput
-            manualVars={manualVars}
-            setManualVars={setManualVars}
-            data={data}
-            setData={setData}
-          />
-          {/* Dynamic Variables error */}
-          {errors.dynamic_variables && <div>{errors.dynamic_variables}</div>}
-          {/* Dynamic Variables error */}
-
-          {/* Tags */}
-          <TagSelector
-            tags={tags}
-            tagInput={tagInput}
-            setTagInput={setTagInput}
-            availableTags={availableTags}
-            setTags={setTags}
-            setData={setData}
-          />
-          {/* Tags error */}
-          {errors.tags && <div>{errors.tags}</div>}
-          {/* Tags error */}
-
-          {/* Platforms */}
-          <div>
-            <label className="block mb-2 text-sm font-medium text-white/80">Platforms</label>
-            <div className="max-h-40 overflow-y-auto rounded-lg bg-white/5 p-4">
-              <div className="grid grid-cols-2 gap-3">
-                {platforms.map((platform) => (
-                  <button
-                    key={platform.id}
-                    type="button"
-                    onClick={() => handlePlatformToggle(platform.id.toString())}
-                    className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-                      platform.selected
-                        ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
-                        : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
-                    }`}
-                  >
-                    {platform.name}
-                  </button>
-                ))}
-              </div>
             </div>
-          </div>
-          {/* Platforms error */}
-          {errors.platform && <div>{errors.platform}</div>}
-          {/* Platforms error */}
+          </form>
+        </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="submit"
-              disabled={processing}
-              className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80 disabled:opacity-50 transition-colors"
-            >
-              {processing ? 'Adding...' : 'Add Prompt'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg bg-white/10 px-6 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+        {/* Buttons */}
+        <div className="flex justify-end gap-4 p-4 border-t border-white/20">
+          <button
+            type="submit"
+            disabled={processing}
+            className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80 disabled:opacity-50 transition-colors"
+          >
+            {processing ? 'Adding...' : 'Add Prompt'}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-white/10 px-6 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
