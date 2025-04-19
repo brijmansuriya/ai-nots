@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, LayoutGrid } from 'lucide-react';
 import { FormEventHandler } from 'react';
+import { FcGoogle } from 'react-icons/fc'; // Import Google icon
 
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -111,6 +112,18 @@ export default function Register() {
             Create account
           </Button>
         </form>
+
+        <div className="text-center text-sm text-muted-foreground">
+          Or sign up with:
+        </div>
+
+        <Button
+          type="button"
+          className="w-full flex items-center justify-center"
+          onClick={() => window.location.href = route('auth.google.redirect')}
+        >
+          <FcGoogle className="mr-2 h-5 w-5" /> Sign up with Google
+        </Button>
 
         <div className="text-muted-foreground text-center text-sm">
           Already have an account?{' '}

@@ -24,6 +24,7 @@ class SocialAuthController extends Controller
             [
                 'name' => $googleUser->getName(),
                 'password' => bcrypt(str()->random(16)), // Generate a random password
+                'google_id' => $googleUser->getId(), // Store Google ID
             ]
         );
 
