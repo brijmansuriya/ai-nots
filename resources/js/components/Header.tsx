@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link, usePage } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,6 +21,32 @@ export default function Header() {
     { name: 'Login', url: route('login') },
     { name: 'Register', url: route('register') },
   ];
+
+  const { data, setData, post, processing, errors } = useForm({
+
+  });
+
+  //submit
+  // route('logout')
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Perform logout action here
+    post(route('logout'), {
+      onSuccess: () => {
+        console.log('Logout successful');
+      },
+      onError: () => {
+        console.error('Logout failed');
+      },
+    });
+  };
+
+  // const handleSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   post(route('prompt.store'), {
+  //     onSuccess: () => onClose(), // Close modal on success
+  //   });
+  // };
 
   return (
     <header className="fixed top-0 w-full z-50 bg-ai-dark/60 backdrop-blur-lg shadow-lg">
@@ -80,8 +107,7 @@ export default function Header() {
                     >
                       Dashboard
                     </Link>
-                    <form method="POST" action={route('logout')}>
-                      <input type="hidden" name="_token" value={csrf_token} />
+                    <form method="POST" onSubmit={submit}>
                       <button
                         type="submit"
                         className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
