@@ -63,6 +63,6 @@ class PromptController extends Controller
             $promptNote->variables()->createMany($variables);
         }
 
-        return redirect()->route('prompt.index')->with('success', 'Prompt created successfully.');
+        return redirect()->route('home')->with('success', 'Prompt created successfully.');
     }
 }

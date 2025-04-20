@@ -41,7 +41,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     );
     // Disable scrolling on mount
     document.body.style.overflow = 'hidden';
-    
+
     return () => {
       // Re-enable scrolling on unmount
       document.body.style.overflow = '';
@@ -88,16 +88,18 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     e.preventDefault();
     post(route('prompt.store'), {
       onSuccess: () => onClose(), // Close modal on success
+      onError: () => console.error('Form submission failed:', errors),
     });
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg shadow-lg">
-        {/* Scrollable content */}
-        <div className="max-h-[80vh] overflow-y-auto p-6">
+        {/* Scrollable content with themed scrollbar */}
+        <div className="max-h-[80vh] overflow-y-auto p-6 themed-scrollbar">
           <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
 
+          {/* Error Messages */}
           {Object.keys(errors).length > 0 && (
             <div className="mb-4 text-sm text-red-500">
               {Object.entries(errors).map(([field, error], index) => (
@@ -108,7 +110,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form id="prompt-form" onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <InputField
               label="Title"
@@ -116,6 +118,8 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               onChange={(e) => setData('title', e.target.value)}
               required
             />
+            {/* Error Messages */}
+            {errors.title && <span className="text-red-500">{errors.title}</span>}
 
             {/* Prompt */}
             <div>
@@ -170,7 +174,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
             {/* Platforms */}
             <div>
               <label className="block mb-2 text-sm font-medium text-white/80">Platforms</label>
-              <div className="max-h-40 overflow-y-auto rounded-lg bg-white/5 p-4">
+              <div className="max-h-40 overflow-y-auto rounded-lg bg-white/5 p-4 themed-scrollbar">
                 <div className="grid grid-cols-2 gap-3">
                   {platforms.map((platform) => (
                     <button
@@ -196,6 +200,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
         <div className="flex justify-end gap-4 p-4 border-t border-white/20">
           <button
             type="submit"
+            form="prompt-form" // Link button to form
             disabled={processing}
             className="rounded-lg bg-ai-cyan px-6 py-2 text-sm font-semibold text-white hover:bg-ai-cyan/80 disabled:opacity-50 transition-colors"
           >
@@ -294,7 +299,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
         </div>
 
         {tagInput && (
-          <ul className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg">
+          <ul className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">
             {availableTags
               .filter((t: Tag) => t.name.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t.name))
               .map((tag: Tag) => (

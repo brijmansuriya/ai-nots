@@ -272,3 +272,36 @@ body {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* scolling add promt popup */
+/* index.css or equivalent */
+.themed-scrollbar {
+  /* Firefox */
+  scrollbar-color: #00f7ff #1a2a44; /* ai-cyan thumb, ai-dark track */
+  scrollbar-width: thin;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+.themed-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: rgba(26, 42, 68, 0.6); /* ai-dark/60 */
+  border-radius: 4px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background: #00f7ff; /* ai-cyan */
+  border-radius: 4px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00d4e6; /* Slightly darker ai-cyan for hover */
+}
+
+.themed-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+/*end : scolling add promt popup */

@@ -4,6 +4,8 @@ import Header from '@/components/header';
 import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
+//WebLayout
+import WebLayout from '@/layouts/web-layout';
 
 interface Prompt {
   id: number;
@@ -21,9 +23,8 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
   const [isModalOpen, setIsModalOpen] = useState(false); // Controls modal visibility
 
   return (
-    <div className="min-h-screen">
+    <WebLayout title="Home" >
       {/* Page Meta Title */}
-      <Head title="Home" />
 
       {/* Header & Hero Section */}
       <Header />
@@ -57,6 +58,6 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
       {isModalOpen && (
         <AddPromptModal onClose={() => setIsModalOpen(false)} />
       )}
-    </div>
+    </WebLayout>
   );
 }

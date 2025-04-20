@@ -1,7 +1,7 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
 import Header from '@/components/header';
-// import Footer from '@/components/footer';  // If you want to add a footer section
+import Footer from '@/components/footer';  // If you want to add a footer section
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 
 
@@ -20,7 +20,7 @@ export default function WebLayout({ children, title, ...props }: { children: Rea
             </main>
 
             {/* Footer Section */}
-            {/* <Footer /> Uncomment if you have a Footer component */}
+            <Footer /> 
         </div>
     );
 }
