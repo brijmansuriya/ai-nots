@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
+import { Prompt } from '@/types';
 
-interface Prompt {
+export interface Tags {
   id: number;
-  text: string;
-  tags: string[];
+  name: string;
+  slug: string;
+  description: string | null;
+  status: string;
+  created_by_id: number;
+  created_by_type: string;
+  created_at: string;
+  updated_at: string;
+  pivot: {
+    prompt_id: number;
+    tag_id: number;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 interface NoteCardProps {
@@ -23,20 +36,49 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
     setIsExpanded(!isExpanded);
   };
 
-  const copyPrompt = () => {
-    navigator.clipboard.writeText(prompt.text).then(() => {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    });
+  const copyPrompt = async () => {
+    const text = prompt?.prompt || '';
+    if (!text) return;
+  
+    // Modern clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error('Clipboard write failed', err);
+      }
+    } else {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+  
+      try {
+        document.execCommand('copy');
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+  
+      document.body.removeChild(textarea);
+    }
   };
-
+  
+  
   return (
     <div
       className="note-card bg-white/10 rounded-2xl p-3 xs:p-4 sm:p-5 md:p-6 hover:-translate-y-2 hover:shadow-lg hover:shadow-ai-cyan/30 transition-all duration-300"
       style={{ '--index': index } as React.CSSProperties}
     >
       <p className="text-white/90 text-xs xs:text-sm sm:text-base mb-3 sm:mb-4 h-12 xs:h-14 sm:h-16 md:h-20 overflow-hidden text-ellipsis">
-        {prompt.text}
+        {prompt.title}
       </p>
 
       <div className="tags flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4 min-h-[1.5rem] sm:min-h-[1.75rem]">
@@ -45,7 +87,7 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
             key={idx}
             className="tag bg-ai-cyan/20 text-ai-cyan text-[0.65rem] xs:text-xs sm:text-sm font-medium px-2 xs:px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full hover:bg-ai-cyan/40 transition-colors"
           >
-            {tag}
+            {tag.name} {/* Display the tag name */}
           </span>
         ))}
 
@@ -56,7 +98,7 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
               isExpanded ? '' : 'hidden'
             }`}
           >
-            {tag}
+            {tag.name} {/* Display the tag name */}
           </span>
         ))}
 

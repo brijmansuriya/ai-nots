@@ -17,7 +17,6 @@ class PromptNote extends Model
         'prompt',
         'promptable_id',
         'promptable_type',
-        // 'description',
         'is_public', //'0 : pending, 1 : approved, 2 : rejected'
         'status', //'0 : pending, 1 : approved, 2 : rejected'
         'category_id',

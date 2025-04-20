@@ -6,13 +6,7 @@ import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
 //WebLayout
 import WebLayout from '@/layouts/web-layout';
-
-interface Prompt {
-  id: number;
-  text: string;
-  tags: string[];
-  platform: string;
-}
+import { Prompt } from '@/types';
 
 interface HomeProps {
   prompts: Prompt[];
@@ -48,9 +42,11 @@ export default function Home({ prompts: initialPrompts }: HomeProps) {
 
         {/* Prompt Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-8">
-          {prompts.map((prompt, index) => (
+          
+          {prompts.map((prompt, index) =>{
+            return(
             <NoteCard key={prompt.id} prompt={prompt} index={index} />
-          ))}
+          )})}
         </div>
       </section>
 

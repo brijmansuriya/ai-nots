@@ -52,3 +52,34 @@ export interface Tag {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Tags {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    status: string;
+    created_by_id: number;
+    created_by_type: string;
+    created_at: string;
+    updated_at: string;
+    pivot: {
+        prompt_id: number;
+        tag_id: number;
+        created_at: string;
+        updated_at: string;
+    };
+}
+
+export interface Prompt {
+    id: number;
+    title: string;
+    prompt: string;
+    promptable_id: number;
+    promptable_type: 'admin' | 'user' | 'guest';
+    is_public: 0 | 1 | 2;
+    status: 0 | 1 | 2;
+    category_id: number;
+    dynamic_variables: Record<string, any>;
+    tags: Tags[];
+}
