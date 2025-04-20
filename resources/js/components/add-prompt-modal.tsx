@@ -141,6 +141,10 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
       ...provided,
       color: 'rgba(255, 255, 255, 0.5)', // Light placeholder text
     }),
+    input: (provided: any) => ({
+      ...provided,
+      color: '#fff', // White text for search input
+    }),
   };
 
   return (
