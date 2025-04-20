@@ -25,12 +25,14 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const [manualVars, setManualVars] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   const { data, setData, post, processing, errors } = useForm({
     title: '',
     prompt: '',
     tags: [] as string[],
     platform: [] as string[],
+    category_id: '',
     dynamic_variables: [] as string[],
   });
 
@@ -39,6 +41,13 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     axios.get(route('platform')).then((res) =>
       setPlatforms(res.data.platforms.map((p: Platform) => ({ ...p, selected: false })))
     );
+
+
+    axios.get(route('categories')).then((res) => {
+      // Assuming categories are fetched and set in a similar way
+      setCategories(res.data.categories);
+    });
+
     // Disable scrolling on mount
     document.body.style.overflow = 'hidden';
 
@@ -161,6 +170,34 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               setData={setData}
             />
 
+           {/* Category */}
+           <div>
+              <label htmlFor="category_id" className="block mb-2 text-sm font-medium text-white/80">
+                Category
+              </label>
+              <select
+                id="category_id"
+                value={data.category_id}
+                onChange={(e) => setData('category_id', e.target.value)}
+                className="w-full rounded-lg border border-white/20 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none themed-scrollbar"
+                aria-describedby={errors.category_id ? 'category_id-error' : undefined}
+              >
+                <option value="" className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">
+                  Select a category
+                </option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id} className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {errors.category_id && (
+                <span id="category_id-error" className="mt-1 block text-sm text-red-500">
+                  {errors.category_id}
+                </span>
+              )}
+            </div>
+
             {/* Tags */}
             <TagSelector
               tags={tags}
@@ -181,11 +218,10 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
                       key={platform.id}
                       type="button"
                       onClick={() => handlePlatformToggle(platform.id.toString())}
-                      className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-                        platform.selected
+                      className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${platform.selected
                           ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
                           : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
-                      }`}
+                        }`}
                     >
                       {platform.name}
                     </button>

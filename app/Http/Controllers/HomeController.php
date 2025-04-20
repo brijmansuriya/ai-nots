@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\Platform;
 use App\Models\Tag;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Category;
+use App\Models\Platform;
+use App\Models\PromptNote;
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class HomeController extends Controller
 {
     public function index()
     {
-    
+        $prompts = PromptNote::with('tags', 'platforms')
+        ->latest()
+        ->get();
+        // dd($prompts);
         $tags = Tag::all();
         $prompts = [
             [
@@ -63,6 +68,14 @@ class HomeController extends Controller
         $platforms = Platform::all();
         return response()->json([
             'platforms' => $platforms
+        ]);
+    }
+
+    //categories
+    public function categories(){
+        $categories = Category::all();
+        return response()->json([
+            'categories' => $categories
         ]);
     }
 }
