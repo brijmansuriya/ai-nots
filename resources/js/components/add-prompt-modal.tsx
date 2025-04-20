@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import axios from 'axios';
+import Select from 'react-select';
 
 interface Tag {
   id: number;
@@ -41,7 +42,6 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
     axios.get(route('platform')).then((res) =>
       setPlatforms(res.data.platforms.map((p: Platform) => ({ ...p, selected: false })))
     );
-
 
     axios.get(route('categories')).then((res) => {
       // Assuming categories are fetched and set in a similar way
@@ -99,6 +99,48 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
       onSuccess: () => onClose(), // Close modal on success
       onError: () => console.error('Form submission failed:', errors),
     });
+  };
+
+  const categoryOptions = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
+
+  const customStyles = {
+    control: (provided: any) => ({
+      ...provided,
+      backgroundColor: '', // Dark background
+      borderColor: 'rgba(255, 255, 255, 0.2)', // Light border
+      color: '#fff', // White text
+      borderRadius: '0.5rem',
+      padding: '0.25rem',
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: '#00FFFF', // AI Cyan hover
+      },
+    }),
+    menu: (provided: any) => ({
+      ...provided,
+      backgroundColor: 'rgba(0, 0, 0, 0.9)', // Dark dropdown menu
+      borderRadius: '0.5rem',
+      overflow: 'hidden',
+      color: '#fff', // White text
+    }),
+    option: (provided: any, state: any) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? 'rgba(0, 255, 255, 0.3)' : 'transparent', // AI Cyan hover
+      color: '#fff', // White text
+      padding: '0.5rem',
+      cursor: 'pointer',
+    }),
+    singleValue: (provided: any) => ({
+      ...provided,
+      color: '#fff', // White text for selected value
+    }),
+    placeholder: (provided: any) => ({
+      ...provided,
+      color: 'rgba(255, 255, 255, 0.5)', // Light placeholder text
+    }),
   };
 
   return (
@@ -170,27 +212,20 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               setData={setData}
             />
 
-           {/* Category */}
-           <div>
+            {/* Category */}
+            <div>
               <label htmlFor="category_id" className="block mb-2 text-sm font-medium text-white/80">
                 Category
               </label>
-              <select
+              <Select
                 id="category_id"
-                value={data.category_id}
-                onChange={(e) => setData('category_id', e.target.value)}
-                className="w-full rounded-lg border border-white/20 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none themed-scrollbar"
-                aria-describedby={errors.category_id ? 'category_id-error' : undefined}
-              >
-                <option value="" className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">
-                  Select a category
-                </option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id} className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                options={categoryOptions}
+                value={categoryOptions.find((option) => option.value === data.category_id)}
+                onChange={(selectedOption) => setData('category_id', selectedOption?.value || '')}
+                styles={customStyles}
+                placeholder="Select a category"
+                isClearable
+              />
               {errors.category_id && (
                 <span id="category_id-error" className="mt-1 block text-sm text-red-500">
                   {errors.category_id}
