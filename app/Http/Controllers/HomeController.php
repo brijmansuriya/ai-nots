@@ -48,6 +48,11 @@ class HomeController extends Controller
         ]);
     }
 
+    //home
+    public function home(Request $request){
+        
+    }
+
     // public function dashboard()
     public function dashboard(Request $request)
     {

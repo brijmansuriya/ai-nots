@@ -10,6 +10,7 @@ use Laravel\Socialite\Facades\Socialite;
 
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/home', [HomeController::class, 'home'])->name('homedata');
 
 //create prompt
 Route::prefix('prompt')->group(function () {

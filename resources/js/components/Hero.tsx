@@ -1,6 +1,10 @@
 import React from 'react';
 
-export default function Hero() {
+type props= {
+  onChange:(e:React.ChangeEvent<HTMLInputElement>)=>void
+}
+
+export default function Hero({onChange}:props) {
   const handleSearch = () => {
     alert('Searching...');
   };
@@ -18,6 +22,7 @@ export default function Hero() {
           type="text"
           placeholder="Search for AI tools or features..."
           className="flex-1 bg-transparent border-none outline-none text-white text-xs xs:text-sm sm:text-base px-3 sm:px-4 py-2"
+          onChange={onChange}
         />
         <button
           onClick={handleSearch}
