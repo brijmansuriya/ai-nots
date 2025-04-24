@@ -12,45 +12,60 @@ use App\Http\Controllers\Controller;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $prompts = PromptNote::with('tags', 'platforms')
-        ->latest()
-        ->get();
-        // dd($prompts);
-        $tags = Tag::all();
-        // $prompts = [
-        //     [
-        //         'id' => 1,
-        //         'text' => 'Generate a futuristic cityscape description for a sci-fi novel.',
-        //         'tags' => ['Creative', 'Sci-Fi', 'Writing', 'Fiction', 'Worldbuilding'],
-        //     ],
-        //     [
-        //         'id' => 2,
-        //         'text' => 'Write a Python script to analyze sentiment in customer reviews.',
-        //         'tags' => ['Coding', 'Python', 'Data Analysis', 'NLP'],
-        //     ],
-        //     [
-        //         'id' => 3,
-        //         'text' => 'Create a marketing slogan for an AI-powered assistant.',
-        //         'tags' => ['Marketing', 'Branding', 'Creative', 'Advertising', 'AI'],
-        //     ],
-        //     [
-        //         'id' => 4,
-        //         'text' => 'Design a workout plan for beginners using AI optimization.',
-        //         'tags' => ['Fitness', 'Health', 'AI Optimization', 'Beginner'],
-        //     ],
-        // ];
+        $search = $request->input('search');
+        // dd($search);
+        // Fetch prompts with eager loading to avoid N+1 query issue
+        $prompts = PromptNote::with(['tags', 'platforms'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('prompt', 'like', "%{$search}%")
+                      ->orWhereHas('tags', function ($tagQuery) use ($search) {
+                          $tagQuery->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('platforms', function ($platformQuery) use ($search) {
+                          $platformQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->latest()
+            ->paginate(10);  // Pagination for better performance with large data
 
         return Inertia::render('home', [
             'prompts' => $prompts,
-            'tags' => $tags,
+            'search' => $search,
         ]);
     }
 
     //home
-    public function home(Request $request){
-        
+    public function home(Request $request)
+    {
+        $search = $request->input('search');
+        // dd($search);
+        // Fetch prompts with eager loading to avoid N+1 query issue
+        $prompts = PromptNote::with(['tags', 'platforms'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('prompt', 'like', "%{$search}%")
+                      ->orWhereHas('tags', function ($tagQuery) use ($search) {
+                          $tagQuery->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('platforms', function ($platformQuery) use ($search) {
+                          $platformQuery->where('name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->latest()
+            ->paginate(10); 
+
+                return response()->json([
+                    'data' => $prompts->items(),            // The array of prompts
+                    'current_page' => $prompts->currentPage(),
+                    'last_page' => $prompts->lastPage(),
+                ]);
     }
 
     // public function dashboard()
@@ -60,7 +75,8 @@ class HomeController extends Controller
     }
 
     //get tags list
-    public function tags(){
+    public function tags()
+    {
         $tags = Tag::all();
         return response()->json([
             'tags' => $tags
@@ -68,7 +84,8 @@ class HomeController extends Controller
     }
 
     //platform
-    public function platform(){
+    public function platform()
+    {
         $platforms = Platform::all();
         return response()->json([
             'platforms' => $platforms
@@ -76,7 +93,8 @@ class HomeController extends Controller
     }
 
     //categories
-    public function categories(){
+    public function categories()
+    {
         $categories = Category::all();
         return response()->json([
             'categories' => $categories

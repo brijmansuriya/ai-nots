@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { router } from '@inertiajs/react';
 
-type props= {
-  onChange:(e:React.ChangeEvent<HTMLInputElement>)=>void
-}
+type Props = {
+  search?: string;
+};
 
-export default function Hero({onChange}:props) {
-  const handleSearch = () => {
-    alert('Searching...');
-  };
+export default function Hero({ search = '' }: Props) {
+  const [query, setQuery] = useState<string>(search);
+  const [debouncedQuery, setDebouncedQuery] = useState<string>(search);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 500); // Delay 500ms after the user stops typing
+
+    return () => {
+      clearTimeout(handler); // Clean up the timeout if the user types again
+    };
+  }, [query]);
+
+  useEffect(() => {
+    if (debouncedQuery !== search) {
+      router.get('/', { search: debouncedQuery }, {
+        preserveState: true,
+        replace: true,
+      });
+    }
+  }, [debouncedQuery, search]);
 
   return (
     <section className="hero min-h-screen flex flex-col justify-center items-center text-center px-3 sm:px-4 md:px-6 lg:px-8">
@@ -20,12 +39,13 @@ export default function Hero({onChange}:props) {
       <div className="search-bar flex items-center w-full max-w-[16rem] xs:max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg bg-white/10 rounded-full p-2 sm:p-2.5 hover:scale-105 transition-transform duration-300">
         <input
           type="text"
+          value={query || ''}  // Use an empty string if query is falsy (null, undefined)
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for AI tools or features..."
           className="flex-1 bg-transparent border-none outline-none text-white text-xs xs:text-sm sm:text-base px-3 sm:px-4 py-2"
-          onChange={onChange}
         />
         <button
-          onClick={handleSearch}
+          onClick={() => router.get('/', { search: query }, { preserveState: true, replace: true })}
           className="bg-ai-cyan text-white font-semibold px-3 sm:px-4 md:px-5 py-2 rounded-full hover:bg-ai-coral transition-colors text-xs sm:text-sm"
         >
           Search
