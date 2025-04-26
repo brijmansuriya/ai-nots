@@ -78,7 +78,7 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
       style={{ '--index': index } as React.CSSProperties}
     >
       <p className="text-white/90 text-xs xs:text-sm sm:text-base mb-3 sm:mb-4 h-12 xs:h-14 sm:h-16 md:h-20 overflow-hidden text-ellipsis">
-        {prompt.title}
+        #{prompt.id} | {prompt.title} 
       </p>
 
       <div className="tags flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4 min-h-[1.5rem] sm:min-h-[1.75rem]">

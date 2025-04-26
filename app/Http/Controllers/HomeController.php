@@ -14,67 +14,38 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        // dd($search);
-        // Fetch prompts with eager loading to avoid N+1 query issue
-        $prompts = PromptNote::with(['tags', 'platforms'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                      ->orWhere('prompt', 'like', "%{$search}%")
-                      ->orWhereHas('tags', function ($tagQuery) use ($search) {
-                          $tagQuery->where('name', 'like', "%{$search}%");
-                      })
-                      ->orWhereHas('platforms', function ($platformQuery) use ($search) {
-                          $platformQuery->where('name', 'like', "%{$search}%");
-                      });
-                });
-            })
-            ->latest()
-            ->paginate(10);  // Pagination for better performance with large data
-
         return Inertia::render('home', [
-            'prompts' => $prompts,
-            'search' => $search,
+            'search' => $request->input('search', ''),
         ]);
     }
 
-    //home
     public function home(Request $request)
     {
-        $search = $request->input('search');
-        // dd($search);
-        // Fetch prompts with eager loading to avoid N+1 query issue
+        $search = $request->input('search', '');
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                      ->orWhere('prompt', 'like', "%{$search}%")
-                      ->orWhereHas('tags', function ($tagQuery) use ($search) {
-                          $tagQuery->where('name', 'like', "%{$search}%");
-                      })
-                      ->orWhereHas('platforms', function ($platformQuery) use ($search) {
-                          $platformQuery->where('name', 'like', "%{$search}%");
-                      });
-                });
+                $query->where('title', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhere("id", "LIKE", "%{$search}%")
+                ->orWhere('prompt', 'like', "%{$search}%")
+                ->orWhereHas('tags', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('platforms', fn($q) => $q->where('name', 'like', "%{$search}%"));
             })
             ->latest()
-            ->paginate(10); 
+            ->paginate(10);
 
-                return response()->json([
-                    'data' => $prompts->items(),            // The array of prompts
-                    'current_page' => $prompts->currentPage(),
-                    'last_page' => $prompts->lastPage(),
-                ]);
+        return response()->json([
+            'data' => $prompts->items(),
+            'current_page' => $prompts->currentPage(),
+            'last_page' => $prompts->lastPage(),
+        ]);
     }
 
-    // public function dashboard()
     public function dashboard(Request $request)
     {
         return Inertia::render('dashboard');
     }
 
-    //get tags list
     public function tags()
     {
         $tags = Tag::all();
@@ -83,7 +54,6 @@ class HomeController extends Controller
         ]);
     }
 
-    //platform
     public function platform()
     {
         $platforms = Platform::all();
@@ -92,7 +62,6 @@ class HomeController extends Controller
         ]);
     }
 
-    //categories
     public function categories()
     {
         $categories = Category::all();

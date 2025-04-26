@@ -1,63 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import Header from '@/components/header';
 import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
 import WebLayout from '@/layouts/web-layout';
+import LoadMoreTrigger from '@/components/LoadMoreTrigger'; // Import LoadMoreTrigger
 import { Prompt, Tag } from '@/types';
 import axios from 'axios';
 
 interface HomeProps {
-  prompts: {
-    data: Prompt[];
-    current_page: number;
-    last_page: number;
-  };
   search?: string;
   tags?: Tag[];
 }
 
-export default function Home({ prompts: initialPrompts, search = '' }: HomeProps) {
-  const [prompts, setPrompts] = useState<Prompt[]>(initialPrompts.data);
-  const [currentPage, setCurrentPage] = useState<number>(initialPrompts.current_page);
-  const [lastPage, setLastPage] = useState<number>(initialPrompts.last_page);
+export default function Home({ search = '' }: HomeProps) {
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [lastPage, setLastPage] = useState<number>(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState<string>(search);
+  const [debouncedQuery, setDebouncedQuery] = useState<string>(search);
+  const isFetching = useRef(false); // Ref to track ongoing fetch
 
-  const loadMorePrompts = async () => {
-    if (loading || currentPage >= lastPage) return;
+  const fetchPrompts = useCallback(async (page = 1, searchQuery = '') => {
+    if (isFetching.current || page > lastPage || page < currentPage) return; // Prevent redundant calls
+    isFetching.current = true; // Mark as fetching
     setLoading(true);
-  
     try {
       const response = await axios.get(route('homedata'), {
-        params: { page: currentPage + 1 },
+        params: { page, search: searchQuery },
       });
-  
-      setPrompts(prev => [...prev, ...response.data.data]);
+      const newPrompts = response.data.data;
+      setPrompts(prev =>
+        page === 1
+          ? newPrompts
+          : [...prev, ...newPrompts.filter((p: Prompt) => !prev.some(existing => existing.id === p.id))]
+      );
       setCurrentPage(response.data.current_page);
       setLastPage(response.data.last_page);
     } catch (error) {
-      console.error('Failed to load prompts:', error);
+      console.error('Failed to fetch prompts:', error);
     } finally {
       setLoading(false);
+      isFetching.current = false; // Reset fetching state
     }
-  };
-
-  const handleScroll = () => {
-    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 200;
-    if (nearBottom) loadMorePrompts();
-  };
+  }, [lastPage, currentPage]);
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [currentPage, loading]);
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+      fetchPrompts(1, query); // Trigger fetch on query change
+    }, 500); // Debounce delay
+
+    return () => clearTimeout(handler);
+  }, [query]);
+
+  useEffect(() => {
+    fetchPrompts(1, debouncedQuery); // Ensure initial data load
+  }, [debouncedQuery, fetchPrompts]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loading && currentPage < lastPage) {
+      fetchPrompts(currentPage + 1, debouncedQuery);
+    }
+  }, [loading, currentPage, lastPage, debouncedQuery, fetchPrompts]);
 
   return (
     <WebLayout title="Home">
       <Header />
-      <Hero search={search} />
+      <Hero search={query} onSearchChange={setQuery} />
 
       <section className="notes-section mx-2 sm:mx-4 md:mx-8 lg:mx-12 xl:mx-16 py-6 sm:py-8 md:py-10 lg:py-12 rounded-3xl text-center bg-black/20 backdrop-blur-lg">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 px-16">
@@ -83,7 +96,13 @@ export default function Home({ prompts: initialPrompts, search = '' }: HomeProps
         </div>
 
         {loading && (
-          <div className="text-center py-4 text-white">Loading more prompts...</div>
+          <div className="text-center py-4 transition-opacity duration-300 opacity-100">
+            <p className="animate-pulse">Loading...</p>
+          </div>
+        )}
+
+        {!loading && currentPage < lastPage && (
+          <LoadMoreTrigger onVisible={handleLoadMore} />
         )}
       </section>
 
