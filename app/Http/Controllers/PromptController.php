@@ -5,17 +5,17 @@ namespace App\Http\Controllers;
 use \App\Models\Tag;
 use App\Models\PromptNote;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class PromptController extends Controller
 {
 
     public function store(Request $request)
     {
-        // dd( $request->all());
         $request->validate([
             'title' => 'required|string|max:255',
             'prompt' => 'required|string|max:1000',
-            // 'description' => 'required|string|max:1000',
+            'category_id' => 'required|integer|exists:categories,id',
             'tags' => 'required|array',
             'tags.*' => 'string|max:50',
             'platform' => 'required|array',
@@ -24,8 +24,12 @@ class PromptController extends Controller
             'dynamic_variables.*' => 'string|max:50',
         ]);
 
-        // Store the prompt in the database
-        $promptNote = auth()->user()->promptable()->create($request->all());
+        $promptData = $request->only(['title', 'prompt', 'description']);
+    
+        $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null; 
+        $promptData['promptable_id'] = auth()->user()->id ?? null; 
+        $promptNote = PromptNote::create($promptData);
+
         // Attach tags and platforms to the prompt
         $tags = $request->input('tags');
         $tagIds = Tag::whereIn('name', $tags)->pluck('id', 'name')->toArray();
@@ -64,5 +68,14 @@ class PromptController extends Controller
         }
 
         return redirect()->route('home')->with('success', 'Prompt created successfully.');
+    }
+
+    public function show($id)
+    {
+        $prompt = PromptNote::with(['tags','promptable'])->findOrFail($id);
+
+        return Inertia::render('promptDetails', [
+            'prompt' => $prompt,
+        ]);
     }
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Prompt } from '@/types';
-
+import { Link, usePage } from '@inertiajs/react';
 export interface Tags {
   id: number;
   name: string;
@@ -112,14 +112,24 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
         )}
       </div>
 
-      <button
-        className={`copy-btn w-full text-white font-semibold px-3 xs:px-4 sm:px-5 py-2 rounded-full transition-colors text-xs xs:text-sm ${
-          isCopied ? 'bg-green-500 hover:bg-green-500' : 'bg-ai-cyan hover:bg-ai-coral'
-        }`}
-        onClick={copyPrompt}
-      >
-        {isCopied ? 'Copied!' : 'Copy Prompt'}
-      </button>
+      <div className="flex flex-col gap-2 mt-3">
+  <button
+    className={`copy-btn w-full text-white font-semibold px-3 xs:px-4 sm:px-5 py-2 rounded-full transition-colors text-xs xs:text-sm ${
+      isCopied ? 'bg-green-500 hover:bg-green-500' : 'bg-ai-cyan hover:bg-ai-coral'
+    }`}
+    onClick={copyPrompt}
+  >
+    {isCopied ? 'Copied!' : 'Copy Prompt'}
+  </button>
+
+  <Link
+    href={route('prompt.show', prompt.id)}
+    className="bg-ai-cyan/20 text-ai-cyan text-xs xs:text-sm sm:text-sm font-medium px-3 xs:px-4 sm:px-5 py-2 rounded-full hover:bg-ai-cyan/40 transition-colors"
+  >
+    Show Full Details
+  </Link>
+</div>
+
     </div>
   );
 }

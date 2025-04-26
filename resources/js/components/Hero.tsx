@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { router } from '@inertiajs/react'; // Use router from @inertiajs/react
 
 type Props = {
   search?: string;
@@ -7,6 +8,10 @@ type Props = {
 
 export default function Hero({ search = '', onSearchChange }: Props) {
   const [query, setQuery] = useState<string>(search);
+
+  const handleSearch = () => {
+    router.get(route('home'), { search: query }); // Use router.get for navigation
+  };
 
   useEffect(() => {
     onSearchChange(query);
@@ -29,7 +34,7 @@ export default function Hero({ search = '', onSearchChange }: Props) {
           className="flex-1 bg-transparent border-none outline-none text-white text-xs xs:text-sm sm:text-base px-3 sm:px-4 py-2"
         />
         <button
-          onClick={() => onSearchChange(query)}
+          onClick={handleSearch}
           className="bg-ai-cyan text-white font-semibold px-3 sm:px-4 md:px-5 py-2 rounded-full hover:bg-ai-coral transition-colors text-xs sm:text-sm"
         >
           Search

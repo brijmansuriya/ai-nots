@@ -148,14 +148,14 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg shadow-lg">
         {/* Scrollable content with themed scrollbar */}
         <div className="max-h-[80vh] overflow-y-auto p-6 themed-scrollbar">
           <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
 
           {/* Error Messages */}
-          {Object.keys(errors).length > 0 && (
+          {/* {Object.keys(errors).length > 0 && (
             <div className="mb-4 text-sm text-red-500">
               {Object.entries(errors).map(([field, error], index) => (
                 <div key={index}>
@@ -163,7 +163,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
                 </div>
               ))}
             </div>
-          )}
+          )} */}
 
           <form id="prompt-form" onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
@@ -171,10 +171,8 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               label="Title"
               value={data.title}
               onChange={(e) => setData('title', e.target.value)}
-              required
+              error={errors.title}
             />
-            {/* Error Messages */}
-            {errors.title && <span className="text-red-500">{errors.title}</span>}
 
             {/* Prompt */}
             <div>
@@ -187,24 +185,9 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
                 onChange={(e) => handlePromptChange(e.target.value)}
                 placeholder="Use [variable_name] inside your prompt..."
                 className="min-h-[120px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none resize-y"
-                required
               />
-              {manualVars.length > 0 && (
-                <div className="mt-3 text-xs text-white/70">
-                  <p className="mb-2">Click a variable to insert:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {manualVars.map((v, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => insertVariableIntoPrompt(v)}
-                        className="rounded bg-ai-cyan/30 px-3 py-1 text-xs font-medium text-white hover:bg-ai-cyan/50 transition-colors"
-                      >
-                        [{v}]
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {errors.prompt && (
+                <span className="block text-sm text-red-500">{errors.prompt}</span>
               )}
             </div>
 
@@ -231,9 +214,7 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
                 isClearable
               />
               {errors.category_id && (
-                <span id="category_id-error" className="mt-1 block text-sm text-red-500">
-                  {errors.category_id}
-                </span>
+                <span className="mt-1 block text-sm text-red-500">{errors.category_id}</span>
               )}
             </div>
 
@@ -245,7 +226,11 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
               availableTags={availableTags}
               setTags={setTags}
               setData={setData}
+              error={errors.tags}
             />
+            {/* {errors.tags && (
+              <span className="mt-1 block text-sm text-red-500">{errors.tags}</span>
+            )} */}
 
             {/* Platforms */}
             <div>
@@ -258,8 +243,8 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
                       type="button"
                       onClick={() => handlePlatformToggle(platform.id.toString())}
                       className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${platform.selected
-                          ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
-                          : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
+                        ? 'bg-ai-cyan text-white shadow shadow-ai-cyan/30'
+                        : 'bg-ai-cyan/20 text-ai-cyan hover:bg-ai-cyan/40'
                         }`}
                     >
                       {platform.name}
@@ -299,14 +284,16 @@ function InputField({
   value,
   onChange,
   required,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   required?: boolean;
+  error?: string;
 }) {
   return (
-    <div>
+    <>
       <label htmlFor={`${label.toLowerCase()}-input`} className="block mb-2 text-sm font-medium text-white/80">
         {label}
       </label>
@@ -316,14 +303,16 @@ function InputField({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none"
+        className="w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none mb-2"
         placeholder={`Enter ${label.toLowerCase()}...`}
       />
-    </div>
+      {error && <span className="block text-sm text-red-500">{error}</span>}
+      
+    </>
   );
 }
 
-function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setData }: any) {
+function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setData, error }: any) {
   return (
     <div>
       <label htmlFor="tags-input" className="block mb-2 text-sm font-medium text-white/80">
@@ -372,6 +361,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
             className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none min-w-[150px]"
           />
         </div>
+        {error && <span className="mt-1 block text-sm text-red-500">{error}</span>}
 
         {tagInput && (
           <ul className="absolute z-10 mt-2 max-h-40 w-full overflow-auto rounded-lg border border-white/20 bg-black/80 shadow-lg themed-scrollbar">

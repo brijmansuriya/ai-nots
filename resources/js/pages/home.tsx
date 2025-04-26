@@ -25,8 +25,8 @@ export default function Home({ search = '' }: HomeProps) {
   const isFetching = useRef(false); // Ref to track ongoing fetch
 
   const fetchPrompts = useCallback(async (page = 1, searchQuery = '') => {
-    if (isFetching.current || page > lastPage || page < currentPage) return; // Prevent redundant calls
-    isFetching.current = true; // Mark as fetching
+    if (isFetching.current || page > lastPage || page < currentPage) return;
+    isFetching.current = true;
     setLoading(true);
     try {
       const response = await axios.get(route('homedata'), {
@@ -41,10 +41,10 @@ export default function Home({ search = '' }: HomeProps) {
       setCurrentPage(response.data.current_page);
       setLastPage(response.data.last_page);
     } catch (error) {
-      console.error('Failed to fetch prompts:', error);
+      console.error('Failed to fetch prompts:', error); // Log errors for debugging
     } finally {
       setLoading(false);
-      isFetching.current = false; // Reset fetching state
+      isFetching.current = false;
     }
   }, [lastPage, currentPage]);
 
@@ -53,6 +53,8 @@ export default function Home({ search = '' }: HomeProps) {
       setDebouncedQuery(query);
       fetchPrompts(1, query); // Trigger fetch on query change
     }, 500); // Debounce delay
+
+    
 
     return () => clearTimeout(handler);
   }, [query]);
@@ -85,7 +87,7 @@ export default function Home({ search = '' }: HomeProps) {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 max-w-7xl mx-auto px-8">
           {prompts.length > 0 ? (
             prompts.map((prompt, i) => (
               <NoteCard key={prompt.id} prompt={prompt} index={i} />

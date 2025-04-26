@@ -9,7 +9,7 @@ export default function LoadMoreTrigger({ onVisible }: { onVisible: () => void }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          onVisible();
+          onVisible(); // Trigger the callback when visible
         }
       },
       { rootMargin: '100px' }

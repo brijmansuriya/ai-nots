@@ -25,14 +25,13 @@ class HomeController extends Controller
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->when($search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%")
-                ->orWhere("id", "LIKE", "%{$search}%")
-                ->orWhere('prompt', 'like', "%{$search}%")
-                ->orWhereHas('tags', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                ->orWhereHas('platforms', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('prompt', 'like', "%{$search}%")
+                    ->orWhereHas('tags', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('platforms', fn($q) => $q->where('name', 'like', "%{$search}%"));
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(10); // Ensure pagination is working
 
         return response()->json([
             'data' => $prompts->items(),
@@ -69,4 +68,6 @@ class HomeController extends Controller
             'categories' => $categories
         ]);
     }
+
+    
 }
