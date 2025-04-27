@@ -23,8 +23,8 @@ class PromptController extends Controller
             'dynamic_variables' => 'nullable|array',
             'dynamic_variables.*' => 'string|max:50',
         ]);
-
-        $promptData = $request->only(['title', 'prompt', 'description']);
+        
+        $promptData = $request->only(['title', 'prompt', 'description','category_id','platform']);
     
         $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null; 
         $promptData['promptable_id'] = auth()->user()->id ?? null; 
