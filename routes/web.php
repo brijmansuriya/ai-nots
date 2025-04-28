@@ -10,14 +10,10 @@ use Laravel\Socialite\Facades\Socialite;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensure this route is correct
 
-//create prompt
 Route::prefix('prompt')->group(function () {
-    // Route::get('create', [HomeController::class, 'createPrompt'])->name('prompt.create');
     Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
-    //show prompt
     Route::get('show/{id}', [PromptController::class, 'show'])->name('prompt.show');
 });
-
 
 Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');
 Route::get('list/platform', [HomeController::class, 'platform'])->name('platform');
@@ -26,6 +22,7 @@ Route::get('list/categories', [HomeController::class, 'categories'])->name('cate
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
+    Route::get('dashboard/prompts', [HomeController::class, 'getUserPrompts'])->name('dashboard.prompts'); // New route
 });
 
 require __DIR__ . '/settings.php';

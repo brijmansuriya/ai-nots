@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react'; // Import usePage to access auth info
 import Header from '@/components/header';
 import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
@@ -23,6 +23,7 @@ export default function Home({ search = '' }: HomeProps) {
   const [query, setQuery] = useState<string>(search);
   const [debouncedQuery, setDebouncedQuery] = useState<string>(search);
   const isFetching = useRef(false); // Ref to track ongoing fetch
+  const { auth } = usePage().props; // Access auth info from Inertia props
 
   const fetchPrompts = useCallback(async (page = 1, searchQuery = '') => {
     if (isFetching.current || page > lastPage || page < currentPage) return;
@@ -54,8 +55,6 @@ export default function Home({ search = '' }: HomeProps) {
       fetchPrompts(1, query); // Trigger fetch on query change
     }, 500); // Debounce delay
 
-    
-
     return () => clearTimeout(handler);
   }, [query]);
 
@@ -69,6 +68,10 @@ export default function Home({ search = '' }: HomeProps) {
     }
   }, [loading, currentPage, lastPage, debouncedQuery, fetchPrompts]);
 
+  const handleAddPromptClick = () => {
+    setIsModalOpen(true); // Open the modal directly
+  };
+
   return (
     <WebLayout title="Home">
       <Header />
@@ -80,7 +83,7 @@ export default function Home({ search = '' }: HomeProps) {
             AI Prompt Playground
           </h2>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleAddPromptClick}
             className="mt-3 sm:mt-0 bg-ai-cyan text-white px-6 py-2 rounded-full hover:bg-ai-coral text-sm font-semibold transition"
           >
             Add Prompt

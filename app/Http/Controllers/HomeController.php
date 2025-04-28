@@ -42,7 +42,32 @@ class HomeController extends Controller
 
     public function dashboard(Request $request)
     {
-        return Inertia::render('dashboard');
+        $user = $request->user(); // Get the logged-in user
+        $prompts = PromptNote::with(['tags', 'platforms'])
+            ->where('promptable_id', $user->id) // Filter by user ID
+            ->where('promptable_type', $user->getMorphClass()) // Filter by user ID
+            ->latest()
+            ->paginate(10); // Ensure pagination is working
+
+        return Inertia::render('dashboard', [
+            'prompts' => $prompts,
+        ]);
+    }
+
+    public function getUserPrompts(Request $request)
+    {
+        $user = $request->user(); // Get the logged-in user
+        $prompts = PromptNote::with(['tags', 'platforms'])
+            ->where('promptable_id', $user->id) // Filter by user ID
+            ->where('promptable_type', $user->getMorphClass()) // Filter by user type
+            ->latest()
+            ->paginate(10); // Ensure pagination is working
+
+        return response()->json([
+            'data' => $prompts->items(),
+            'current_page' => $prompts->currentPage(),
+            'last_page' => $prompts->lastPage(),
+        ]);
     }
 
     public function tags()
