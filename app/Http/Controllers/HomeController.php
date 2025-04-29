@@ -22,7 +22,7 @@ class HomeController extends Controller
     public function home(Request $request)
     {
         $search = $request->input('search', '');
-        sleep(2);
+       
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->when($search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
@@ -33,7 +33,7 @@ class HomeController extends Controller
             })
             ->latest()
             ->paginate(10); // Ensure pagination is working
-
+            sleep(1);
         return response()->json([
             'data' => $prompts->items(),
             'current_page' => $prompts->currentPage(),
