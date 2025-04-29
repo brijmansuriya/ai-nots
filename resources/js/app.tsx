@@ -17,17 +17,22 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
     progress: {
-        color: '#4B5563',
+        color: '#00ddeb',
     },
 });
 
 // This will set light / dark mode on load...
 initializeTheme();
 
+// Function to get the theme color dynamically
+const getThemeColor = () => {
+  // Example: Replace with your logic to fetch the theme color
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#4B5563' : '#00bcd4';
+};
 
 InertiaProgress.init({
   delay: 200,       // Milliseconds before showing progress bar
-  color: '#00bcd4',    // Customize to match your design
+  color: getThemeColor(), // Dynamically set the theme color
   includeCSS: true, // Injects default NProgress styles
   showSpinner: false // Whether to show spinner (default false)
-})
+});
