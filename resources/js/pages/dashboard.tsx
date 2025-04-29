@@ -24,16 +24,16 @@ export default function Dashboard({ auth }: any) {
     email: auth.user.email,
   });
 
-  const fetchPrompts = useCallback(async (page: number) => {
+  const fetchPrompts = useCallback(async (page: number, searchQuery = '') => {
     if (isFetching.current || page > lastPage) return;
     isFetching.current = true;
     setLoading(true);
     try {
       const response = await axios.get(route('dashboard.prompts'), {
-        params: { page },
+        params: { page, search: searchQuery }, // Pass search query to the backend
       });
       const newPrompts = response.data.data;
-      setPrompts(prev => [...prev, ...newPrompts]);
+      setPrompts(prev => (page === 1 ? newPrompts : [...prev, ...newPrompts]));
       setCurrentPage(response.data.current_page);
       setLastPage(response.data.last_page);
     } catch (error) {
@@ -45,14 +45,14 @@ export default function Dashboard({ auth }: any) {
   }, [lastPage]);
 
   useEffect(() => {
-    fetchPrompts(1); // Fetch initial prompts
-  }, [fetchPrompts]);
+    fetchPrompts(1, search); // Fetch prompts whenever the search query changes
+  }, [fetchPrompts, search]);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && currentPage < lastPage) {
-      fetchPrompts(currentPage + 1);
+      fetchPrompts(currentPage + 1, search);
     }
-  }, [loading, currentPage, lastPage, fetchPrompts]);
+  }, [loading, currentPage, lastPage, fetchPrompts, search]);
 
   const handleEdit = (promptId: number) => {
     router.visit(route('prompt.edit', { id: promptId })); // Redirect to edit page
@@ -142,7 +142,7 @@ export default function Dashboard({ auth }: any) {
             type="text"
             placeholder="Search prompts..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)} // Update search state
             className="w-1/3 border-gray-300 rounded-md shadow-sm focus:ring-ai-cyan focus:border-ai-cyan"
           />
         </div>

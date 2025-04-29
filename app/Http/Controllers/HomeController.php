@@ -57,9 +57,14 @@ class HomeController extends Controller
     public function getUserPrompts(Request $request)
     {
         $user = $request->user(); // Get the logged-in user
+        $search = $request->input('search', ''); // Get the search query
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->where('promptable_id', $user->id) // Filter by user ID
             ->where('promptable_type', $user->getMorphClass()) // Filter by user type
+            ->when($search, function ($query, $search) {
+                $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('prompt', 'like', "%{$search}%"); // Filter by title or prompt content
+            })
             ->latest()
             ->paginate(10); // Ensure pagination is working
 
