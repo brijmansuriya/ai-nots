@@ -4,6 +4,7 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { initializeTheme } from './hooks/use-appearance';
+import { InertiaProgress } from '@inertiajs/progress'
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -22,3 +23,11 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+
+InertiaProgress.init({
+  delay: 200,       // Milliseconds before showing progress bar
+  color: '#00bcd4',    // Customize to match your design
+  includeCSS: true, // Injects default NProgress styles
+  showSpinner: false // Whether to show spinner (default false)
+})

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { router, usePage } from '@inertiajs/react'; // Import usePage to access auth info
+import { router, usePage } from '@inertiajs/react';
 import Header from '@/components/header';
 import Hero from '@/components/hero';
 import NoteCard from '@/components/note-card';
 import AddPromptModal from '@/components/add-prompt-modal';
 import WebLayout from '@/layouts/web-layout';
-import LoadMoreTrigger from '@/components/LoadMoreTrigger'; // Import LoadMoreTrigger
+import LoadMoreTrigger from '@/components/LoadMoreTrigger';
 import { Prompt, Tag } from '@/types';
 import axios from 'axios';
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
+
+NProgress.configure({ showSpinner: false }); // Optional spinner off
 
 interface HomeProps {
   search?: string;
@@ -22,13 +26,15 @@ export default function Home({ search = '' }: HomeProps) {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState<string>(search);
   const [debouncedQuery, setDebouncedQuery] = useState<string>(search);
-  const isFetching = useRef(false); // Ref to track ongoing fetch
-  const { auth } = usePage().props; // Access auth info from Inertia props
+  const isFetching = useRef(false);
+  const { auth } = usePage().props;
 
   const fetchPrompts = useCallback(async (page = 1, searchQuery = '') => {
     if (isFetching.current || page > lastPage || page < currentPage) return;
     isFetching.current = true;
     setLoading(true);
+    NProgress.start(); // Start progress bar
+
     try {
       const response = await axios.get(route('homedata'), {
         params: { page, search: searchQuery },
@@ -42,24 +48,25 @@ export default function Home({ search = '' }: HomeProps) {
       setCurrentPage(response.data.current_page);
       setLastPage(response.data.last_page);
     } catch (error) {
-      console.error('Failed to fetch prompts:', error); // Log errors for debugging
+      console.error('Failed to fetch prompts:', error);
     } finally {
       setLoading(false);
       isFetching.current = false;
+      NProgress.done(); // Finish progress bar
     }
   }, [lastPage, currentPage]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-      fetchPrompts(1, query); // Trigger fetch on query change
-    }, 500); // Debounce delay
+      fetchPrompts(1, query);
+    }, 500);
 
     return () => clearTimeout(handler);
   }, [query]);
 
   useEffect(() => {
-    fetchPrompts(1, debouncedQuery); // Ensure initial data load
+    fetchPrompts(1, debouncedQuery);
   }, [debouncedQuery, fetchPrompts]);
 
   const handleLoadMore = useCallback(() => {
@@ -69,7 +76,7 @@ export default function Home({ search = '' }: HomeProps) {
   }, [loading, currentPage, lastPage, debouncedQuery, fetchPrompts]);
 
   const handleAddPromptClick = () => {
-    setIsModalOpen(true); // Open the modal directly
+    setIsModalOpen(true);
   };
 
   return (

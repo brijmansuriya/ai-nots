@@ -22,6 +22,7 @@ class HomeController extends Controller
     public function home(Request $request)
     {
         $search = $request->input('search', '');
+        sleep(2);
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->when($search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
