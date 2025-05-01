@@ -7,9 +7,9 @@ export default function About() {
   return (
     <WebLayout title="About AI-Nots">
       <Header />
-      <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16">
+      <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16 mt-6">
         {/* Hero Section */}
-        <section className="bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl py-12 sm:py-16 md:py-20 text-center">
+        <section className="bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl py-12 sm:py-16 md:py-20 text-center px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text mb-6">
             About AI-Nots
           </h1>
@@ -19,7 +19,7 @@ export default function About() {
         </section>
 
         {/* Mission Section */}
-        <section className="bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl py-12 sm:py-16 md:py-20 mt-10">
+        <section className="bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl py-12 sm:py-16 md:py-20 mt-10 px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text mb-6">
             Our Mission
           </h2>
@@ -72,12 +72,21 @@ export default function About() {
           <h2 className="text-3xl font-bold text-center bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text mb-6">
             How to Use AI-Nots
           </h2>
-          <ul className="list-disc list-inside text-gray-300 max-w-3xl mx-auto space-y-4">
-            <li>Sign up to access your personalized dashboard.</li>
-            <li>Create prompts by entering details and saving them.</li>
-            <li>Organize prompts with tags and categories.</li>
-            <li>Choose to share prompts publicly or keep them private.</li>
-            <li>Explore community prompts for inspiration.</li>
+          <ul className="list-none space-y-6 max-w-3xl mx-auto px-4 sm:px-6 text-gray-300">
+            {[
+              'Sign up to access your personalized dashboard.',
+              'Create prompts by entering details and saving them.',
+              'Organize prompts with tags and categories.',
+              'Choose to share prompts publicly or keep them private.',
+              'Explore community prompts for inspiration.',
+            ].map((step, index) => (
+              <li key={index} className="flex items-start space-x-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-ai-cyan text-white rounded-full flex items-center justify-center font-bold">
+                  {index + 1}
+                </div>
+                <p className="text-sm sm:text-base">{step}</p>
+              </li>
+            ))}
           </ul>
         </section>
 
@@ -108,7 +117,7 @@ export default function About() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="flex flex-col items-center text-center bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+    <div className="flex flex-col items-center text-center bg-white/10 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
       <div className="mb-4">{icon}</div>
       <h3 className="text-lg font-semibold text-white">{title}</h3>
       <p className="text-sm text-gray-400">{description}</p>
@@ -118,7 +127,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 
 function ApplicationCard({ icon, description }: { icon: React.ReactNode; description: string }) {
   return (
-    <div className="flex items-start space-x-4 p-4 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+    <div className="flex items-start space-x-4 p-4 bg-white/10 rounded-lg shadow-md hover:shadow-lg transition-shadow">
       {icon}
       <p className="text-sm text-gray-300">{description}</p>
     </div>
