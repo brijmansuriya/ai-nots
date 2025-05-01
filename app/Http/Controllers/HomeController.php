@@ -25,7 +25,9 @@ class HomeController extends Controller
        
         $prompts = PromptNote::with(['tags', 'platforms'])
             ->when($search, function ($query, $search) {
+
                 $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('id', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhere('prompt', 'like', "%{$search}%")
                     ->orWhereHas('tags', fn($q) => $q->where('name', 'like', "%{$search}%"))
