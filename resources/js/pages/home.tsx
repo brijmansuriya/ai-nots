@@ -76,7 +76,11 @@ export default function Home({ search = '' }: HomeProps) {
   }, [loading, currentPage, lastPage, debouncedQuery, fetchPrompts]);
 
   const handleAddPromptClick = () => {
-    setIsModalOpen(true);
+    if (!auth.user) {
+      router.visit(route('login')); // Redirect to login if not authenticated
+      return;
+    }
+    setIsModalOpen(true); // Open the modal if authenticated
   };
 
   return (
