@@ -2,7 +2,16 @@ import React, { useState } from 'react';
 import { Prompt, Tags } from '@/types';
 import { Link } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
-import { usePage } from '@inertiajs/react'; // Import usePage from @inertiajs/react
+import {
+  WhatsappShareButton,
+  TwitterShareButton,
+  FacebookShareButton,
+  LinkedinShareButton,
+  WhatsappIcon,
+  TwitterIcon,
+  FacebookIcon,
+  LinkedinIcon
+} from 'react-share';
 
 interface PromptDetailsProps {
     prompt: Prompt;
@@ -13,7 +22,6 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
     const [isCopied, setIsCopied] = useState(false);
 
     console.log('Prompt Details:', prompt); // Debugging line to check the prompt data
-
 
     // Copy prompt to clipboard (reused from NoteCard)
     const copyPrompt = async () => {
@@ -50,6 +58,9 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
             document.body.removeChild(textarea);
         }
     };
+
+    const shareUrl = window.location.href;
+    const shareTitle = `Check out this AI prompt: ${prompt.title}`;
 
     return (
         <WebLayout title="Home">
@@ -129,7 +140,7 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
                         <button
                             className={`w-full sm:w-auto text-white font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors text-xs sm:text-sm ${isCopied ? 'bg-green-500 hover:bg-green-500' : 'bg-ai-cyan hover:bg-ai-coral'
                                 }`}
@@ -137,6 +148,57 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
                         >
                             {isCopied ? 'Copied!' : 'Copy Prompt'}
                         </button>
+
+                        {/* Enhanced Share Buttons Group */}
+                        <div className="w-full sm:w-auto flex flex-col items-center gap-3 bg-gray-800/30 backdrop-blur-sm p-5 rounded-xl border border-ai-cyan/20">
+                            <span className="text-ai-cyan text-sm font-medium">Share this AI Prompt</span>
+                            <div className="flex gap-4">
+                                <WhatsappShareButton url={shareUrl} title={shareTitle}>
+                                    <div className="group relative flex flex-col items-center">
+                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
+                                            <WhatsappIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
+                                        </div>
+                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
+                                            WhatsApp
+                                        </span>
+                                    </div>
+                                </WhatsappShareButton>
+
+                                <TwitterShareButton url={shareUrl} title={shareTitle}>
+                                    <div className="group relative flex flex-col items-center">
+                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
+                                            <TwitterIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
+                                        </div>
+                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
+                                            Twitter
+                                        </span>
+                                    </div>
+                                </TwitterShareButton>
+
+                                <FacebookShareButton url={shareUrl} quote={shareTitle}>
+                                    <div className="group relative flex flex-col items-center">
+                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
+                                            <FacebookIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
+                                        </div>
+                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
+                                            Facebook
+                                        </span>
+                                    </div>
+                                </FacebookShareButton>
+
+                                <LinkedinShareButton url={shareUrl} title={shareTitle}>
+                                    <div className="group relative flex flex-col items-center">
+                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
+                                            <LinkedinIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
+                                        </div>
+                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
+                                            LinkedIn
+                                        </span>
+                                    </div>
+                                </LinkedinShareButton>
+                            </div>
+                        </div>
+
                         <Link
                             href={route('home')}
                             className="w-full sm:w-auto text-white font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors text-xs sm:text-sm bg-ai-cyan hover:bg-ai-coral text-center"
