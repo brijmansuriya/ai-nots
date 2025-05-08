@@ -66,17 +66,54 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
         <WebLayout title="Home">
             <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
                 <div
-                    className=" bg-gray-900 note-card  rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl w-full hover:shadow-lg hover:shadow-ai-cyan/30 transition-all duration-300"
+                    className="bg-[#12252c] note-card rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl w-full hover:shadow-lg hover:shadow-ai-cyan/30 transition-all duration-300"
                     style={{ '--index': index } as React.CSSProperties}
                 >
-                    {/* Header */}
-                    <div className="mb-4 sm:mb-6">
-                        <h1 className="text-white/90 text-lg sm:text-xl md:text-2xl font-bold">
-                            #{prompt.id} | {prompt.title}
-                        </h1>
-                        <p className="text-white/70 text-xs sm:text-sm mt-1">
-                            Created: {new Date(prompt.created_at).toLocaleDateString()}
-                        </p>
+                    {/* Header and Share Section */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <div>
+                            <h1 className="text-white/90 text-lg sm:text-xl md:text-2xl font-bold">
+                                #{prompt.id} | {prompt.title}
+                            </h1>
+                            <p className="text-white/70 text-xs sm:text-sm mt-1">
+                                Created: {new Date(prompt.created_at).toLocaleDateString()}
+                            </p>
+                        </div>
+
+                        {/* Share Buttons - Now at the top right */}
+                        <div className="flex gap-3 bg-gray-800/30 backdrop-blur-sm p-3 rounded-xl border border-ai-cyan">
+                            <WhatsappShareButton url={shareUrl} title={shareTitle}>
+                                <div className="group relative">
+                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
+                                        <WhatsappIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                                    </div>
+                                </div>
+                            </WhatsappShareButton>
+
+                            <TwitterShareButton url={shareUrl} title={shareTitle}>
+                                <div className="group relative">
+                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
+                                        <TwitterIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                                    </div>
+                                </div>
+                            </TwitterShareButton>
+
+                            <FacebookShareButton url={shareUrl} quote={shareTitle}>
+                                <div className="group relative">
+                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
+                                        <FacebookIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                                    </div>
+                                </div>
+                            </FacebookShareButton>
+
+                            <LinkedinShareButton url={shareUrl} title={shareTitle}>
+                                <div className="group relative">
+                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
+                                        <LinkedinIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                                    </div>
+                                </div>
+                            </LinkedinShareButton>
+                        </div>
                     </div>
 
                     {/* Tags */}
@@ -139,69 +176,19 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
                         </ul>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-4 items-center">
+                    {/* Action Buttons - Now at the bottom */}
+                    <div className="flex justify-center gap-4 mt-6">
                         <button
-                            className={`w-full sm:w-auto text-white font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors text-xs sm:text-sm ${isCopied ? 'bg-green-500 hover:bg-green-500' : 'bg-ai-cyan hover:bg-ai-coral'
+                            className={`flex-1 sm:flex-none text-white font-semibold px-6 py-2.5 rounded-full transition-all duration-300 text-sm ${isCopied ? 'bg-green-500 hover:bg-green-600' : 'bg-ai-cyan hover:bg-ai-coral hover:scale-105'
                                 }`}
                             onClick={copyPrompt}
                         >
                             {isCopied ? 'Copied!' : 'Copy Prompt'}
                         </button>
 
-                        {/* Enhanced Share Buttons Group */}
-                        <div className="w-full sm:w-auto flex flex-col items-center gap-3 bg-gray-800/30 backdrop-blur-sm p-5 rounded-xl border border-ai-cyan/20">
-                            <span className="text-ai-cyan text-sm font-medium">Share this AI Prompt</span>
-                            <div className="flex gap-4">
-                                <WhatsappShareButton url={shareUrl} title={shareTitle}>
-                                    <div className="group relative flex flex-col items-center">
-                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
-                                            <WhatsappIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
-                                        </div>
-                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
-                                            WhatsApp
-                                        </span>
-                                    </div>
-                                </WhatsappShareButton>
-
-                                <TwitterShareButton url={shareUrl} title={shareTitle}>
-                                    <div className="group relative flex flex-col items-center">
-                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
-                                            <TwitterIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
-                                        </div>
-                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
-                                            Twitter
-                                        </span>
-                                    </div>
-                                </TwitterShareButton>
-
-                                <FacebookShareButton url={shareUrl} quote={shareTitle}>
-                                    <div className="group relative flex flex-col items-center">
-                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
-                                            <FacebookIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
-                                        </div>
-                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
-                                            Facebook
-                                        </span>
-                                    </div>
-                                </FacebookShareButton>
-
-                                <LinkedinShareButton url={shareUrl} title={shareTitle}>
-                                    <div className="group relative flex flex-col items-center">
-                                        <div className="p-2.5 rounded-lg bg-ai-cyan/10 hover:bg-ai-cyan/20 transition-all duration-300 hover:scale-110">
-                                            <LinkedinIcon size={32} round bgStyle={{ fill: 'transparent' }} iconFillColor="rgb(var(--ai-cyan))" />
-                                        </div>
-                                        <span className="absolute -bottom-6 opacity-0 group-hover:opacity-100 text-xs text-ai-cyan/90 transition-all duration-300">
-                                            LinkedIn
-                                        </span>
-                                    </div>
-                                </LinkedinShareButton>
-                            </div>
-                        </div>
-
                         <Link
                             href={route('home')}
-                            className="w-full sm:w-auto text-white font-semibold px-4 sm:px-5 py-2 rounded-full transition-colors text-xs sm:text-sm bg-ai-cyan hover:bg-ai-coral text-center"
+                            className="flex-1 sm:flex-none text-white font-semibold px-6 py-2.5 rounded-full transition-all duration-300 text-sm bg-ai-cyan hover:bg-ai-coral hover:scale-105 text-center"
                         >
                             Back to Prompts
                         </Link>
