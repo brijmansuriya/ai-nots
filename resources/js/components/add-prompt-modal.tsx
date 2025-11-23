@@ -18,9 +18,10 @@ interface Platform {
 
 interface AddPromptModalProps {
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export default function AddPromptModal({ onClose }: AddPromptModalProps) {
+export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [manualVars, setManualVars] = useState<string[]>([]);
@@ -96,7 +97,10 @@ export default function AddPromptModal({ onClose }: AddPromptModalProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     post(route('prompt.store'), {
-      onSuccess: () => onClose(), // Close modal on success
+      onSuccess: () => {
+        onSuccess();
+        onClose();
+      }, // Close modal on success
       onError: () => console.error('Form submission failed:', errors),
     });
   };

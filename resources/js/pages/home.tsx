@@ -123,7 +123,7 @@ export default function Home({ search = '' }: HomeProps) {
       </section>
 
       {isModalOpen && (
-        <AddPromptModal onClose={() => setIsModalOpen(false)} />
+        <AddPromptModal onClose={() => setIsModalOpen(false)} onSuccess={fetchPrompts} />
       )}
     </WebLayout>
   );
