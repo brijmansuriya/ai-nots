@@ -15,15 +15,19 @@ class GuestUser
      */
     public function handle(Request $request, Closure $next): Response
     {
+
+        // If admin is logged in, redirect to admin dashboard
+        // (Logout will happen when they actually try to login as user)
+        if ($request->is('admin/*') && Auth::guard('admin')->check()) {
+                return redirect()->route('admin.home');
+        }
+
         // If regular user is already logged in, redirect to user dashboard
         if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
         }
 
-        // If admin is logged in, redirect to admin dashboard
-        if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
-        }
+        
 
         return $next($request);
     }

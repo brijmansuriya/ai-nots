@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Admin\Auth;
 
 use App\Http\Controllers\Controller;
@@ -20,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('admin/auth/login', [
             'canResetPassword' => Route::has('admin.password.request'),
-            'status' => $request->session()->get('status'),
+            'status'           => $request->session()->get('status'),
         ]);
     }
 
@@ -29,6 +28,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Logout user if logged in (prevent simultaneous login)
+        if (Auth::guard('web')->check()) {
+            Auth::guard('web')->logout();
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();

@@ -20,10 +20,12 @@ class AuthUser
             return redirect()->route('login');
         }
 
-        // If admin is also logged in, redirect to admin dashboard
+        // If admin is also logged in, logout admin automatically
         // Admin and user cannot be logged in simultaneously
         if (Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard')->with('error', 'Please logout from admin account first to access user dashboard.');
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
         Auth::shouldUse('web');

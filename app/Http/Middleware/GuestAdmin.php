@@ -21,6 +21,7 @@ class GuestAdmin
         }
 
         // If regular user is logged in, redirect to user dashboard
+        // (Logout will happen when they actually try to login as admin)
         if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
         }
