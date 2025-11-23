@@ -33,7 +33,19 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:'.Admin::class,
+                function ($attribute, $value, $fail) {
+                    if (Admin::where('email', $value)->exists()) {
+                        $fail('This email is already registered as a user. Please use a different email for admin registration.');
+                    }
+                },
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 

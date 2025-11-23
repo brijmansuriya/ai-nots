@@ -30,33 +30,51 @@ class PromptController extends Controller
         $promptData['promptable_id'] = auth()->user()->id ?? null; 
         $promptNote = PromptNote::create($promptData);
 
-        // Attach tags and platforms to the prompt
+        // Handle tags - support both existing tags (by name or id) and create new ones
         $tags = $request->input('tags');
-        $tagIds = Tag::whereIn('name', $tags)->pluck('id', 'name')->toArray();
-
-        $newTags = array_diff($tags, array_keys($tagIds));
-
-        foreach ($newTags as $newTag) {
-            $slug = \Str::slug($newTag);
-            $originalSlug = $slug;
-            $counter = 1;
-
-            // Check if the slug already exists and append a number if it does
-            while (Tag::where('slug', $slug)->exists()) {
-                $slug = "{$originalSlug}-{$counter}";
-                $counter++;
+        $tagIds = [];
+        
+        foreach ($tags as $tag) {
+            // Check if tag is provided as ID (numeric)
+            if (is_numeric($tag)) {
+                $existingTag = Tag::find($tag);
+                if ($existingTag) {
+                    $tagIds[] = $existingTag->id;
+                    continue;
+                }
             }
+            
+            // Check if tag exists by name (case-insensitive)
+            $existingTag = Tag::whereRaw('LOWER(name) = ?', [strtolower($tag)])->first();
+            
+            if ($existingTag) {
+                // Use existing tag - allows repeated data
+                $tagIds[] = $existingTag->id;
+            } else {
+                // Create new tag if it doesn't exist
+                $slug = \Str::slug($tag);
+                $originalSlug = $slug;
+                $counter = 1;
 
-            $createdTag = Tag::create([
-                'name' => $newTag,
-                'slug' => $slug,
-                'created_by_type' => auth()->user()->getMorphClass(), // Ensure 'created_by_type' is set
-                'created_by_id' => auth()->user()->id,
-            ]);
-            $tagIds[$newTag] = $createdTag->id;
+                // Check if the slug already exists and append a number if it does
+                while (Tag::where('slug', $slug)->exists()) {
+                    $slug = "{$originalSlug}-{$counter}";
+                    $counter++;
+                }
+
+                $createdTag = Tag::create([
+                    'name' => $tag,
+                    'slug' => $slug,
+                    'created_by_type' => auth()->user()->getMorphClass(),
+                    'created_by_id' => auth()->user()->id,
+                    'status' => Tag::STATUS_ACTIVE,
+                ]);
+                $tagIds[] = $createdTag->id;
+            }
         }
 
-        $promptNote->tags()->attach(array_values($tagIds));
+        // Attach tags (remove duplicates)
+        $promptNote->tags()->sync(array_unique($tagIds));
         $promptNote->platforms()->attach($request->input('platform'));
         // Attach dynamic variables to the promptvariables
         if ($request->has('dynamic_variables')) {

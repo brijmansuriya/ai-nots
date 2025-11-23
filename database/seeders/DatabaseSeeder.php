@@ -17,21 +17,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed categories first
+        $this->call(CategorySeeder::class);
+        
+        // Seed tags (created by admin)
+        $this->call(TagSeeder::class);
+        
         // Seed platforms
-        // $platforms = Platform::factory(5)->create();
         $platformNames = ['ChatGPT', 'Midjourney', 'DALL·E', 'Stable Diffusion', 'Bing AI'];
         $platforms = collect();
 
         foreach ($platformNames as $name) {
             $platforms->push(Platform::create(['name' => $name]));
         }
-        // Seed tags
-        $tags = Tag::factory(10)->create();
+        
+        // Get seeded tags for prompt notes
+        $tags = Tag::where('status', Tag::STATUS_ACTIVE)->get();
+        
+        // Get seeded categories for prompt notes
+        $categories = \App\Models\Category::where('status', \App\Models\Category::STATUS_ACTIVE)->get();
 
-        // Seed prompt notes and attach tags and platforms
-        PromptNote::factory(20)->create()->each(function ($promptNote) use ($tags, $platforms) {
+        // Seed prompt notes and attach tags, platforms, and categories
+        PromptNote::factory(20)->create()->each(function ($promptNote) use ($tags, $platforms, $categories) {
             $promptNote->tags()->attach($tags->random(3));
             $promptNote->platforms()->attach($platforms->random(2));
+            
+            // Assign a random category if categories exist
+            if ($categories->isNotEmpty()) {
+                $promptNote->update([
+                    'category_id' => $categories->random()->id,
+                ]);
+            }
         });
 
         // Seed users

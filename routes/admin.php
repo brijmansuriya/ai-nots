@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Http\Controllers\Admin\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Admin\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Admin\Auth\EmailVerificationNotificationController;
@@ -14,13 +13,9 @@ use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
 
-
-
-
-
 Route::get('admin/', [HomeController::class, 'index'])->name('admin.home');
 
-Route::middleware('guest')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware('guest.admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 

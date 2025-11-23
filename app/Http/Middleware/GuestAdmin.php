@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class AuthAdmin
+class GuestAdmin
 {
     /**
      * Handle an incoming request.
@@ -15,18 +15,16 @@ class AuthAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if admin is authenticated
-        if (! Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
+        // If admin is already logged in, redirect to admin dashboard
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
 
-        // If regular user is also logged in, redirect to user dashboard
-        // Admin and user cannot be logged in simultaneously
+        // If regular user is logged in, redirect to user dashboard
         if (Auth::guard('web')->check()) {
-            return redirect()->route('dashboard')->with('error', 'Please logout from user account first to access admin panel.');
+            return redirect()->route('dashboard');
         }
 
-        Auth::shouldUse('admin');
         return $next($request);
     }
 }

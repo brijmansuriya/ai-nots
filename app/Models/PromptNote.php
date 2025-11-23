@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
@@ -23,6 +24,11 @@ class PromptNote extends Model
         // 'dynamic_variables',
     ];
     
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'prompt_note_tag');
@@ -39,9 +45,8 @@ class PromptNote extends Model
     }
 
     //promptable
-     //promptable
-     public function promptable(): MorphTo
-     {
-         return $this->morphTo();
-     }
+    public function promptable(): MorphTo
+    {
+        return $this->morphTo();
+    }
 }

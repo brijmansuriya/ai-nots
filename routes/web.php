@@ -23,7 +23,7 @@ Route::get('list/platform', [HomeController::class, 'platform'])->name('platform
 //category_id
 Route::get('list/categories', [HomeController::class, 'categories'])->name('categories');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth.user', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/prompts', [HomeController::class, 'getUserPrompts'])->name('dashboard.prompts'); // New route
 });
