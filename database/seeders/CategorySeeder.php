@@ -19,16 +19,18 @@ class CategorySeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $categories = [
-            'Writing & Content',
-            'Code & Development',
-            'Marketing & SEO',
-            'Business & Strategy',
-            'Education & Learning',
-            'Creative & Design',
-            'Data & Analysis',
-            'Productivity & Automation',
-            'Research & Analysis',
-            'Communication & Social',
+            'SEO',
+            'Copywriting',
+            'Marketing',
+            'Coding',
+            'Research',
+            'Social Media',
+            'Design',
+            'AI Image',
+            'Video Creation',
+            'E-commerce',
+            'Business',
+            'Productivity',
         ];
 
         foreach ($categories as $categoryName) {

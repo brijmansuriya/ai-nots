@@ -32,26 +32,13 @@ class TagSeeder extends Seeder
         }
 
         $tags = [
-            'AI Assistant',
-            'Content Writing',
-            'Code Generation',
-            'Image Generation',
-            'Text Analysis',
-            'Data Processing',
-            'SEO Optimization',
-            'Social Media',
-            'Email Marketing',
-            'Productivity',
-            'Automation',
-            'Research',
-            'Translation',
-            'Summarization',
-            'Creative Writing',
-            'Technical Writing',
-            'Business Strategy',
-            'Customer Service',
-            'Education',
-            'Design',
+            'SEO',
+            'Keyword',
+            'Strategy',
+            'Content',
+            'Copywriting',
+            'Prompt Builder',
+            'AI Tools',
         ];
 
         foreach ($tags as $tagName) {
