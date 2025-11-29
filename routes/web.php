@@ -22,15 +22,15 @@ Route::prefix('prompt')->group(function () {
     // Edit & delete require authenticated user
     Route::middleware(['auth.user', 'verified'])->group(function () {
         Route::get('{prompt}/edit', [PromptController::class, 'edit'])->name('prompt.edit');
-        Route::put('{prompt}', [PromptController::class, 'update'])->name('prompt.update');
+        Route::match(['put', 'post'], '{prompt}', [PromptController::class, 'update'])->name('prompt.update');
         Route::delete('{prompt}', [PromptController::class, 'destroy'])->name('prompt.destroy');
     });
 });
 
 Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');
 Route::get('list/platform', [HomeController::class, 'platform'])->name('platform');
-//category_id
 Route::get('list/categories', [HomeController::class, 'categories'])->name('categories');
+Route::get('list/meta/all', [HomeController::class, 'metaAll'])->name('meta.all');
 
 Route::middleware(['auth.user', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');

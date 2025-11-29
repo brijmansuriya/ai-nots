@@ -32,7 +32,7 @@ class PromptNote extends Model implements HasMedia
      */
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('images')
+        $this->addMediaCollection('prompt_images')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'])
             ->singleFile();
     }
@@ -45,7 +45,7 @@ class PromptNote extends Model implements HasMedia
         $this->addMediaConversion('webp')
             ->format('webp')
             ->quality(90) // High quality WebP (85-90 range)
-            ->performOnCollections('images')
+            ->performOnCollections('prompt_images')
             ->nonQueued();
     }
 
@@ -56,16 +56,14 @@ class PromptNote extends Model implements HasMedia
      */
     public function getImageUrlAttribute(): ?string
     {
-        $media = $this->getFirstMedia('images');
+        $media = $this->getFirstMedia('prompt_images');
 
         if (! $media) {
             return null;
         }
 
-        // Return WebP version if available, otherwise original
-        $webpMedia = $this->getFirstMedia('images', ['conversion' => 'webp']);
-
-        return $webpMedia ? $webpMedia->getUrl() : $media->getUrl();
+        // Return the media URL directly (already converted to WebP by ImageService)
+        return $media->getUrl();
     }
 
     /**
@@ -75,15 +73,13 @@ class PromptNote extends Model implements HasMedia
      */
     public function getImagePathAttribute(): ?string
     {
-        $media = $this->getFirstMedia('images');
+        $media = $this->getFirstMedia('prompt_images');
 
         if (! $media) {
             return null;
         }
 
-        $webpMedia = $this->getFirstMedia('images', ['conversion' => 'webp']);
-
-        return $webpMedia ? $webpMedia->getPath() : $media->getPath();
+        return $media->getPath();
     }
 
     /**
@@ -93,7 +89,7 @@ class PromptNote extends Model implements HasMedia
      */
     public function getHasImageAttribute(): bool
     {
-        return $this->hasMedia('images');
+        return $this->hasMedia('prompt_images');
     }
 
     /**

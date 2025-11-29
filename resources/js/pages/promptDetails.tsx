@@ -12,8 +12,13 @@ import {
     FacebookIcon,
     LinkedinIcon
 } from 'react-share';
-import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+} from '@/components/ui/dialog';
 
 interface PromptDetailsProps {
     prompt: Prompt;
@@ -22,10 +27,12 @@ interface PromptDetailsProps {
 }
 
 export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }: PromptDetailsProps) {
+    const [imageModalOpen, setImageModalOpen] = React.useState(false);
     const shareUrl = window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
     const isDark = document.documentElement.classList.contains('dark');
     const iconColor = isDark ? '#ffffff' : '#000000';
+    const imageUrl = (prompt as any).image_url;
 
     return (
         <WebLayout title={prompt.title}>
@@ -112,6 +119,43 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Image Card - Show if image exists */}
+                            {imageUrl && (
+                                <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                        <ImageIcon className="w-5 h-5" />
+                                        Output Image
+                                    </h2>
+                                    <div className="relative group">
+                                        <img
+                                            src={imageUrl}
+                                            alt={prompt.title}
+                                            className="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-800 shadow-md"
+                                        />
+                                        <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <button
+                                                    className="absolute top-4 right-4 p-3 bg-black/70 dark:bg-white/70 text-white dark:text-gray-900 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/90 dark:hover:bg-white/90 flex items-center gap-2"
+                                                    title="View full image"
+                                                >
+                                                    <Maximize2 className="w-4 h-4" />
+                                                    <span className="text-sm font-medium">View Full</span>
+                                                </button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-none overflow-hidden">
+                                                <div className="relative w-full h-full flex items-center justify-center p-4">
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={prompt.title}
+                                                        className="max-w-full max-h-full object-contain rounded-lg"
+                                                    />
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Prompt Content Card */}
                             <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">

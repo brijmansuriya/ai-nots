@@ -33,9 +33,8 @@ class PromptController extends Controller
         $promptData              = $prompt->toArray();
         $promptData['image_url'] = $prompt->image_url;
 
-        return Inertia::render('add-prompt', [
-            'editing' => true,
-            'prompt'  => $promptData,
+        return Inertia::render('edit-prompt', [
+            'prompt' => $promptData,
         ]);
     }
 
@@ -113,15 +112,16 @@ class PromptController extends Controller
                 $imageService = new ImageService();
                 $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
-                // Add media using Spatie Media Library - add from path
-                $promptNote->addMedia(storage_path('app/public/' . $webpPath))
-                    ->toMediaCollection('images');
+                // Get the full path to the saved file
+                $fullPath = storage_path('app/public/' . $webpPath);
 
-                // Clean up temporary file if needed
-                // Storage::disk('public')->delete($webpPath); // Uncomment if you want to delete after adding to media library
+                // Add media using Spatie Media Library - use the full storage path
+                $promptNote->addMedia($fullPath)
+                    ->toMediaCollection('prompt_images');
             } catch (\Exception $e) {
                 // Log error but don't fail the request
                 \Log::error('Image upload failed: ' . $e->getMessage());
+                \Log::error('Image upload error trace: ' . $e->getTraceAsString());
             }
         }
 
@@ -218,24 +218,30 @@ class PromptController extends Controller
             $prompt->variables()->createMany($variables);
         }
 
+        // Handle image removal
+        if ($request->input('remove_image')) {
+            $prompt->clearMediaCollection('prompt_images');
+        }
+
         // Handle image upload (replace existing if new image is uploaded)
         if ($request->hasFile('image')) {
             try {
-                // Delete existing image
-                $prompt->clearMediaCollection('images');
+                // Delete existing image first
+                $prompt->clearMediaCollection('prompt_images');
 
                 $imageService = new ImageService();
                 $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
-                // Add new media using Spatie Media Library
-                $prompt->addMedia(storage_path('app/public/' . $webpPath))
-                    ->toMediaCollection('images');
+                // Get the full path to the saved file
+                $fullPath = storage_path('app/public/' . $webpPath);
 
-                // Clean up temporary file if needed
-                // Storage::disk('public')->delete($webpPath); // Uncomment if you want to delete after adding to media library
+                // Add new media using Spatie Media Library
+                $prompt->addMedia($fullPath)
+                    ->toMediaCollection('prompt_images');
             } catch (\Exception $e) {
                 // Log error but don't fail the request
                 \Log::error('Image upload failed: ' . $e->getMessage());
+                \Log::error('Image upload error trace: ' . $e->getTraceAsString());
             }
         }
 
