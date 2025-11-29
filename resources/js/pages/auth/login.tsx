@@ -36,15 +36,15 @@ export default function Login({ status, canResetPassword }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-ai-cyan/20 via-black to-ai-coral/20 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black p-4 transition-colors">
       <Head title="Log in" />
 
-      <div className="w-full max-w-md bg-black/20 backdrop-blur-lg rounded-3xl shadow-lg p-8 space-y-6">
+      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xl p-8 space-y-6 transition-colors">
         <div className="text-center">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent">
             Log in to your account
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             Enter your email and password below
           </p>
         </div>

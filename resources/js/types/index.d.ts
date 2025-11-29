@@ -75,6 +75,7 @@ export interface Prompt {
     id: number;
     title: string;
     prompt: string;
+    description?: string | null;
     promptable_id: number;
     promptable_type: 'admin' | 'user' | 'guest';
     is_public: 0 | 1 | 2;

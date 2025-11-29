@@ -3,32 +3,30 @@ import { Prompt, Tags } from '@/types';
 import { Link } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
 import {
-  WhatsappShareButton,
-  TwitterShareButton,
-  FacebookShareButton,
-  LinkedinShareButton,
-  WhatsappIcon,
-  TwitterIcon,
-  FacebookIcon,
-  LinkedinIcon
+    WhatsappShareButton,
+    TwitterShareButton,
+    FacebookShareButton,
+    LinkedinShareButton,
+    WhatsappIcon,
+    TwitterIcon,
+    FacebookIcon,
+    LinkedinIcon
 } from 'react-share';
+import { Copy, Check, ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink } from 'lucide-react';
 
 interface PromptDetailsProps {
     prompt: Prompt;
-    index: number;
+    recentPrompts?: Prompt[];
+    index?: number;
 }
 
-export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
+export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }: PromptDetailsProps) {
     const [isCopied, setIsCopied] = useState(false);
 
-    console.log('Prompt Details:', prompt); // Debugging line to check the prompt data
-
-    // Copy prompt to clipboard (reused from NoteCard)
     const copyPrompt = async () => {
         const text = prompt?.prompt || '';
         if (!text) return;
 
-        // Modern clipboard API
         if (navigator.clipboard && window.isSecureContext) {
             try {
                 await navigator.clipboard.writeText(text);
@@ -38,7 +36,6 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
                 console.error('Clipboard write failed', err);
             }
         } else {
-            // Fallback method
             const textarea = document.createElement('textarea');
             textarea.value = text;
             textarea.style.position = 'fixed';
@@ -61,137 +58,242 @@ export default function PromptDetails({ prompt, index }: PromptDetailsProps) {
 
     const shareUrl = window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
+    const isDark = document.documentElement.classList.contains('dark');
+    const iconColor = isDark ? '#ffffff' : '#000000';
 
     return (
-        <WebLayout title="Home">
-            <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-                <div
-                    className="bg-[#12252c] note-card rounded-2xl p-4 sm:p-6 md:p-8 max-w-3xl w-full hover:shadow-lg hover:shadow-ai-cyan/30 transition-all duration-300"
-                    style={{ '--index': index } as React.CSSProperties}
-                >
-                    {/* Header and Share Section */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                        <div>
-                            <h1 className="text-white/90 text-lg sm:text-xl md:text-2xl font-bold">
-                                #{prompt.id} | {prompt.title}
-                            </h1>
-                            <p className="text-white/70 text-xs sm:text-sm mt-1">
-                                Created: {new Date(prompt.created_at).toLocaleDateString()}
-                            </p>
-                        </div>
+        <WebLayout title={prompt.title}>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-black dark:via-gray-950 dark:to-black transition-colors">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                    {/* Back Button */}
+                    <Link
+                        href={route('home')}
+                        className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors group"
+                    >
+                        <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        <span>Back to Prompts</span>
+                    </Link>
 
-                        {/* Share Buttons - Now at the top right */}
-                        <div className="flex gap-3 bg-gray-800/30 backdrop-blur-sm p-3 rounded-xl border border-ai-cyan">
-                            <WhatsappShareButton url={shareUrl} title={shareTitle}>
-                                <div className="group relative">
-                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
-                                        <WhatsappIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                    {/* Main Layout: Two Columns */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                        {/* Left Column: Main Content */}
+                        <div className="lg:col-span-2 space-y-6">
+                            {/* Header Card */}
+                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                <div className="flex items-start justify-between gap-4 mb-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-lg">
+                                                #{prompt.id}
+                                            </span>
+                                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                                                {prompt.title}
+                                            </h1>
+                                        </div>
+
+                                        {prompt.description && (
+                                            <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg mb-4">
+                                                {prompt.description}
+                                            </p>
+                                        )}
+
+                                        {/* Meta Information */}
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="w-4 h-4" />
+                                                <span>Created {new Date(prompt.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                            </div>
+                                            {prompt.updated_at && prompt.updated_at !== prompt.created_at && (
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span>Updated {new Date(prompt.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Share Buttons */}
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Share2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Share</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <WhatsappShareButton url={shareUrl} title={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                    <WhatsappIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
+                                                </div>
+                                            </WhatsappShareButton>
+
+                                            <TwitterShareButton url={shareUrl} title={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                    <TwitterIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
+                                                </div>
+                                            </TwitterShareButton>
+
+                                            <FacebookShareButton url={shareUrl} quote={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                    <FacebookIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
+                                                </div>
+                                            </FacebookShareButton>
+
+                                            <LinkedinShareButton url={shareUrl} title={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                    <LinkedinIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
+                                                </div>
+                                            </LinkedinShareButton>
+                                        </div>
                                     </div>
                                 </div>
-                            </WhatsappShareButton>
+                            </div>
 
-                            <TwitterShareButton url={shareUrl} title={shareTitle}>
-                                <div className="group relative">
-                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
-                                        <TwitterIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
+                            {/* Prompt Content Card */}
+                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-gradient-to-b from-gray-900 dark:from-white to-black dark:to-gray-300 rounded-full"></span>
+                                    Prompt Content
+                                </h2>
+                                <div className="bg-gray-50 dark:bg-gray-950 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+                                    <pre className="text-sm sm:text-base text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
+                                        {prompt.prompt || 'No prompt content available.'}
+                                    </pre>
+                                </div>
+                            </div>
+
+                            {/* Additional Information Card */}
+                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Additional Information</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Status</h3>
+                                        {prompt.status !== undefined && prompt.status !== null ? (
+                                            <span
+                                                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${prompt.status === 1
+                                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                                    }`}
+                                            >
+                                                {prompt.status === 1 ? 'Active' : 'Inactive'}
+                                            </span>
+                                        ) : (
+                                            <span className="text-gray-500 dark:text-gray-400 text-sm">N/A</span>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Created By</h3>
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                            <span className="text-gray-700 dark:text-gray-300 text-sm">
+                                                {prompt.promptable_id ? `User ID: ${prompt.promptable_id}` : 'Unknown'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </TwitterShareButton>
+                            </div>
 
-                            <FacebookShareButton url={shareUrl} quote={shareTitle}>
-                                <div className="group relative">
-                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
-                                        <FacebookIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
-                                    </div>
-                                </div>
-                            </FacebookShareButton>
-
-                            <LinkedinShareButton url={shareUrl} title={shareTitle}>
-                                <div className="group relative">
-                                    <div className="p-2 rounded-lg bg-ai-cyan/20 hover:bg-ai-cyan/30 transition-all duration-300 hover:scale-110">
-                                        <LinkedinIcon size={24} round bgStyle={{ fill: 'transparent' }} iconFillColor="#00ddeb" />
-                                    </div>
-                                </div>
-                            </LinkedinShareButton>
-                        </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="tags flex flex-wrap gap-2 mb-4 sm:mb-6 min-h-[1.75rem]">
-                        {prompt.tags && prompt.tags.length > 0 ? (
-                            prompt.tags.map((tag: Tags, idx: number) => (
-                                <span
-                                    key={idx}
-                                    className="tag bg-ai-cyan/20 text-ai-cyan text-xs sm:text-sm font-medium px-3 py-1 rounded-full hover:bg-ai-cyan/40 transition-colors"
-                                >
-                                    {tag.name}
-                                </span>
-                            ))
-                        ) : (
-                            <span className="text-white/70 text-xs sm:text-sm">No tags available</span>
-                        )}
-                    </div>
-
-                    {/* Prompt Content */}
-                    <div className="mb-4 sm:mb-6">
-                        <h2 className="text-white/90 text-sm sm:text-base font-semibold mb-2">Prompt Content</h2>
-                        <p className="text-white/80 text-xs sm:text-sm bg-gray-800/50 p-4 rounded-lg whitespace-pre-wrap">
-                            {prompt.prompt || 'No prompt content available.'}
-                        </p>
-                    </div>
-
-                    {/* Additional Details */}
-                    <div className="mb-4 sm:mb-6">
-                        <h2 className="text-white/90 text-sm sm:text-base font-semibold mb-2">Additional Information</h2>
-                        <ul className="text-white/80 text-xs sm:text-sm space-y-1">
-                            <li className="flex items-center gap-2">
-                                <strong className="text-white/90 text-xs sm:text-sm font-semibold">Status : </strong>
-                                {prompt.status !== undefined && prompt.status !== null ? (
-                                    <span
-                                        className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded-full ${prompt.status === 1
-                                            ? 'bg-green-500/20 text-green-500'
-                                            : 'bg-red-500/20 text-red-500'
+                            {/* Action Buttons */}
+                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                                    <button
+                                        onClick={copyPrompt}
+                                        className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 ${isCopied
+                                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                                            : 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black dark:hover:from-gray-100 hover:to-gray-900 dark:hover:to-gray-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
                                             }`}
                                     >
-                                        {prompt.status === 1 ? 'Active' : 'Inactive'}
-                                    </span>
-                                ) : (
-                                    <span className="text-white/70 text-xs sm:text-sm">N/A</span>
-                                )}
-                            </li>
-                            <li>
-                                <strong>Created By : </strong>
-                                {prompt.promptable_id ? (
-                                    <>
-                                        User ID: {prompt.promptable_id}
-                                    </>
-                                ) : (
-                                    'Unknown'
-                                )}
-                            </li>
-                            <li>
-                                <strong>Updated : </strong>
-                                {prompt.updated_at ? new Date(prompt.updated_at).toLocaleDateString() : 'N/A'}
-                            </li>
-                        </ul>
-                    </div>
+                                        {isCopied ? (
+                                            <>
+                                                <Check className="w-5 h-5" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="w-5 h-5" />
+                                                Copy Prompt
+                                            </>
+                                        )}
+                                    </button>
 
-                    {/* Action Buttons - Now at the bottom */}
-                    <div className="flex justify-center gap-4 mt-6">
-                        <button
-                            className={`flex-1 sm:flex-none text-white font-semibold px-6 py-2.5 rounded-full transition-all duration-300 text-sm ${isCopied ? 'bg-green-500 hover:bg-green-600' : 'bg-ai-cyan hover:bg-ai-coral hover:scale-105'
-                                }`}
-                            onClick={copyPrompt}
-                        >
-                            {isCopied ? 'Copied!' : 'Copy Prompt'}
-                        </button>
+                                    <Link
+                                        href={route('home')}
+                                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-white dark:bg-gray-950 border-2 border-gray-900 dark:border-white text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 shadow-md hover:shadow-lg"
+                                    >
+                                        <ArrowLeft className="w-5 h-5" />
+                                        Back to Home
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
 
-                        <Link
-                            href={route('home')}
-                            className="flex-1 sm:flex-none text-white font-semibold px-6 py-2.5 rounded-full transition-all duration-300 text-sm bg-ai-cyan hover:bg-ai-coral hover:scale-105 text-center"
-                        >
-                            Back to Prompts
-                        </Link>
+                        {/* Right Sidebar */}
+                        <div className="lg:col-span-1 space-y-6">
+                            {/* Tags Section */}
+                            {prompt.tags && prompt.tags.length > 0 && (
+                                <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sticky top-6">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <TagIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Tags</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {prompt.tags.map((tag: Tags, idx: number) => (
+                                            <Link
+                                                key={idx}
+                                                href={route('home', { search: tag.name })}
+                                                className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                                            >
+                                                {tag.name}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Recent Prompts Section */}
+                            {recentPrompts && recentPrompts.length > 0 && (
+                                <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sticky top-6">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Prompts</h3>
+                                    <div className="space-y-4">
+                                        {recentPrompts.map((recentPrompt: Prompt) => (
+                                            <Link
+                                                key={recentPrompt.id}
+                                                href={route('prompt.show', recentPrompt.id)}
+                                                className="block p-4 rounded-lg border border-gray-200 dark:border-gray-800 hover:border-gray-900 dark:hover:border-white hover:shadow-md transition-all group"
+                                            >
+                                                <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-300 line-clamp-2 flex-1">
+                                                        {recentPrompt.title}
+                                                    </h4>
+                                                    <ExternalLink className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0 mt-0.5" />
+                                                </div>
+                                                {recentPrompt.description && (
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
+                                                        {recentPrompt.description}
+                                                    </p>
+                                                )}
+                                                {recentPrompt.tags && recentPrompt.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {recentPrompt.tags.slice(0, 2).map((tag: Tags) => (
+                                                            <span
+                                                                key={tag.id}
+                                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300"
+                                                            >
+                                                                {tag.name}
+                                                            </span>
+                                                        ))}
+                                                        {recentPrompt.tags.length > 2 && (
+                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400">
+                                                                +{recentPrompt.tags.length - 2}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

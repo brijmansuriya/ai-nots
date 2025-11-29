@@ -65,115 +65,116 @@ export default function Dashboard({ auth }: any) {
 
   return (
     <WebLayout title="Dashboard">
-      <Header />
-
-      {/* Main Content */}
-      <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16">
-        <div className="container mx-auto max-w-7xl">
-            <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text">
-                Welcome, {auth.user.name}
+      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors">
+        {/* Main Content */}
+        <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16">
+          <div className="container mx-auto max-w-7xl">
+            <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent">
+              Welcome, {auth.user.name}
             </h1>
-            <p className="mt-2 text-center text-gray-300">
-                Here you can manage your prompts and profile settings.
+            <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
+              Here you can manage your prompts and profile settings.
             </p>
-        </div>
-        </main>
-      {/* Top Section */}
-      <section className="mx-auto max-w-7xl py-8 px-6 bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
-      
-        {/* Profile Section */}
-        <div className="flex flex-col items-center text-center">
-          <img
-            src={`https://ui-avatars.com/api/?name=${auth.user.name}&background=40c0df&color=ffffff&size=128&rounded=true`}
-            alt="Avatar"
-            className="h-24 w-24 rounded-full border-2 border-white/10 shadow mb-4"
-          />
-          <h2 className="text-xl font-semibold text-white">{auth.user.name}</h2>
-          <p className="text-gray-300">{auth.user.email}</p>
-        </div>
-
-        {/* Update Name and Email Section */}
-        <form onSubmit={submit} className="space-y-6">
-          <div>
-            <Label htmlFor="name" className="block text-sm font-medium text-white">
-              Full Name
-            </Label>
-            <Input
-              id="name"
-              type="text"
-              value={data.name}
-              onChange={(e) => setData('name', e.target.value)}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-ai-cyan focus:border-ai-cyan"
-            />
-            <InputError message={errors.name} className="mt-2 text-ai-coral" />
           </div>
 
-          <div>
-            <Label htmlFor="email" className="block text-sm font-medium text-white">
-              Email Address
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={data.email}
-              onChange={(e) => setData('email', e.target.value)}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-ai-cyan focus:border-ai-cyan"
-            />
-            <InputError message={errors.email} className="mt-2 text-ai-coral" />
-          </div>
+          {/* Top Section */}
+          <section className="mx-auto max-w-7xl py-8 px-6 mt-8 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6 transition-colors">
 
-          <Button
-            type="submit"
-            disabled={processing}
-            className="w-full bg-ai-cyan text-white py-2 px-4 rounded-md hover:bg-ai-coral transition"
-          >
-            {processing ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </form>
-      </section>
+            {/* Profile Section */}
+            <div className="flex flex-col items-center text-center">
+              <img
+                src={`https://ui-avatars.com/api/?name=${auth.user.name}&background=111827&color=ffffff&size=128&rounded=true`}
+                alt="Avatar"
+                className="h-24 w-24 rounded-full border-2 border-gray-200 dark:border-gray-700 shadow mb-4"
+              />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{auth.user.name}</h2>
+              <p className="text-gray-600 dark:text-gray-400">{auth.user.email}</p>
+            </div>
 
-      {/* Prompts Section */}
-      <section className="notes-section mx-auto max-w-7xl py-8 px-6 mt-10 bg-black/20 backdrop-blur-lg shadow-lg rounded-3xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text uppercase">
-            My Prompts
-          </h2>
-          <Input
-            type="text"
-            placeholder="Search prompts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)} // Update search state
-            className="w-1/3 border-gray-300 rounded-md shadow-sm focus:ring-ai-cyan focus:border-ai-cyan"
-          />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {prompts.length > 0 ? (
-            prompts.map((prompt, i) => (
-              <div key={prompt.id} className="relative">
-                <NoteCard prompt={prompt} index={i} />
-                <button
-                  onClick={() => handleEdit(prompt.id)}
-                  className="absolute top-2 right-2 bg-ai-cyan text-white px-3 py-1 rounded-full text-xs font-semibold hover:bg-ai-coral transition"
-                >
-                  Edit
-                </button>
+            {/* Update Name and Email Section */}
+            <form onSubmit={submit} className="space-y-6">
+              <div>
+                <Label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={data.name}
+                  onChange={(e) => setData('name', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
+                />
+                <InputError message={errors.name} className="mt-2 text-red-600 dark:text-red-400" />
               </div>
-            ))
-          ) : (
-            <p className="text-gray-300 col-span-full text-center">No prompts found.</p>
-          )}
-        </div>
 
-        {loading && (
-          <div className="text-center py-4">
-            <p className="animate-pulse text-gray-300">Loading...</p>
-          </div>
-        )}
+              <div>
+                <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={data.email}
+                  onChange={(e) => setData('email', e.target.value)}
+                  className="mt-1 block w-full border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
+                />
+                <InputError message={errors.email} className="mt-2 text-red-600 dark:text-red-400" />
+              </div>
 
-        {!loading && currentPage < lastPage && (
-          <LoadMoreTrigger onVisible={handleLoadMore} />
-        )}
-      </section>
+              <Button
+                type="submit"
+                disabled={processing}
+                className="w-full bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 py-2 px-4 rounded-md hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition"
+              >
+                {processing ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </form>
+          </section>
+
+          {/* Prompts Section */}
+          <section className="notes-section mx-auto max-w-7xl py-8 px-6 mt-10 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg transition-colors">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent uppercase">
+                My Prompts
+              </h2>
+              <Input
+                type="text"
+                placeholder="Search prompts..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-1/3 border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {prompts.length > 0 ? (
+                prompts.map((prompt, i) => (
+                  <div key={prompt.id} className="relative">
+                    <NoteCard prompt={prompt} index={i} />
+                    <button
+                      onClick={() => handleEdit(prompt.id)}
+                      className="absolute top-2 right-2 bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition shadow-md"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 col-span-full text-center">No prompts found.</p>
+              )}
+            </div>
+
+            {loading && (
+              <div className="text-center py-4">
+                <p className="animate-pulse text-gray-600 dark:text-gray-400">Loading...</p>
+              </div>
+            )}
+
+            {!loading && currentPage < lastPage && (
+              <LoadMoreTrigger onVisible={handleLoadMore} />
+            )}
+          </section>
+        </main>
+      </div>
     </WebLayout>
   );
 }

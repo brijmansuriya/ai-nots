@@ -174,13 +174,33 @@
    Web-Specific Styles
 ========================== */
 
-/* Background Animation */
-body {
+/* Background Animation - Only for non-dark mode */
+body:not(.dark) {
     animation: gradientShift 15s ease infinite;
     background: linear-gradient(135deg, var(--color-ai-dark), var(--color-ai-mid), var(--color-ai-light));
     background-size: 300% 300%;
     color: white;
     min-height: 100vh;
+}
+
+/* Dark mode background */
+body.dark {
+    background: #030712;
+    color: #f9fafb;
+    min-height: 100vh;
+}
+
+html.dark {
+    background-color: #030712;
+}
+
+/* Modern Black & White Gradient Theme */
+body:not(.dark) .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #f9fafb, #ffffff, #f3f4f6);
+}
+
+body.dark .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #030712, #111827, #000000);
 }
 
 @keyframes gradientShift {
@@ -217,8 +237,19 @@ body {
 }
 
 @keyframes fadeInCard {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth hover transitions */
+.note-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode hover shadow */
+.dark .note-card:hover {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
 }
 
 /* Modal Animation */

@@ -1,27 +1,28 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
 import Header from '@/components/header';
-import Footer from '@/components/footer';  // If you want to add a footer section
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-
+import Footer from '@/components/footer';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 export default function WebLayout({ children, title, ...props }: { children: React.ReactNode; title: string }) {
     return (
-        <div className="min-h-screen" {...props}>
-            {/* Meta Head Title */}
-            <Head title={title} />
+        <ThemeProvider>
+            <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors" {...props}>
+                {/* Meta Head Title */}
+                <Head title={title} />
 
-            {/* Header Section */}
-            <Header />
+                {/* Header Section */}
+                <Header />
 
-            {/* Main Content */}
-            <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16">
-                {children}
-            </main>
+                {/* Main Content */}
+                <main className="bg-white dark:bg-gray-950">
+                    {children}
+                </main>
 
-            {/* Footer Section */}
-            <Footer /> 
-        </div>
+                {/* Footer Section */}
+                <Footer />
+            </div>
+        </ThemeProvider>
     );
 }
 

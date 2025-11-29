@@ -1,11 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use \App\Models\Tag;
 use App\Models\PromptNote;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use \App\Models\Tag;
 
 class PromptController extends Controller
 {
@@ -13,27 +12,27 @@ class PromptController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
-            'prompt' => 'required|string|max:1000',
-            'category_id' => 'required|integer|exists:categories,id',
-            'tags' => 'required|array',
-            'tags.*' => 'string|max:50',
-            'platform' => 'required|array',
-            'platform.*' => 'string|max:50',
-            'dynamic_variables' => 'nullable|array',
+            'title'               => 'required|string|max:255',
+            'prompt'              => 'required|string|max:1000',
+            'category_id'         => 'required|integer|exists:categories,id',
+            'tags'                => 'required|array',
+            'tags.*'              => 'string|max:50',
+            'platform'            => 'required|array',
+            'platform.*'          => 'string|max:50',
+            'dynamic_variables'   => 'nullable|array',
             'dynamic_variables.*' => 'string|max:50',
         ]);
-        
-        $promptData = $request->only(['title', 'prompt', 'description','category_id','platform']);
-    
-        $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null; 
-        $promptData['promptable_id'] = auth()->user()->id ?? null; 
-        $promptNote = PromptNote::create($promptData);
+
+        $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'platform']);
+
+        $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null;
+        $promptData['promptable_id']   = auth()->user()->id ?? null;
+        $promptNote                    = PromptNote::create($promptData);
 
         // Handle tags - support both existing tags (by name or id) and create new ones
-        $tags = $request->input('tags');
+        $tags   = $request->input('tags');
         $tagIds = [];
-        
+
         foreach ($tags as $tag) {
             // Check if tag is provided as ID (numeric)
             if (is_numeric($tag)) {
@@ -43,18 +42,18 @@ class PromptController extends Controller
                     continue;
                 }
             }
-            
+
             // Check if tag exists by name (case-insensitive)
             $existingTag = Tag::whereRaw('LOWER(name) = ?', [strtolower($tag)])->first();
-            
+
             if ($existingTag) {
                 // Use existing tag - allows repeated data
                 $tagIds[] = $existingTag->id;
             } else {
                 // Create new tag if it doesn't exist
-                $slug = \Str::slug($tag);
+                $slug         = \Str::slug($tag);
                 $originalSlug = $slug;
-                $counter = 1;
+                $counter      = 1;
 
                 // Check if the slug already exists and append a number if it does
                 while (Tag::where('slug', $slug)->exists()) {
@@ -63,11 +62,11 @@ class PromptController extends Controller
                 }
 
                 $createdTag = Tag::create([
-                    'name' => $tag,
-                    'slug' => $slug,
+                    'name'            => $tag,
+                    'slug'            => $slug,
                     'created_by_type' => auth()->user()->getMorphClass(),
-                    'created_by_id' => auth()->user()->id,
-                    'status' => Tag::STATUS_ACTIVE,
+                    'created_by_id'   => auth()->user()->id,
+                    'status'          => Tag::STATUS_ACTIVE,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -90,10 +89,18 @@ class PromptController extends Controller
 
     public function show($id)
     {
-        $prompt = PromptNote::with(['tags','promptable'])->findOrFail($id);
+        $prompt = PromptNote::with(['tags', 'promptable', 'platforms'])->findOrFail($id);
+
+        // Get recent prompts (excluding current one)
+        $recentPrompts = PromptNote::with(['tags'])
+            ->where('id', '!=', $id)
+            ->latest()
+            ->limit(5)
+            ->get();
 
         return Inertia::render('promptDetails', [
-            'prompt' => $prompt,
+            'prompt'        => $prompt,
+            'recentPrompts' => $recentPrompts,
         ]);
     }
 }

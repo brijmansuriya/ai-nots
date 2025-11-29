@@ -1,12 +1,10 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\AboutController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PromptController;
-use App\Http\Controllers\AboutController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Socialite\Facades\Socialite;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensure this route is correct
@@ -14,6 +12,9 @@ Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensur
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 
 Route::prefix('prompt')->group(function () {
+    Route::get('create', function () {
+        return Inertia::render('add-prompt');
+    })->name('prompt.create');
     Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
     Route::get('show/{id}', [PromptController::class, 'show'])->name('prompt.show');
 });
