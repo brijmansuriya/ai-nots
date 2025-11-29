@@ -17,7 +17,7 @@ createInertiaApp({
         root.render(<App {...props} />);
     },
     progress: {
-        color: '#00ddeb',
+        color: '#000000',
     },
 });
 
@@ -27,7 +27,7 @@ initializeTheme();
 // Function to get the theme color dynamically
 const getThemeColor = () => {
   // Example: Replace with your logic to fetch the theme color
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#4B5563' : '#00bcd4';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? '#000000' : '#000000';
 };
 
 InertiaProgress.init({

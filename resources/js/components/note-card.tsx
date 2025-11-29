@@ -1,33 +1,26 @@
-import React from 'react';
-import { Prompt } from '@/types';
+import React, { useState } from 'react';
+import { Prompt, Tags } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
 import { Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
-
-export interface Tags {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  status: string;
-  created_by_id: number;
-  created_by_type: string;
-  created_at: string;
-  updated_at: string;
-  pivot: {
-    prompt_id: number;
-    tag_id: number;
-    created_at: string;
-    updated_at: string;
-  };
-}
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface NoteCardProps {
   prompt: Prompt;
   index: number;
+  onDeleted?: (id: number) => void;
 }
 
-export default function NoteCard({ prompt, index }: NoteCardProps) {
+export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { auth } = usePage().props;
   const user = auth?.user;
   const isOwner = user && prompt.promptable_id === user.id;
@@ -57,27 +50,67 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
             <button
               onClick={(e) => {
                 e.preventDefault();
-                // TODO: Implement edit functionality
-                router.visit(route('prompt.edit', prompt.id));
+                e.stopPropagation();
+                router.visit(`/prompt/${prompt.id}/edit`);
               }}
               className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               title="Edit prompt"
             >
               <Edit2 className="w-4 h-4" />
             </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                // TODO: Implement delete functionality
-                if (confirm('Are you sure you want to delete this prompt?')) {
-                  // router.delete(route('prompt.destroy', prompt.id));
-                }
-              }}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete prompt"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+              <DialogTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteOpen(true);
+                  }}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete prompt"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
+                <DialogHeader>
+                  <DialogTitle className="text-gray-900 dark:text-white">
+                    Delete this prompt?
+                  </DialogTitle>
+                  <DialogDescription className="text-gray-600 dark:text-gray-400">
+                    This action cannot be undone. This will permanently delete the prompt{" "}
+                    <span className="font-semibold">"{prompt.title}"</span>.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+                    onClick={() => setDeleteOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                    onClick={() => {
+                      router.delete(`/prompt/${prompt.id}`, {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                          setDeleteOpen(false);
+                          if (onDeleted) {
+                            onDeleted(prompt.id);
+                          }
+                        },
+                        onFinish: () => setDeleteOpen(false),
+                      });
+                    }}
+                  >
+                    Delete
+                  </button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>

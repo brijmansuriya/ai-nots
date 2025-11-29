@@ -1,24 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, router } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
 import WebLayout from '@/layouts/web-layout';
-import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText } from 'lucide-react';
+import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Image as ImageIcon, Upload } from 'lucide-react';
+import type { Tag, Platform, PromptVariable, EditPromptProps } from '@/types';
 
-interface Tag {
-  id: number;
-  name: string;
-  slug: string;
-  created_at: string;
-}
-
-interface Platform {
-  id: number;
-  name: string;
-  selected?: boolean;
-}
-
-export default function AddPrompt() {
+export default function AddPrompt({ editing = false, prompt }: EditPromptProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [manualVars, setManualVars] = useState<string[]>([]);
@@ -26,26 +14,63 @@ export default function AddPrompt() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [draftCreatedAt] = useState<string>(() => new Date().toISOString());
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data, setData, post, processing, errors } = useForm({
-    title: '',
-    prompt: '',
-    description: '',
-    tags: [] as string[],
-    platform: [] as string[],
-    category_id: '',
-    dynamic_variables: [] as string[],
+  const initialTags = prompt ? prompt.tags.map((t) => t.name) : [];
+  const initialPlatforms = prompt ? prompt.platforms.map((p) => p.id.toString()) : [];
+  const initialVars = prompt?.variables ? prompt.variables.map((v) => v.name) : [];
+
+  const { data, setData, post, processing, errors, put, setError } = useForm({
+    title: prompt?.title || '',
+    prompt: prompt?.prompt || '',
+    description: prompt?.description || '',
+    tags: initialTags as string[],
+    platform: initialPlatforms as string[],
+    category_id: prompt?.category_id ? String(prompt.category_id) : '',
+    dynamic_variables: initialVars as string[],
+    image: null as File | null,
   });
 
   useEffect(() => {
+    // Load available tags
     axios.get(route('tags')).then((res) => setAvailableTags(res.data.tags));
-    axios.get(route('platform')).then((res) =>
-      setPlatforms(res.data.platforms.map((p: Platform) => ({ ...p, selected: false })))
-    );
+
+    // Load platforms and set selected state
+    axios.get(route('platform')).then((res) => {
+      const all = res.data.platforms as Platform[];
+      const withSelection = all.map((p: Platform) => ({
+        ...p,
+        selected: initialPlatforms.includes(p.id.toString()),
+      }));
+      setPlatforms(withSelection);
+    });
+
+    // Load categories
     axios.get(route('categories')).then((res) => {
       setCategories(res.data.categories);
     });
-  }, []);
+
+    // Initialize tags when editing
+    if (editing && initialTags.length > 0) {
+      setTags(initialTags);
+      setData('tags', initialTags);
+    }
+
+    // Initialize manualVars when editing
+    if (initialVars.length > 0) {
+      setManualVars(initialVars);
+    } else if (prompt?.prompt) {
+      const vars = extractDynamicVariables(prompt.prompt);
+      setManualVars(vars);
+      setData('dynamic_variables', vars);
+    }
+
+    // Set image preview if editing and image exists
+    if (editing && prompt && (prompt as any).image_url) {
+      setImagePreview((prompt as any).image_url);
+    }
+  }, [editing, initialTags, initialVars, prompt]);
 
   const extractDynamicVariables = (promptText: string): string[] => {
     const matches = [...promptText.matchAll(/\[([^\]]+)\]/g)];
@@ -83,14 +108,62 @@ export default function AddPrompt() {
     setData('platform', updated.filter((p) => p.selected).map((p) => p.id.toString()));
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 2MB before conversion)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('image', 'Image size must be less than 2MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('image', 'Please upload a valid image file');
+      return;
+    }
+
+    setData('image', file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setData('image', null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    post(route('prompt.store'), {
-      onSuccess: () => {
-        router.visit(route('home'));
-      },
-      onError: () => console.error('Form submission failed:', errors),
-    });
+
+    if (editing && prompt) {
+      put(route('prompt.update', prompt.id), {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+          router.visit(route('home'));
+        },
+        onError: () => console.error('Form update failed:', errors),
+      });
+    } else {
+      post(route('prompt.store'), {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+          router.visit(route('home'));
+        },
+        onError: () => console.error('Form submission failed:', errors),
+      });
+    }
   };
 
   const categoryOptions = categories.map((category) => ({
@@ -194,8 +267,12 @@ export default function AddPrompt() {
               <ArrowLeft className="w-5 h-5" />
               <span>Back to Home</span>
             </button>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Add New Prompt</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Create and share your AI prompt with the community</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              {editing ? 'Edit Prompt' : 'Add New Prompt'}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              {editing ? 'Update your AI prompt details' : 'Create and share your AI prompt with the community'}
+            </p>
           </div>
 
           {/* Main Layout: Form + Sidebar */}
@@ -204,126 +281,177 @@ export default function AddPrompt() {
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-6 sm:p-8 transition-colors">
                 <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Title */}
-              <div>
-                <label htmlFor="title-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="title-input"
-                  type="text"
-                  value={data.title}
-                  onChange={(e) => setData('title', e.target.value)}
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none"
-                  placeholder="Enter a descriptive title..."
-                />
-                {errors.title && (
-                  <span className="mt-1 block text-sm text-red-500">{errors.title}</span>
-                )}
-              </div>
-
-              {/* Description */}
-              <div>
-                <label htmlFor="description-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </label>
-                <textarea
-                  id="description-input"
-                  value={data.description}
-                  onChange={(e) => setData('description', e.target.value)}
-                  placeholder="Brief description of what this prompt does..."
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y"
-                />
-                {errors.description && (
-                  <span className="mt-1 block text-sm text-red-500">{errors.description}</span>
-                )}
-              </div>
-
-              {/* Prompt */}
-              <div>
-                <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  AI Prompt <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="prompt-textarea"
-                  value={data.prompt}
-                  onChange={(e) => handlePromptChange(e.target.value)}
-                  placeholder="Use [variable_name] inside your prompt..."
-                  rows={8}
-                  required
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
-                />
-                {errors.prompt && (
-                  <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>
-                )}
-              </div>
-
-              {/* Dynamic Variables */}
-              <DynamicVariableInput
-                manualVars={manualVars}
-                setManualVars={setManualVars}
-                data={data}
-                setData={setData}
-                insertVariableIntoPrompt={insertVariableIntoPrompt}
-              />
-
-              {/* Category */}
-              <div>
-                <label htmlFor="category_id" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  id="category_id"
-                  options={categoryOptions}
-                  value={categoryOptions.find((option) => option.value === data.category_id)}
-                  onChange={(selectedOption) => setData('category_id', selectedOption?.value || '')}
-                  styles={customStyles}
-                  placeholder="Select a category"
-                  isClearable
-                />
-                {errors.category_id && (
-                  <span className="mt-1 block text-sm text-red-500">{errors.category_id}</span>
-                )}
-              </div>
-
-              {/* Tags */}
-              <TagSelector
-                tags={tags}
-                tagInput={tagInput}
-                setTagInput={setTagInput}
-                availableTags={availableTags}
-                setTags={setTags}
-                setData={setData}
-                error={errors.tags}
-              />
-
-              {/* Platforms */}
-              <div>
-                <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Platforms <span className="text-red-500">*</span></label>
-                <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {platforms.map((platform) => (
-                      <button
-                        key={platform.id}
-                        type="button"
-                        onClick={() => handlePlatformToggle(platform.id.toString())}
-                        className={`text-sm font-medium px-4 py-2 rounded-lg transition-all ${
-                          platform.selected
-                            ? 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 shadow-md'
-                            : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-900 dark:hover:border-white hover:bg-gray-50 dark:hover:bg-gray-900'
-                        }`}
-                      >
-                        {platform.name}
-                      </button>
-                    ))}
+                  {/* Title */}
+                  <div>
+                    <label htmlFor="title-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="title-input"
+                      type="text"
+                      value={data.title}
+                      onChange={(e) => setData('title', e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none"
+                      placeholder="Enter a descriptive title..."
+                    />
+                    {errors.title && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.title}</span>
+                    )}
                   </div>
-                </div>
-                {errors.platform && (
-                  <span className="mt-1 block text-sm text-red-500">{errors.platform}</span>
-                )}
-              </div>
+
+                  {/* Description */}
+                  <div>
+                    <label htmlFor="description-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Description
+                    </label>
+                    <textarea
+                      id="description-input"
+                      value={data.description}
+                      onChange={(e) => setData('description', e.target.value)}
+                      placeholder="Brief description of what this prompt does..."
+                      rows={3}
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y"
+                    />
+                    {errors.description && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.description}</span>
+                    )}
+                  </div>
+
+                  {/* Image Upload */}
+                  <div>
+                    <label htmlFor="image-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Image <span className="text-gray-500 text-xs">(Optional)</span>
+                    </label>
+                    <div className="space-y-3">
+                      {imagePreview ? (
+                        <div className="relative">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="w-full h-48 object-cover rounded-lg border border-gray-300 dark:border-gray-700"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRemoveImage}
+                            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+                            aria-label="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-8 text-center cursor-pointer hover:border-gray-900 dark:hover:border-gray-500 transition-colors"
+                        >
+                          <Upload className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                            Click to upload an image
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500">
+                            PNG, JPG, WEBP or GIF (Max 2MB)
+                          </p>
+                        </div>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        id="image-input"
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </div>
+                    {errors.image && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.image}</span>
+                    )}
+                  </div>
+
+                  {/* Prompt */}
+                  <div>
+                    <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      AI Prompt <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="prompt-textarea"
+                      value={data.prompt}
+                      onChange={(e) => handlePromptChange(e.target.value)}
+                      placeholder="Use [variable_name] inside your prompt..."
+                      rows={8}
+                      required
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
+                    />
+                    {errors.prompt && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>
+                    )}
+                  </div>
+
+                  {/* Dynamic Variables */}
+                  <DynamicVariableInput
+                    manualVars={manualVars}
+                    setManualVars={setManualVars}
+                    data={data}
+                    setData={setData}
+                    insertVariableIntoPrompt={insertVariableIntoPrompt}
+                  />
+
+                  {/* Category */}
+                  <div>
+                    <label htmlFor="category_id" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      id="category_id"
+                      options={categoryOptions}
+                      value={data.category_id && categoryOptions.length > 0
+                        ? categoryOptions.find((option) => option.value === data.category_id) || null
+                        : null}
+                      onChange={(selectedOption) => setData('category_id', selectedOption?.value || '')}
+                      styles={customStyles}
+                      placeholder="Select a category"
+                      isClearable
+                    />
+                    {errors.category_id && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.category_id}</span>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  <TagSelector
+                    tags={tags}
+                    tagInput={tagInput}
+                    setTagInput={setTagInput}
+                    availableTags={availableTags}
+                    setTags={setTags}
+                    setData={setData}
+                    error={errors.tags}
+                  />
+
+                  {/* Platforms */}
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Platforms <span className="text-red-500">*</span></label>
+                    <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {platforms.map((platform) => (
+                          <button
+                            key={platform.id}
+                            type="button"
+                            onClick={() => handlePlatformToggle(platform.id.toString())}
+                            className={`text-sm font-medium px-4 py-2 rounded-lg transition-all ${platform.selected
+                              ? 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 shadow-md'
+                              : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-800 hover:border-gray-900 dark:hover:border-white hover:bg-gray-50 dark:hover:bg-gray-900'
+                              }`}
+                          >
+                            {platform.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {errors.platform && (
+                      <span className="mt-1 block text-sm text-red-500">{errors.platform}</span>
+                    )}
+                  </div>
 
                   {/* Submit Buttons */}
                   <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-800">
@@ -339,7 +467,7 @@ export default function AddPrompt() {
                       disabled={processing}
                       className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 font-medium hover:from-black dark:hover:from-gray-100 hover:to-gray-900 dark:hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                     >
-                      {processing ? 'Adding...' : 'Add Prompt'}
+                      {processing ? (editing ? 'Updating...' : 'Adding...') : (editing ? 'Update Prompt' : 'Add Prompt')}
                     </button>
                   </div>
                 </form>

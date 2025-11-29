@@ -15,8 +15,16 @@ Route::prefix('prompt')->group(function () {
     Route::get('create', function () {
         return Inertia::render('add-prompt');
     })->name('prompt.create');
+
     Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
     Route::get('show/{id}', [PromptController::class, 'show'])->name('prompt.show');
+
+    // Edit & delete require authenticated user
+    Route::middleware(['auth.user', 'verified'])->group(function () {
+        Route::get('{prompt}/edit', [PromptController::class, 'edit'])->name('prompt.edit');
+        Route::put('{prompt}', [PromptController::class, 'update'])->name('prompt.update');
+        Route::delete('{prompt}', [PromptController::class, 'destroy'])->name('prompt.destroy');
+    });
 });
 
 Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');

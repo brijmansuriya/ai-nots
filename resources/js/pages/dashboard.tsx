@@ -148,7 +148,14 @@ export default function Dashboard({ auth }: any) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {prompts.length > 0 ? (
                 prompts.map((prompt, i) => (
-                  <NoteCard key={prompt.id} prompt={prompt} index={i} />
+                  <NoteCard
+                    key={prompt.id}
+                    prompt={prompt}
+                    index={i}
+                    onDeleted={(id) =>
+                      setPrompts((prev) => prev.filter((p) => p.id !== id))
+                    }
+                  />
                 ))
               ) : (
                 <p className="text-gray-600 dark:text-gray-400 col-span-full text-center">

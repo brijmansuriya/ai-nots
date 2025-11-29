@@ -46,11 +46,30 @@ export interface Tag {
     id: number;
     name: string;
     slug: string;
-    description: string;
-    status: string;
+    description?: string | null;
+    status?: string;
     created_at: string;
-    updated_at: string;
+    updated_at?: string;
     [key: string]: unknown; // This allows for additional properties...
+}
+
+export interface Platform {
+    id: number;
+    name: string;
+    selected?: boolean;
+    [key: string]: unknown;
+}
+
+export interface PromptVariable {
+    id: number;
+    name: string;
+    [key: string]: unknown;
+}
+
+export interface Category {
+    id: string | number;
+    name: string;
+    [key: string]: unknown;
 }
 
 export interface Tags {
@@ -83,4 +102,21 @@ export interface Prompt {
     category_id: number;
     dynamic_variables: Record<string, any>;
     tags: Tags[];
+    platforms?: Platform[];
+    variables?: PromptVariable[];
+    image_url?: string | null;
+}
+
+export interface EditPromptProps {
+    editing?: boolean;
+    prompt?: {
+        id: number;
+        title: string;
+        prompt: string;
+        description: string | null;
+        category_id: string | number | null;
+        tags: { id: number; name: string }[];
+        platforms: { id: number; name: string }[];
+        variables?: PromptVariable[];
+    };
 }

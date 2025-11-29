@@ -1,36 +1,59 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StorePromptRequest;
+use App\Http\Requests\UpdatePromptRequest;
 use App\Models\PromptNote;
-use Illuminate\Http\Request;
+use App\Services\ImageService;
 use Inertia\Inertia;
 use \App\Models\Tag;
 
 class PromptController extends Controller
 {
 
-    public function store(Request $request)
+    /**
+     * Show the form for editing the specified prompt.
+     */
+    public function edit(PromptNote $prompt)
     {
-        $request->validate([
-            'title'               => 'required|string|max:255',
-            'prompt'              => 'required|string|max:1000',
-            'category_id'         => 'required|integer|exists:categories,id',
-            'tags'                => 'required|array',
-            'tags.*'              => 'string|max:50',
-            'platform'            => 'required|array',
-            'platform.*'          => 'string|max:50',
-            'dynamic_variables'   => 'nullable|array',
-            'dynamic_variables.*' => 'string|max:50',
-        ]);
+        $user = auth()->user();
 
-        $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'platform']);
+        // Only allow the owner of the prompt to edit it
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to edit this prompt.');
+        }
+
+        $prompt->load(['tags', 'platforms', 'variables', 'media']);
+
+        // Add image URL to prompt data
+        $promptData              = $prompt->toArray();
+        $promptData['image_url'] = $prompt->image_url;
+
+        return Inertia::render('add-prompt', [
+            'editing' => true,
+            'prompt'  => $promptData,
+        ]);
+    }
+
+    /**
+     * Store a newly created prompt in storage.
+     */
+    public function store(StorePromptRequest $request)
+    {
+        $validated = $request->validated();
+
+        $promptData = $request->only(['title', 'prompt', 'description', 'category_id']);
 
         $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null;
         $promptData['promptable_id']   = auth()->user()->id ?? null;
         $promptNote                    = PromptNote::create($promptData);
 
         // Handle tags - support both existing tags (by name or id) and create new ones
-        $tags   = $request->input('tags');
+        $tags   = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
@@ -74,14 +97,32 @@ class PromptController extends Controller
 
         // Attach tags (remove duplicates)
         $promptNote->tags()->sync(array_unique($tagIds));
-        $promptNote->platforms()->attach($request->input('platform'));
+        $promptNote->platforms()->attach($validated['platform']);
         // Attach dynamic variables to the promptvariables
-        if ($request->has('dynamic_variables')) {
+        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
             $variables = array_map(function ($variable) {
                 return ['name' => $variable];
-            }, $request->input('dynamic_variables'));
+            }, $validated['dynamic_variables']);
 
             $promptNote->variables()->createMany($variables);
+        }
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            try {
+                $imageService = new ImageService();
+                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+
+                // Add media using Spatie Media Library - add from path
+                $promptNote->addMedia(storage_path('app/public/' . $webpPath))
+                    ->toMediaCollection('images');
+
+                // Clean up temporary file if needed
+                // Storage::disk('public')->delete($webpPath); // Uncomment if you want to delete after adding to media library
+            } catch (\Exception $e) {
+                // Log error but don't fail the request
+                \Log::error('Image upload failed: ' . $e->getMessage());
+            }
         }
 
         return redirect()->route('home')->with('success', 'Prompt created successfully.');
@@ -89,18 +130,142 @@ class PromptController extends Controller
 
     public function show($id)
     {
-        $prompt = PromptNote::with(['tags', 'promptable', 'platforms'])->findOrFail($id);
+        $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media'])->findOrFail($id);
+
+        // Add image URL to prompt data
+        $promptData              = $prompt->toArray();
+        $promptData['image_url'] = $prompt->image_url;
 
         // Get recent prompts (excluding current one)
-        $recentPrompts = PromptNote::with(['tags'])
+        $recentPrompts = PromptNote::with(['tags', 'media'])
             ->where('id', '!=', $id)
             ->latest()
             ->limit(5)
-            ->get();
+            ->get()
+            ->map(function ($prompt) {
+                $data              = $prompt->toArray();
+                $data['image_url'] = $prompt->image_url;
+                return $data;
+            });
 
         return Inertia::render('promptDetails', [
-            'prompt'        => $prompt,
+            'prompt'        => $promptData,
             'recentPrompts' => $recentPrompts,
         ]);
+    }
+
+    /**
+     * Update the specified prompt in storage.
+     */
+    public function update(UpdatePromptRequest $request, PromptNote $prompt)
+    {
+        $validated = $request->validated();
+        $user      = auth()->user();
+
+        $promptData = $request->only(['title', 'prompt', 'description', 'category_id']);
+
+        $prompt->update($promptData);
+
+        // Handle tags - same logic as store()
+        $tags   = $validated['tags'];
+        $tagIds = [];
+
+        foreach ($tags as $tag) {
+            if (is_numeric($tag)) {
+                $existingTag = Tag::find($tag);
+                if ($existingTag) {
+                    $tagIds[] = $existingTag->id;
+                    continue;
+                }
+            }
+
+            $existingTag = Tag::whereRaw('LOWER(name) = ?', [strtolower($tag)])->first();
+
+            if ($existingTag) {
+                $tagIds[] = $existingTag->id;
+            } else {
+                $slug         = \Str::slug($tag);
+                $originalSlug = $slug;
+                $counter      = 1;
+
+                while (Tag::where('slug', $slug)->exists()) {
+                    $slug = "{$originalSlug}-{$counter}";
+                    $counter++;
+                }
+
+                $createdTag = Tag::create([
+                    'name'            => $tag,
+                    'slug'            => $slug,
+                    'created_by_type' => $user->getMorphClass(),
+                    'created_by_id'   => $user->id,
+                    'status'          => Tag::STATUS_ACTIVE,
+                ]);
+                $tagIds[] = $createdTag->id;
+            }
+        }
+
+        // Sync tags and platforms
+        $prompt->tags()->sync(array_unique($tagIds));
+        $prompt->platforms()->sync($validated['platform']);
+
+        // Sync dynamic variables
+        $prompt->variables()->delete();
+        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
+            $variables = array_map(function ($variable) {
+                return ['name' => $variable];
+            }, $validated['dynamic_variables']);
+
+            $prompt->variables()->createMany($variables);
+        }
+
+        // Handle image upload (replace existing if new image is uploaded)
+        if ($request->hasFile('image')) {
+            try {
+                // Delete existing image
+                $prompt->clearMediaCollection('images');
+
+                $imageService = new ImageService();
+                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+
+                // Add new media using Spatie Media Library
+                $prompt->addMedia(storage_path('app/public/' . $webpPath))
+                    ->toMediaCollection('images');
+
+                // Clean up temporary file if needed
+                // Storage::disk('public')->delete($webpPath); // Uncomment if you want to delete after adding to media library
+            } catch (\Exception $e) {
+                // Log error but don't fail the request
+                \Log::error('Image upload failed: ' . $e->getMessage());
+            }
+        }
+
+        return redirect()->route('home')->with('success', 'Prompt updated successfully.');
+    }
+
+    /**
+     * Remove the specified prompt from storage.
+     */
+    public function destroy(PromptNote $prompt)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner of the prompt to delete it
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to delete this prompt.');
+        }
+
+        // Cleanup related records
+        $prompt->tags()->detach();
+        $prompt->platforms()->detach();
+        $prompt->variables()->delete();
+
+        // Soft delete the prompt
+        $prompt->delete();
+
+        return redirect()->back()->with('success', 'Prompt deleted successfully.');
     }
 }

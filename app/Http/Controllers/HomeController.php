@@ -23,7 +23,7 @@ class HomeController extends Controller
     {
         $search = $request->input('search', '');
        
-        $prompts = PromptNote::with(['tags', 'platforms'])
+        $prompts = PromptNote::with(['tags', 'platforms', 'media'])
             ->when($search, function ($query, $search) {
 
                 $query->where('title', 'like', "%{$search}%")
@@ -36,8 +36,16 @@ class HomeController extends Controller
             ->latest()
             ->paginate(10); // Ensure pagination is working
             sleep(1);
+        
+        // Add image URLs to each prompt
+        $promptsData = $prompts->items()->map(function ($prompt) {
+            $data = $prompt->toArray();
+            $data['image_url'] = $prompt->image_url;
+            return $data;
+        });
+        
         return response()->json([
-            'data' => $prompts->items(),
+            'data' => $promptsData,
             'current_page' => $prompts->currentPage(),
             'last_page' => $prompts->lastPage(),
         ]);
@@ -46,11 +54,18 @@ class HomeController extends Controller
     public function dashboard(Request $request)
     {
         $user = $request->user(); // Get the logged-in user
-        $prompts = PromptNote::with(['tags', 'platforms'])
+        $prompts = PromptNote::with(['tags', 'platforms', 'media'])
             ->where('promptable_id', $user->id) // Filter by user ID
             ->where('promptable_type', $user->getMorphClass()) // Filter by user ID
             ->latest()
             ->paginate(10); // Ensure pagination is working
+
+        // Add image URLs to prompts
+        $prompts->getCollection()->transform(function ($prompt) {
+            $data = $prompt->toArray();
+            $data['image_url'] = $prompt->image_url;
+            return $data;
+        });
 
         return Inertia::render('dashboard', [
             'prompts' => $prompts,
@@ -61,7 +76,7 @@ class HomeController extends Controller
     {
         $user = $request->user(); // Get the logged-in user
         $search = $request->input('search', ''); // Get the search query
-        $prompts = PromptNote::with(['tags', 'platforms'])
+        $prompts = PromptNote::with(['tags', 'platforms', 'media'])
             ->where('promptable_id', $user->id) // Filter by user ID
             ->where('promptable_type', $user->getMorphClass()) // Filter by user type
             ->when($search, function ($query, $search) {
@@ -71,8 +86,15 @@ class HomeController extends Controller
             ->latest()
             ->paginate(10); // Ensure pagination is working
 
+        // Add image URLs to each prompt
+        $promptsData = $prompts->items()->map(function ($prompt) {
+            $data = $prompt->toArray();
+            $data['image_url'] = $prompt->image_url;
+            return $data;
+        });
+
         return response()->json([
-            'data' => $prompts->items(),
+            'data' => $promptsData,
             'current_page' => $prompts->currentPage(),
             'last_page' => $prompts->lastPage(),
         ]);

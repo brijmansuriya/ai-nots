@@ -2,19 +2,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
-
-interface Tag {
-  id: number;
-  name: string;
-  slug: string;
-  created_at: string;
-}
-
-interface Platform {
-  id: number;
-  name: string;
-  selected?: boolean;
-}
+import type { Tag, Platform } from '@/types';
 
 interface AddPromptModalProps {
   onClose: () => void;
