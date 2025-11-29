@@ -78,14 +78,14 @@ export function MetricsDisplay({
     ];
 
     return (
-        <div className={cn('flex flex-wrap items-center gap-3', className)}>
+        <div className={cn('flex flex-wrap items-center justify-start gap-5', className)}>
             {metrics.map((metric, index) => (
                 <div
                     key={index}
-                    className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400"
+                    className="flex items-center gap-2 text-gray-600 dark:text-gray-400"
                 >
-                    <metric.icon className={cn(iconSize, 'text-gray-500 dark:text-gray-500')} />
-                    <span className={cn(textSize, 'font-medium')}>
+                    <metric.icon className={cn(iconSize, 'text-gray-500 dark:text-gray-500 flex-shrink-0')} />
+                    <span className={cn(textSize, 'font-medium whitespace-nowrap leading-tight')}>
                         {showLabels ? `${metric.label}: ` : ''}
                         {metric.formatted}
                     </span>

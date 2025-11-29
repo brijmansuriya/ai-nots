@@ -63,9 +63,9 @@ export function SaveButton({
     };
 
     const baseClasses =
-        'inline-flex items-center justify-center gap-2 rounded-lg font-semibold text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed';
+        'inline-flex items-center justify-center gap-2 rounded-lg font-medium text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed';
 
-    const sizeClasses = size === 'sm' ? 'px-3 py-1.5' : 'px-4 py-2';
+    const sizeClasses = size === 'sm' ? 'px-3.5 py-2' : 'px-4 py-2.5';
 
     const variantClasses =
         variant === 'ghost'
@@ -86,15 +86,15 @@ export function SaveButton({
         >
             {isSaved ? (
                 <>
-                    <BookmarkCheck className="w-4 h-4" />
-                    <span>Saved</span>
-                    {saveCount > 0 && <span className="text-xs">({saveCount})</span>}
+                    <BookmarkCheck className="w-4 h-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Saved</span>
+                    {saveCount > 0 && <span className="text-xs whitespace-nowrap ml-0.5">({saveCount})</span>}
                 </>
             ) : (
                 <>
-                    <Bookmark className="w-4 h-4" />
-                    <span>Save</span>
-                    {saveCount > 0 && <span className="text-xs">({saveCount})</span>}
+                    <Bookmark className="w-4 h-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Save</span>
+                    {saveCount > 0 && <span className="text-xs whitespace-nowrap ml-0.5">({saveCount})</span>}
                 </>
             )}
         </button>

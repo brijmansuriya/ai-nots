@@ -159,7 +159,7 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
       {/* Metrics Display */}
       {(prompt.save_count !== undefined || prompt.copy_count !== undefined ||
         prompt.likes_count !== undefined || prompt.views_count !== undefined) && (
-          <div className="mb-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="mb-5 pt-4 pb-3 border-t border-gray-100 dark:border-gray-700">
             <MetricsDisplay
               saveCount={prompt.save_count ?? 0}
               copyCount={prompt.copy_count ?? 0}
@@ -173,7 +173,7 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
         )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between gap-3 pt-5 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex items-center justify-between gap-4 pt-5 pb-3 border-t border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-3">
           {user && (
             <>
@@ -196,10 +196,10 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
         </div>
         <Link
           href={route('prompt.show', prompt.id)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md whitespace-nowrap"
         >
           <span>View</span>
-          <ExternalLink className="w-4 h-4" />
+          <ExternalLink className="w-4 h-4 flex-shrink-0" />
         </Link>
       </div>
     </div>

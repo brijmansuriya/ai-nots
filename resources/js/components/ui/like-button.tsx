@@ -63,9 +63,9 @@ export function LikeButton({
     };
 
     const baseClasses =
-        'inline-flex items-center justify-center gap-2 rounded-lg font-semibold text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed';
+        'inline-flex items-center justify-center gap-2 rounded-lg font-medium text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed';
 
-    const sizeClasses = size === 'sm' ? 'px-3 py-1.5' : 'px-4 py-2';
+    const sizeClasses = size === 'sm' ? 'px-3.5 py-2' : 'px-4 py-2.5';
 
     const variantClasses =
         variant === 'ghost'
@@ -84,9 +84,9 @@ export function LikeButton({
             disabled={isLoading}
             className={cn(baseClasses, sizeClasses, variantClasses, className)}
         >
-            <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
-            <span>{isLiked ? 'Liked' : 'Like'}</span>
-            {likesCount > 0 && <span className="text-xs">({likesCount})</span>}
+            <Heart className={cn('w-4 h-4 flex-shrink-0', isLiked && 'fill-current')} />
+            <span className="whitespace-nowrap">{isLiked ? 'Liked' : 'Like'}</span>
+            {likesCount > 0 && <span className="text-xs whitespace-nowrap ml-0.5">({likesCount})</span>}
         </button>
     );
 }
