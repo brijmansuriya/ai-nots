@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Prompt, Tags } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
 import { Edit2, Trash2, ExternalLink } from 'lucide-react';
-import { CopyButton } from '@/components/ui/copy-button';
+import { SaveButton } from '@/components/ui/save-button';
+import { LikeButton } from '@/components/ui/like-button';
+import { MetricsDisplay } from '@/components/ui/metrics-display';
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -34,7 +37,7 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
       style={{ '--index': index } as React.CSSProperties}
     >
       {/* Header with Title and Actions */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <Link
             href={route('prompt.show', prompt.id)}
@@ -119,7 +122,7 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
       {imageUrl && (
         <Link
           href={route('prompt.show', prompt.id)}
-          className="block mb-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:opacity-90 transition-opacity"
+          className="block mb-5 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:opacity-90 transition-opacity"
         >
           <img
             src={imageUrl}
@@ -130,13 +133,13 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
       )}
 
       {/* Description */}
-      <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
+      <p className="text-gray-600 dark:text-gray-400 text-sm mb-5 line-clamp-2 min-h-[2.5rem]">
         {truncatedDescription}
       </p>
 
       {/* Tags */}
       {prompt.tags && prompt.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-5">
           {prompt.tags.slice(0, 3).map((tag) => (
             <span
               key={tag.id}
@@ -153,16 +156,47 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
         </div>
       )}
 
+      {/* Metrics Display */}
+      {(prompt.save_count !== undefined || prompt.copy_count !== undefined ||
+        prompt.likes_count !== undefined || prompt.views_count !== undefined) && (
+          <div className="mb-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <MetricsDisplay
+              saveCount={prompt.save_count ?? 0}
+              copyCount={prompt.copy_count ?? 0}
+              likesCount={prompt.likes_count ?? 0}
+              viewsCount={prompt.views_count ?? 0}
+              popularityScore={prompt.popularity_score ?? 0}
+              size="sm"
+              showLabels={false}
+            />
+          </div>
+        )}
+
       {/* Actions */}
-      <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
-        <CopyButton
-          value={prompt.prompt}
-          size="sm"
-          className="px-4 py-2"
-        />
+      <div className="flex items-center justify-between gap-3 pt-5 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          {user && (
+            <>
+              <SaveButton
+                promptId={prompt.id}
+                isSaved={prompt.is_saved ?? false}
+                saveCount={prompt.save_count ?? 0}
+                size="sm"
+                variant="ghost"
+              />
+              <LikeButton
+                promptId={prompt.id}
+                isLiked={prompt.is_liked ?? false}
+                likesCount={prompt.likes_count ?? 0}
+                size="sm"
+                variant="ghost"
+              />
+            </>
+          )}
+        </div>
         <Link
           href={route('prompt.show', prompt.id)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-sm hover:shadow-md"
         >
           <span>View</span>
           <ExternalLink className="w-4 h-4" />

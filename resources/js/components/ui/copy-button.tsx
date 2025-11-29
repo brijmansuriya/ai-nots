@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import axios from 'axios';
 import { cn } from '@/lib/utils';
+import { route } from 'ziggy-js';
 
 interface CopyButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     value: string;
@@ -24,6 +26,14 @@ interface CopyButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
      * Size of the button.
      */
     size?: 'sm' | 'md';
+    /**
+     * Optional prompt ID to track copy events
+     */
+    promptId?: number;
+    /**
+     * Callback when copy is successful
+     */
+    onCopy?: () => void;
 }
 
 export function CopyButton({
@@ -32,6 +42,8 @@ export function CopyButton({
     copiedLabel = 'Copied!',
     variant = 'primary',
     size = 'md',
+    promptId,
+    onCopy,
     className,
     ...props
 }: CopyButtonProps) {
@@ -61,6 +73,18 @@ export function CopyButton({
 
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
+
+            // Track copy event if promptId is provided
+            if (promptId) {
+                try {
+                    await axios.post(route('prompt.copy', promptId));
+                } catch (error) {
+                    // Silently fail - don't interrupt user experience
+                    console.error('Failed to track copy:', error);
+                }
+            }
+
+            onCopy?.();
         } catch (error) {
             console.error('Failed to copy to clipboard', error);
         }

@@ -18,6 +18,8 @@ export default function Dashboard({ auth }: any) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState<string>('');
   const isFetching = useRef(false);
+  const isInitialMount = useRef(true);
+  const lastPageRef = useRef(1);
 
   const { data, setData, patch, processing, errors } = useForm({
     name: auth.user.name,
@@ -25,34 +27,85 @@ export default function Dashboard({ auth }: any) {
   });
 
   const fetchPrompts = useCallback(async (page: number, searchQuery = '') => {
-    if (isFetching.current || page > lastPage) return;
+    // Prevent fetching if already fetching
+    if (isFetching.current) {
+      console.log('Already fetching, skipping...');
+      return;
+    }
+
+    // Check if page is valid using ref to avoid stale closure
+    const currentLastPage = lastPageRef.current;
+    if (page > currentLastPage && currentLastPage > 0 && page > 1) {
+      console.log(`Page ${page} exceeds last page ${currentLastPage}, skipping...`);
+      return;
+    }
+
     isFetching.current = true;
     setLoading(true);
+
     try {
       const response = await axios.get(route('dashboard.prompts'), {
-        params: { page, search: searchQuery }, // Pass search query to the backend
+        params: { page, search: searchQuery },
       });
-      const newPrompts = response.data.data;
-      setPrompts(prev => (page === 1 ? newPrompts : [...prev, ...newPrompts]));
-      setCurrentPage(response.data.current_page);
-      setLastPage(response.data.last_page);
-    } catch (error) {
+
+      // Debug logging
+      console.log('Dashboard API Response:', response.data);
+
+      const newPrompts = Array.isArray(response.data.data) ? response.data.data : [];
+      console.log('Parsed prompts:', newPrompts.length, newPrompts);
+
+      setPrompts(prev => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        const result = page === 1 ? newPrompts : [...prevArray, ...newPrompts];
+        console.log('Setting prompts:', result.length);
+        return result;
+      });
+
+      const newCurrentPage = response.data.current_page || 1;
+      const newLastPage = response.data.last_page || 1;
+      setCurrentPage(newCurrentPage);
+      setLastPage(newLastPage);
+      lastPageRef.current = newLastPage; // Update ref
+    } catch (error: any) {
       console.error('Failed to fetch prompts:', error);
+      console.error('Error response:', error.response?.data);
+      // Only clear prompts on error if it's the first page
+      if (page === 1) {
+        setPrompts([]);
+      }
     } finally {
       setLoading(false);
       isFetching.current = false;
     }
-  }, [lastPage]);
+  }, []); // Empty dependencies to prevent infinite loops
 
+  // Initial load - only run once on mount
   useEffect(() => {
-    fetchPrompts(1, search); // Fetch prompts whenever the search query changes
-  }, [fetchPrompts, search]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchPrompts(1, '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch when search changes - but not on initial mount
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      // Reset pagination when search changes
+      setCurrentPage(1);
+      setLastPage(1);
+      lastPageRef.current = 1;
+      // Don't clear prompts immediately - let the new data replace it
+      fetchPrompts(1, search);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loading && currentPage < lastPage) {
+    if (!loading && currentPage < lastPageRef.current) {
       fetchPrompts(currentPage + 1, search);
     }
-  }, [loading, currentPage, lastPage, fetchPrompts, search]);
+  }, [loading, currentPage, fetchPrompts, search]);
 
   const handleEdit = (promptId: number) => {
     router.visit(route('prompt.edit', { id: promptId })); // Redirect to edit page
@@ -146,7 +199,7 @@ export default function Dashboard({ auth }: any) {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {prompts.length > 0 ? (
+              {!loading && prompts.length > 0 ? (
                 prompts.map((prompt, i) => (
                   <NoteCard
                     key={prompt.id}
@@ -157,11 +210,16 @@ export default function Dashboard({ auth }: any) {
                     }
                   />
                 ))
-              ) : (
-                <p className="text-gray-600 dark:text-gray-400 col-span-full text-center">
-                  No prompts found.
-                </p>
-              )}
+              ) : !loading ? (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-600 dark:text-gray-400 text-lg mb-2">
+                    No prompts found.
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm">
+                    {search ? 'Try a different search term.' : 'Create your first prompt to get started!'}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             {loading && (

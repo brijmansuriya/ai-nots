@@ -25,10 +25,24 @@ export default function Home({ search = '' }: HomeProps) {
   const [query, setQuery] = useState<string>(search);
   const [debouncedQuery, setDebouncedQuery] = useState<string>(search);
   const isFetching = useRef(false);
+  const isInitialMount = useRef(true);
+  const lastPageRef = useRef(1);
   const { auth } = usePage().props;
 
   const fetchPrompts = useCallback(async (page = 1, searchQuery = '') => {
-    if (isFetching.current || page > lastPage || page < currentPage) return;
+    // Prevent fetching if already fetching
+    if (isFetching.current) {
+      console.log('Already fetching, skipping...');
+      return;
+    }
+    
+    // Check if page is valid using ref to avoid stale closure
+    const currentLastPage = lastPageRef.current;
+    if (page > currentLastPage && currentLastPage > 0 && page > 1) {
+      console.log(`Page ${page} exceeds last page ${currentLastPage}, skipping...`);
+      return;
+    }
+
     isFetching.current = true;
     setLoading(true);
     NProgress.start();
@@ -37,41 +51,75 @@ export default function Home({ search = '' }: HomeProps) {
       const response = await axios.get(route('homedata'), {
         params: { page, search: searchQuery },
       });
-      const newPrompts = response.data.data;
-      setPrompts(prev =>
-        page === 1
-          ? newPrompts
-          : [...prev, ...newPrompts.filter((p: Prompt) => !prev.some(existing => existing.id === p.id))]
-      );
-      setCurrentPage(response.data.current_page);
-      setLastPage(response.data.last_page);
+      
+      console.log('Home API Response:', response.data);
+      
+      const newPrompts = Array.isArray(response.data.data) ? response.data.data : [];
+      console.log('Parsed prompts:', newPrompts.length, newPrompts);
+      
+      setPrompts(prev => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        if (page === 1) {
+          return newPrompts;
+        }
+        return [...prevArray, ...newPrompts.filter((p: Prompt) => !prevArray.some(existing => existing.id === p.id))];
+      });
+      
+      const newCurrentPage = response.data.current_page || 1;
+      const newLastPage = response.data.last_page || 1;
+      setCurrentPage(newCurrentPage);
+      setLastPage(newLastPage);
+      lastPageRef.current = newLastPage; // Update ref
     } catch (error) {
       console.error('Failed to fetch prompts:', error);
+      console.error('Error response:', (error as any).response?.data);
+      // Only clear prompts on error if it's the first page
+      if (page === 1) {
+        setPrompts([]);
+      }
     } finally {
       setLoading(false);
       isFetching.current = false;
       NProgress.done();
     }
-  }, [lastPage, currentPage]);
+  }, []); // Empty dependencies to prevent infinite loops
 
+  // Debounce search query
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery(query);
-      fetchPrompts(1, query);
     }, 500);
 
     return () => clearTimeout(handler);
   }, [query]);
 
+  // Initial load - only run once on mount
   useEffect(() => {
-    fetchPrompts(1, debouncedQuery);
-  }, [debouncedQuery, fetchPrompts]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchPrompts(1, debouncedQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Fetch when debounced search changes - but not on initial mount
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      // Reset pagination when search changes
+      setCurrentPage(1);
+      setLastPage(1);
+      lastPageRef.current = 1;
+      // Don't clear prompts immediately - let the new data replace it
+      fetchPrompts(1, debouncedQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery]);
 
   const handleLoadMore = useCallback(() => {
-    if (!loading && currentPage < lastPage) {
+    if (!loading && currentPage < lastPageRef.current) {
       fetchPrompts(currentPage + 1, debouncedQuery);
     }
-  }, [loading, currentPage, lastPage, debouncedQuery, fetchPrompts]);
+  }, [loading, currentPage, debouncedQuery, fetchPrompts]);
 
   const handleAddPromptClick = () => {
     if (!auth.user) {

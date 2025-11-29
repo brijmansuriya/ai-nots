@@ -21,6 +21,7 @@ class HomeController extends Controller
     public function home(Request $request)
     {
         $search = $request->input('search', '');
+        $user   = $request->user();
 
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
             ->active() // Only show active/approved prompts
@@ -37,7 +38,7 @@ class HomeController extends Controller
             ->paginate(10);
 
         return response()->json([
-            'data'         => $prompts->through(fn($prompt) => $prompt->toArray()),
+            'data'         => $prompts->items(), // Return the items array directly
             'current_page' => $prompts->currentPage(),
             'last_page'    => $prompts->lastPage(),
         ]);
@@ -47,11 +48,11 @@ class HomeController extends Controller
     {
         $user    = $request->user(); // Get the logged-in user
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
+            ->withTrashed()                                    // Include soft-deleted prompts for user's own prompts
             ->where('promptable_id', $user->id)                // Filter by user ID
-            ->where('promptable_type', $user->getMorphClass()) // Filter by user ID
+            ->where('promptable_type', $user->getMorphClass()) // Filter by user type
             ->latest()
             ->paginate(10); // Ensure pagination is working
-
         return Inertia::render('dashboard', [
             'prompts' => $prompts,
         ]);
@@ -59,20 +60,24 @@ class HomeController extends Controller
 
     public function getUserPrompts(Request $request)
     {
-        $user    = $request->user();              // Get the logged-in user
-        $search  = $request->input('search', ''); // Get the search query
+        $user   = $request->user();              // Get the logged-in user
+        $search = $request->input('search', ''); // Get the search query
+
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
+            ->withTrashed()                                    // Include soft-deleted prompts for user's own prompts
             ->where('promptable_id', $user->id)                // Filter by user ID
             ->where('promptable_type', $user->getMorphClass()) // Filter by user type
             ->when($search, function ($query, $search) {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('prompt', 'like', "%{$search}%"); // Filter by title or prompt content
+                $query->where(function ($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                        ->orWhere('prompt', 'like', "%{$search}%"); // Filter by title or prompt content
+                });
             })
             ->latest()
-            ->paginate(10); // Ensure pagination is working
+            ->paginate(10); // Laravel automatically reads 'page' from request query string
 
         return response()->json([
-            'data'         => $prompts->through(fn($prompt) => $prompt->toArray()),
+            'data'         => $prompts->items(), // Return the items array directly
             'current_page' => $prompts->currentPage(),
             'last_page'    => $prompts->lastPage(),
         ]);

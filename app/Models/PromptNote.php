@@ -7,8 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -26,6 +28,11 @@ class PromptNote extends Model implements HasMedia
         'is_public', //'0 : pending, 1 : approved, 2 : rejected'
         'status',    //'0 : pending, 1 : approved, 2 : rejected'
         'category_id',
+        'save_count',
+        'copy_count',
+        'likes_count',
+        'views_count',
+        'popularity_score',
         // 'dynamic_variables',
     ];
 
@@ -194,6 +201,40 @@ class PromptNote extends Model implements HasMedia
         return $this->hasMany(PromptNoteVariable::class);
     }
 
+    /**
+     * Get all saves for this prompt.
+     */
+    public function saves(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'prompt_saves', 'prompt_note_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all likes for this prompt.
+     */
+    public function likes(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'prompt_likes', 'prompt_note_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all views for this prompt.
+     */
+    public function views(): HasMany
+    {
+        return $this->hasMany(PromptView::class, 'prompt_note_id');
+    }
+
+    /**
+     * Get all usage history for this prompt.
+     */
+    public function usageHistory(): HasMany
+    {
+        return $this->hasMany(PromptUsageHistory::class, 'prompt_note_id');
+    }
+
     //promptable
     public function promptable(): MorphTo
     {
@@ -228,5 +269,114 @@ class PromptNote extends Model implements HasMedia
     public function isRejected(): bool
     {
         return $this->status === PromptStatus::REJECTED->value;
+    }
+
+    /**
+     * Check if the current user has saved this prompt.
+     *
+     * @return bool
+     */
+    public function getIsSavedAttribute(): bool
+    {
+        try {
+            $user = Auth::user();
+            if (! $user) {
+                return false;
+            }
+
+            // Use relationLoaded to avoid N+1 queries if saves are already loaded
+            if ($this->relationLoaded('saves')) {
+                return $this->saves->contains('id', $user->id);
+            }
+
+            // Otherwise, check if the relation exists without loading all saves
+            return $this->saves()->where('user_id', $user->id)->exists();
+        } catch (\Exception $e) {
+            // Return false on any error to prevent breaking the response
+            \Log::warning('Error checking is_saved attribute: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the current user has liked this prompt.
+     *
+     * @return bool
+     */
+    public function getIsLikedAttribute(): bool
+    {
+        try {
+            $user = Auth::user();
+            if (! $user) {
+                return false;
+            }
+
+            // Use relationLoaded to avoid N+1 queries if likes are already loaded
+            if ($this->relationLoaded('likes')) {
+                return $this->likes->contains('id', $user->id);
+            }
+
+            // Otherwise, check if the relation exists without loading all likes
+            return $this->likes()->where('user_id', $user->id)->exists();
+        } catch (\Exception $e) {
+            // Return false on any error to prevent breaking the response
+            \Log::warning('Error checking is_liked attribute: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Calculate and update popularity score.
+     * Formula: Saves × 2 + Copies × 1 + Likes × 3 + Views × 0.1
+     *
+     * @return float
+     */
+    public function calculatePopularityScore(): float
+    {
+        $score = ($this->save_count * 2)
+             + ($this->copy_count * 1)
+             + ($this->likes_count * 3)
+             + ($this->views_count * 0.1);
+
+        $this->popularity_score = round($score, 2);
+        $this->saveQuietly(); // Save without triggering events
+
+        return $this->popularity_score;
+    }
+
+    /**
+     * Increment view count and track the view.
+     *
+     * @param int|null $userId
+     * @param string|null $ipAddress
+     * @param string|null $userAgent
+     * @return void
+     */
+    public function incrementView(?int $userId = null, ?string $ipAddress = null, ?string $userAgent = null): void
+    {
+        // Check if view already exists (prevent duplicate counting)
+        $viewExists = $this->views()
+            ->where(function ($query) use ($userId, $ipAddress) {
+                if ($userId) {
+                    $query->where('user_id', $userId);
+                } else {
+                    $query->whereNull('user_id')
+                        ->where('ip_address', $ipAddress);
+                }
+            })
+            ->where('created_at', '>=', now()->subHour()) // Within last hour
+            ->exists();
+
+        if (! $viewExists) {
+            $this->views()->create([
+                'user_id'    => $userId,
+                'ip_address' => $ipAddress,
+                'user_agent' => $userAgent,
+                'created_at' => now(),
+            ]);
+
+            $this->increment('views_count');
+            $this->calculatePopularityScore();
+        }
     }
 }

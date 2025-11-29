@@ -130,7 +130,7 @@ class PromptController extends Controller
         return redirect()->route('home')->with('success', 'Prompt created successfully.');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media'])->findOrFail($id);
         $user   = auth()->user();
@@ -143,6 +143,16 @@ class PromptController extends Controller
             abort(404, 'Prompt not found or not available.');
         }
 
+        // Track view
+        $prompt->incrementView(
+            $user?->id,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        // Refresh to get updated metrics
+        $prompt->refresh();
+
         // Get recent prompts (excluding current one, only active prompts)
         $recentPrompts = PromptNote::with(['tags', 'media'])
             ->where('id', '!=', $id)
@@ -151,8 +161,16 @@ class PromptController extends Controller
             ->limit(5)
             ->get();
 
+        // Prepare prompt data with metrics
+        $promptData                     = $prompt->toArray();
+        $promptData['save_count']       = $prompt->save_count ?? 0;
+        $promptData['copy_count']       = $prompt->copy_count ?? 0;
+        $promptData['likes_count']      = $prompt->likes_count ?? 0;
+        $promptData['views_count']      = $prompt->views_count ?? 0;
+        $promptData['popularity_score'] = $prompt->popularity_score ?? 0.00;
+
         return Inertia::render('promptDetails', [
-            'prompt'        => $prompt,
+            'prompt'        => $promptData,
             'recentPrompts' => $recentPrompts,
         ]);
     }

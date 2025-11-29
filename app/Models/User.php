@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Tag;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -56,6 +57,24 @@ class User extends Authenticatable
     //promptable
     public function promptable(): MorphMany
     {
-        return $this->morphMany(PromptNote::class,'promptable');
+        return $this->morphMany(PromptNote::class, 'promptable');
+    }
+
+    /**
+     * Get all prompts saved by this user.
+     */
+    public function savedPrompts(): BelongsToMany
+    {
+        return $this->belongsToMany(PromptNote::class, 'prompt_saves', 'user_id', 'prompt_note_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all prompts liked by this user.
+     */
+    public function likedPrompts(): BelongsToMany
+    {
+        return $this->belongsToMany(PromptNote::class, 'prompt_likes', 'user_id', 'prompt_note_id')
+            ->withTimestamps();
     }
 }

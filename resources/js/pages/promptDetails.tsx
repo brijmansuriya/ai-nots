@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Prompt, Tags } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
 import {
     WhatsappShareButton,
@@ -14,6 +14,9 @@ import {
 } from 'react-share';
 import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
+import { SaveButton } from '@/components/ui/save-button';
+import { LikeButton } from '@/components/ui/like-button';
+import { MetricsDisplay } from '@/components/ui/metrics-display';
 import {
     Dialog,
     DialogTrigger,
@@ -28,11 +31,16 @@ interface PromptDetailsProps {
 
 export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }: PromptDetailsProps) {
     const [imageModalOpen, setImageModalOpen] = React.useState(false);
+    const { auth } = usePage().props;
+    const user = auth?.user;
     const shareUrl = window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
     const isDark = document.documentElement.classList.contains('dark');
     const iconColor = isDark ? '#ffffff' : '#000000';
     const imageUrl = (prompt as any).image_url;
+
+    // View tracking is handled by the backend when the page loads
+    // No need to track again on frontend to avoid duplicates
 
     return (
         <WebLayout title={prompt.title}>
@@ -202,6 +210,22 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
                                 </div>
                             </div>
 
+                            {/* Metrics Display */}
+                            {(prompt.save_count !== undefined || prompt.copy_count !== undefined ||
+                                prompt.likes_count !== undefined || prompt.views_count !== undefined) && (
+                                    <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Metrics</h2>
+                                        <MetricsDisplay
+                                            saveCount={prompt.save_count ?? 0}
+                                            copyCount={prompt.copy_count ?? 0}
+                                            likesCount={prompt.likes_count ?? 0}
+                                            viewsCount={prompt.views_count ?? 0}
+                                            popularityScore={prompt.popularity_score ?? 0}
+                                            showLabels={true}
+                                        />
+                                    </div>
+                                )}
+
                             {/* Action Buttons */}
                             <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
                                 <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
@@ -209,8 +233,26 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
                                         value={prompt.prompt}
                                         label="Copy Prompt"
                                         copiedLabel="Copied!"
+                                        promptId={prompt.id}
                                         className="px-6 py-3"
                                     />
+
+                                    {user && (
+                                        <>
+                                            <SaveButton
+                                                promptId={prompt.id}
+                                                isSaved={prompt.is_saved ?? false}
+                                                saveCount={prompt.save_count ?? 0}
+                                                className="px-6 py-3"
+                                            />
+                                            <LikeButton
+                                                promptId={prompt.id}
+                                                isLiked={prompt.is_liked ?? false}
+                                                likesCount={prompt.likes_count ?? 0}
+                                                className="px-6 py-3"
+                                            />
+                                        </>
+                                    )}
 
                                     <Link
                                         href={route('home')}

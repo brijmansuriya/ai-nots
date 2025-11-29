@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Requests;
 
 use App\Enums\PromptStatus;
@@ -23,11 +22,11 @@ class StorePromptRequest extends FormRequest
      */
     public function rules(): array
     {
-        
+
         return [
             'title'               => ['required', 'string', 'max:255'],
             'prompt'              => ['required', 'string', 'max:1000'],
-            'description'        => ['nullable', 'string', 'max:500'],
+            'description'         => ['nullable', 'string', 'max:500'],
             'category_id'         => ['required', 'integer', 'exists:categories,id'],
             'tags'                => ['required', 'array', 'min:1'],
             'tags.*'              => ['required', 'string', 'max:50'],
@@ -35,7 +34,7 @@ class StorePromptRequest extends FormRequest
             'platform.*'          => ['required', 'string', 'max:50'],
             'dynamic_variables'   => ['nullable', 'array'],
             'dynamic_variables.*' => ['required', 'string', 'max:50'],
-            'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'], // Max 2MB before conversion
+            'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'],     // Max 2MB before conversion
             'status'              => ['nullable', 'string', 'in:' . implode(',', PromptStatus::values())], // Use enum values
         ];
     }
@@ -48,14 +47,13 @@ class StorePromptRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'title.required'        => 'The title field is required.',
-            'prompt.required'       => 'The prompt field is required.',
+            'title.required'       => 'The title field is required.',
+            'prompt.required'      => 'The prompt field is required.',
             'category_id.required' => 'Please select a category.',
             'tags.required'        => 'At least one tag is required.',
-            'tags.min'              => 'At least one tag is required.',
+            'tags.min'             => 'At least one tag is required.',
             'platform.required'    => 'At least one platform is required.',
             'platform.min'         => 'At least one platform is required.',
         ];
     }
 }
-

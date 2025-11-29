@@ -105,6 +105,15 @@ export interface Prompt {
     platforms?: Platform[];
     variables?: PromptVariable[];
     image_url?: string | null;
+    // Metrics
+    save_count?: number;
+    copy_count?: number;
+    likes_count?: number;
+    views_count?: number;
+    popularity_score?: number;
+    // User-specific flags (only for authenticated users)
+    is_saved?: boolean;
+    is_liked?: boolean;
 }
 
 export interface EditPromptProps {
