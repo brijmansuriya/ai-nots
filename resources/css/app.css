@@ -195,9 +195,9 @@ html.dark {
 }
 
 /* Modern Black & White Gradient Theme */
-body:not(.dark) .bg-gradient-to-br {
+/* body:not(.dark) .bg-gradient-to-br {
     background: linear-gradient(to bottom right, #f9fafb, #ffffff, #f3f4f6);
-}
+} */
 
 body.dark .bg-gradient-to-br {
     background: linear-gradient(to bottom right, #030712, #111827, #000000);

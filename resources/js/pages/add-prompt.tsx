@@ -3,7 +3,7 @@ import { useForm, router } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
 import WebLayout from '@/layouts/web-layout';
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText } from 'lucide-react';
 
 interface Tag {
   id: number;
@@ -25,6 +25,7 @@ export default function AddPrompt() {
   const [tagInput, setTagInput] = useState('');
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [draftCreatedAt] = useState<string>(() => new Date().toISOString());
 
   const { data, setData, post, processing, errors } = useForm({
     title: '',
@@ -97,51 +98,93 @@ export default function AddPrompt() {
     label: category.name,
   }));
 
+  // React-select custom styles with dark mode support
   const customStyles = {
-    control: (provided: any) => ({
-      ...provided,
-      backgroundColor: 'white',
-      borderColor: '#d1d5db',
-      color: '#111827',
-      borderRadius: '0.5rem',
-      padding: '0.25rem',
-      boxShadow: 'none',
-      '&:hover': {
-        borderColor: '#111827',
-      },
-    }),
-    menu: (provided: any) => ({
-      ...provided,
-      backgroundColor: 'white',
-      borderRadius: '0.5rem',
-      overflow: 'hidden',
-      color: '#111827',
-    }),
-    option: (provided: any, state: any) => ({
-      ...provided,
-      backgroundColor: state.isFocused ? '#f3f4f6' : 'transparent',
-      color: '#111827',
-      padding: '0.5rem',
-      cursor: 'pointer',
-    }),
-    singleValue: (provided: any) => ({
-      ...provided,
-      color: '#111827',
-    }),
-    placeholder: (provided: any) => ({
-      ...provided,
-      color: '#9ca3af',
-    }),
-    input: (provided: any) => ({
-      ...provided,
-      color: '#111827',
-    }),
+    control: (provided: any, state: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        backgroundColor: isDark ? '#020617' : '#ffffff', // gray-950 / white
+        borderColor: state.isFocused
+          ? isDark ? '#e5e7eb' : '#111827'
+          : isDark ? '#1f2937' : '#d1d5db',
+        color: isDark ? '#f9fafb' : '#111827',
+        borderRadius: '0.5rem',
+        padding: '0.25rem',
+        boxShadow: 'none',
+        '&:hover': {
+          borderColor: isDark ? '#e5e7eb' : '#111827',
+        },
+      };
+    },
+    menu: (provided: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        backgroundColor: isDark ? '#020617' : '#ffffff',
+        borderRadius: '0.5rem',
+        overflow: 'hidden',
+        color: isDark ? '#f9fafb' : '#111827',
+        border: `1px solid ${isDark ? '#1f2937' : '#e5e7eb'}`,
+      };
+    },
+    option: (provided: any, state: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        backgroundColor: state.isFocused
+          ? isDark ? '#111827' : '#f3f4f6'
+          : 'transparent',
+        color: isDark ? '#f9fafb' : '#111827',
+        padding: '0.5rem',
+        cursor: 'pointer',
+      };
+    },
+    singleValue: (provided: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        color: isDark ? '#f9fafb' : '#111827',
+      };
+    },
+    placeholder: (provided: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        color: isDark ? '#6b7280' : '#9ca3af',
+      };
+    },
+    input: (provided: any) => {
+      const isDark =
+        typeof document !== 'undefined' &&
+        document.documentElement.classList.contains('dark');
+
+      return {
+        ...provided,
+        color: isDark ? '#f9fafb' : '#111827',
+      };
+    },
   };
 
   return (
     <WebLayout title="Add New Prompt">
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black transition-colors">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="mb-8">
             <button
@@ -155,9 +198,12 @@ export default function AddPrompt() {
             <p className="text-gray-600 dark:text-gray-400 mt-2">Create and share your AI prompt with the community</p>
           </div>
 
-          {/* Form */}
-          <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-6 sm:p-8 transition-colors">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Main Layout: Form + Sidebar */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Left: Form */}
+            <div className="lg:col-span-2">
+              <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-6 sm:p-8 transition-colors">
+                <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
               <div>
                 <label htmlFor="title-input" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -279,24 +325,92 @@ export default function AddPrompt() {
                 )}
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => router.visit(route('home'))}
-                  className="px-6 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={processing}
-                  className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 font-medium hover:from-black dark:hover:from-gray-100 hover:to-gray-900 dark:hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
-                >
-                  {processing ? 'Adding...' : 'Add Prompt'}
-                </button>
+                  {/* Submit Buttons */}
+                  <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => router.visit(route('home'))}
+                      className="px-6 py-2.5 rounded-lg bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={processing}
+                      className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 font-medium hover:from-black dark:hover:from-gray-100 hover:to-gray-900 dark:hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                    >
+                      {processing ? 'Adding...' : 'Add Prompt'}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </div>
+
+            {/* Right: Sidebar */}
+            <div className="space-y-6 lg:space-y-8">
+              {/* Prompt Summary */}
+              <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-5 sm:p-6 lg:sticky lg:top-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Prompt Snapshot
+                </h2>
+                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex items-start gap-2">
+                    <FileText className="w-4 h-4 mt-0.5 text-gray-500 dark:text-gray-400" />
+                    <div>
+                      <p className="font-medium">Draft title</p>
+                      <p className="text-gray-600 dark:text-gray-400 line-clamp-2">
+                        {data.title || 'Start by giving your prompt a clear, descriptive title.'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Clock className="w-4 h-4 mt-0.5 text-gray-500 dark:text-gray-400" />
+                    <div>
+                      <p className="font-medium">Draft started</p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {new Date(draftCreatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <TagIcon className="w-4 h-4 mt-0.5 text-gray-500 dark:text-gray-400" />
+                    <div>
+                      <p className="font-medium">Tags & platforms</p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {tags.length} tag{tags.length === 1 ? '' : 's'} ·{' '}
+                        {platforms.filter((p) => p.selected).length} platform
+                        {platforms.filter((p) => p.selected).length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Layers className="w-4 h-4 mt-0.5 text-gray-500 dark:text-gray-400" />
+                    <div>
+                      <p className="font-medium">Dynamic variables</p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        {manualVars.length
+                          ? `${manualVars.length} variable${manualVars.length === 1 ? '' : 's'} detected`
+                          : 'Use [variable_name] to add dynamic values to your prompt.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Helper Tips */}
+              <div className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm p-5 sm:p-6 lg:sticky lg:top-80">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                  Writing tips
+                </h2>
+                <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  <li>Be specific about the task and expected output.</li>
+                  <li>Use dynamic variables like <code className="px-1 py-0.5 rounded bg-gray-100 dark:bg-gray-900 text-xs">[topic]</code> to reuse prompts.</li>
+                  <li>Add tags and platforms so others can discover your prompt easily.</li>
+                  <li>Keep the title short but descriptive.</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

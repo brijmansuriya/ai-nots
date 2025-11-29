@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Prompt, Tags } from '@/types';
 import { Link } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
@@ -12,7 +12,8 @@ import {
     FacebookIcon,
     LinkedinIcon
 } from 'react-share';
-import { Copy, Check, ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink } from 'lucide-react';
+import { CopyButton } from '@/components/ui/copy-button';
 
 interface PromptDetailsProps {
     prompt: Prompt;
@@ -21,41 +22,6 @@ interface PromptDetailsProps {
 }
 
 export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }: PromptDetailsProps) {
-    const [isCopied, setIsCopied] = useState(false);
-
-    const copyPrompt = async () => {
-        const text = prompt?.prompt || '';
-        if (!text) return;
-
-        if (navigator.clipboard && window.isSecureContext) {
-            try {
-                await navigator.clipboard.writeText(text);
-                setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000);
-            } catch (err) {
-                console.error('Clipboard write failed', err);
-            }
-        } else {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-
-            try {
-                document.execCommand('copy');
-                setIsCopied(true);
-                setTimeout(() => setIsCopied(false), 2000);
-            } catch (err) {
-                console.error('Fallback copy failed', err);
-            }
-
-            document.body.removeChild(textarea);
-        }
-    };
-
     const shareUrl = window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
     const isDark = document.documentElement.classList.contains('dark');
@@ -195,25 +161,12 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
                             {/* Action Buttons */}
                             <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
                                 <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                                    <button
-                                        onClick={copyPrompt}
-                                        className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 ${isCopied
-                                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                                            : 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black dark:hover:from-gray-100 hover:to-gray-900 dark:hover:to-gray-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
-                                            }`}
-                                    >
-                                        {isCopied ? (
-                                            <>
-                                                <Check className="w-5 h-5" />
-                                                Copied!
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy className="w-5 h-5" />
-                                                Copy Prompt
-                                            </>
-                                        )}
-                                    </button>
+                                    <CopyButton
+                                        value={prompt.prompt}
+                                        label="Copy Prompt"
+                                        copiedLabel="Copied!"
+                                        className="px-6 py-3"
+                                    />
 
                                     <Link
                                         href={route('home')}

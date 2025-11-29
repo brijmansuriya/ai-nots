@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Prompt } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Edit2, Trash2, Copy, ExternalLink } from 'lucide-react';
+import { Edit2, Trash2, ExternalLink } from 'lucide-react';
+import { CopyButton } from '@/components/ui/copy-button';
 
 export interface Tags {
   id: number;
@@ -27,23 +28,9 @@ interface NoteCardProps {
 }
 
 export default function NoteCard({ prompt, index }: NoteCardProps) {
-  const [isCopied, setIsCopied] = useState(false);
   const { auth } = usePage().props;
   const user = auth?.user;
   const isOwner = user && prompt.promptable_id === user.id;
-
-  const copyPrompt = async () => {
-    const text = prompt?.prompt || '';
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error('Clipboard write failed', err);
-    }
-  };
 
   const description = (prompt as any).description || prompt.prompt?.substring(0, 120) || 'No description available';
   const truncatedDescription = description.length > 120 ? description.substring(0, 120) + '...' : description;
@@ -121,16 +108,11 @@ export default function NoteCard({ prompt, index }: NoteCardProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
-        <button
-          onClick={copyPrompt}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isCopied
-            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
-            : 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black dark:hover:bg-gray-100'
-            }`}
-        >
-          <Copy className="w-4 h-4" />
-          {isCopied ? 'Copied!' : 'Copy'}
-        </button>
+        <CopyButton
+          value={prompt.prompt}
+          size="sm"
+          className="px-4 py-2"
+        />
         <Link
           href={route('prompt.show', prompt.id)}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

@@ -46,21 +46,7 @@ export default function Header() {
           AI Nots
         </Link>
 
-        <div className="flex items-center gap-3">
-          {/* Theme Toggle */}
-          <ThemeToggle />
-
-          {/* Mobile Hamburger */}
-          <button
-            onClick={toggleMenu}
-            className="text-gray-700 dark:text-gray-300 sm:hidden focus:outline-none"
-            aria-label="Toggle Menu"
-            disabled={processing}
-          >
-            {menuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
-        </div>
-
+    
         {/* Nav Links */}
         <nav
           className={`${menuOpen ? 'flex' : 'hidden'
@@ -129,6 +115,23 @@ export default function Header() {
               )}
             </div>
           )}
+
+<div className="flex items-center gap-3">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Mobile Hamburger */}
+          <button
+            onClick={toggleMenu}
+            className="text-gray-700 dark:text-gray-300 sm:hidden focus:outline-none"
+            aria-label="Toggle Menu"
+            disabled={processing}
+          >
+            {menuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
+
+
         </nav>
       </div>
     </header>
