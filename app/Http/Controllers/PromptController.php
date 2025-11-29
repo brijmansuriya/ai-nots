@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Enums\PromptStatus;
 use App\Http\Requests\StorePromptRequest;
 use App\Http\Requests\UpdatePromptRequest;
 use App\Models\PromptNote;
@@ -45,10 +46,11 @@ class PromptController extends Controller
     {
         $validated = $request->validated();
 
-        $promptData = $request->only(['title', 'prompt', 'description', 'category_id']);
+        $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
 
         $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null;
         $promptData['promptable_id']   = auth()->user()->id ?? null;
+        $promptData['status']          = $request->input('status', PromptStatus::PENDING->value); // Default to pending if not provided
         $promptNote                    = PromptNote::create($promptData);
 
         // Handle tags - support both existing tags (by name or id) and create new ones
@@ -131,25 +133,26 @@ class PromptController extends Controller
     public function show($id)
     {
         $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media'])->findOrFail($id);
+        $user   = auth()->user();
 
-        // Add image URL to prompt data
-        $promptData              = $prompt->toArray();
-        $promptData['image_url'] = $prompt->image_url;
+        // Check if user can view this prompt
+        // Allow if: prompt is active OR user is the owner
+        $canView = $prompt->isActive() || ($user && $prompt->promptable_id === $user->id && $prompt->promptable_type === $user->getMorphClass());
 
-        // Get recent prompts (excluding current one)
+        if (! $canView) {
+            abort(404, 'Prompt not found or not available.');
+        }
+
+        // Get recent prompts (excluding current one, only active prompts)
         $recentPrompts = PromptNote::with(['tags', 'media'])
             ->where('id', '!=', $id)
+            ->active() // Only show active prompts
             ->latest()
             ->limit(5)
-            ->get()
-            ->map(function ($prompt) {
-                $data              = $prompt->toArray();
-                $data['image_url'] = $prompt->image_url;
-                return $data;
-            });
+            ->get();
 
         return Inertia::render('promptDetails', [
-            'prompt'        => $promptData,
+            'prompt'        => $prompt,
             'recentPrompts' => $recentPrompts,
         ]);
     }
@@ -162,7 +165,12 @@ class PromptController extends Controller
         $validated = $request->validated();
         $user      = auth()->user();
 
-        $promptData = $request->only(['title', 'prompt', 'description', 'category_id']);
+        $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
+
+        // Update status if provided, otherwise keep existing
+        if ($request->has('status')) {
+            $promptData['status'] = $request->input('status');
+        }
 
         $prompt->update($promptData);
 

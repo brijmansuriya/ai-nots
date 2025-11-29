@@ -1,6 +1,8 @@
 <?php
 namespace App\Models;
 
+use App\Enums\PromptStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +28,68 @@ class PromptNote extends Model implements HasMedia
         'category_id',
         // 'dynamic_variables',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'image_url',
+    ];
+
+    /**
+     * Status constants for backward compatibility
+     */
+    public const STATUS_PENDING  = '0';
+    public const STATUS_ACTIVE   = '1';
+    public const STATUS_REJECTED = '2';
+
+    /**
+     * Scope a query to only include active prompts.
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('status', PromptStatus::ACTIVE->value);
+    }
+
+    /**
+     * Scope a query to only include pending prompts.
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopePending(Builder $query): Builder
+    {
+        return $query->where('status', PromptStatus::PENDING->value);
+    }
+
+    /**
+     * Scope a query to only include rejected prompts.
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeRejected(Builder $query): Builder
+    {
+        return $query->where('status', PromptStatus::REJECTED->value);
+    }
+
+    /**
+     * Scope a query to filter by status.
+     *
+     * @param Builder $query
+     * @param string|PromptStatus $status
+     * @return Builder
+     */
+    public function scopeStatus(Builder $query, string | PromptStatus $status): Builder
+    {
+        $statusValue = $status instanceof PromptStatus ? $status->value : $status;
+        return $query->where('status', $statusValue);
+    }
 
     /**
      * Register media collections for the model.
@@ -101,7 +165,7 @@ class PromptNote extends Model implements HasMedia
      */
     public function getImageThumbnailAttribute($width = 300, $height = 300): ?string
     {
-        $media = $this->getFirstMedia('images');
+        $media = $this->getFirstMedia('prompt_images');
 
         if (! $media) {
             return null;
@@ -134,5 +198,35 @@ class PromptNote extends Model implements HasMedia
     public function promptable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * Check if prompt is active.
+     *
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        return $this->status === PromptStatus::ACTIVE->value;
+    }
+
+    /**
+     * Check if prompt is pending.
+     *
+     * @return bool
+     */
+    public function isPending(): bool
+    {
+        return $this->status === PromptStatus::PENDING->value;
+    }
+
+    /**
+     * Check if prompt is rejected.
+     *
+     * @return bool
+     */
+    public function isRejected(): bool
+    {
+        return $this->status === PromptStatus::REJECTED->value;
     }
 }

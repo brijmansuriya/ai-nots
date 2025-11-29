@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Prompt, Tags } from '@/types';
 import { Link, usePage, router } from '@inertiajs/react';
-import { Edit2, Trash2, ExternalLink, Maximize2, Image as ImageIcon } from 'lucide-react';
+import { Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -21,7 +20,6 @@ interface NoteCardProps {
 
 export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [imageModalOpen, setImageModalOpen] = useState(false);
   const { auth } = usePage().props;
   const user = auth?.user;
   const isOwner = user && prompt.promptable_id === user.id;
@@ -119,35 +117,16 @@ export default function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
 
       {/* Image Preview - Show if image exists */}
       {imageUrl && (
-        <div className="relative mb-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group">
+        <Link
+          href={route('prompt.show', prompt.id)}
+          className="block mb-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 hover:opacity-90 transition-opacity"
+        >
           <img
             src={imageUrl}
             alt={prompt.title}
             className="w-full h-48 object-cover"
           />
-          <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-            <DialogTrigger asChild>
-              <button
-                className="absolute inset-0 bg-black/0 hover:bg-black/20 dark:hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                title="View full image"
-              >
-                <div className="flex items-center gap-2 px-4 py-2 bg-black/70 dark:bg-white/70 text-white dark:text-gray-900 rounded-lg">
-                  <Maximize2 className="w-4 h-4" />
-                  <span className="text-sm font-medium">View Full Image</span>
-                </div>
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-7xl w-[95vw] h-[95vh] p-0 bg-black/95 border-none overflow-hidden">
-              <div className="relative w-full h-full flex items-center justify-center p-4">
-                <img
-                  src={imageUrl}
-                  alt={prompt.title}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        </Link>
       )}
 
       {/* Description */}

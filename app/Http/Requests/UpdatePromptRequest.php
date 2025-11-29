@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Requests;
 
+use App\Enums\PromptStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -105,8 +106,9 @@ class UpdatePromptRequest extends FormRequest
             'platform.*'          => ['required', 'string', 'max:50'],
             'dynamic_variables'   => ['nullable', 'array'],
             'dynamic_variables.*' => ['required', 'string', 'max:50'],
-            'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'], // Max 2MB before conversion
-            'remove_image'        => ['nullable', 'boolean'],                                          // Flag to remove existing image
+            'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'],     // Max 2MB before conversion
+            'remove_image'        => ['nullable', 'boolean'],                                              // Flag to remove existing image
+            'status'              => ['nullable', 'string', 'in:' . implode(',', PromptStatus::values())], // Use enum values
         ];
     }
 

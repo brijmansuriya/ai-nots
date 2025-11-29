@@ -23,6 +23,7 @@ class HomeController extends Controller
         $search = $request->input('search', '');
 
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
+            ->active() // Only show active/approved prompts
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
@@ -35,15 +36,8 @@ class HomeController extends Controller
             ->latest()
             ->paginate(10);
 
-        // Add image URLs to each prompt using getCollection() which returns a Collection
-        $promptsData = $prompts->getCollection()->map(function ($prompt) {
-            $data              = $prompt->toArray();
-            $data['image_url'] = $prompt->image_url;
-            return $data;
-        })->values()->all();
-
         return response()->json([
-            'data'         => $promptsData,
+            'data'         => $prompts->through(fn($prompt) => $prompt->toArray()),
             'current_page' => $prompts->currentPage(),
             'last_page'    => $prompts->lastPage(),
         ]);
@@ -57,13 +51,6 @@ class HomeController extends Controller
             ->where('promptable_type', $user->getMorphClass()) // Filter by user ID
             ->latest()
             ->paginate(10); // Ensure pagination is working
-
-        // Add image URLs to prompts
-        $prompts->getCollection()->transform(function ($prompt) {
-            $data              = $prompt->toArray();
-            $data['image_url'] = $prompt->image_url;
-            return $data;
-        });
 
         return Inertia::render('dashboard', [
             'prompts' => $prompts,
@@ -84,15 +71,8 @@ class HomeController extends Controller
             ->latest()
             ->paginate(10); // Ensure pagination is working
 
-        // Add image URLs to each prompt
-        $promptsData = $prompts->getCollection()->map(function ($prompt) {
-            $data              = $prompt->toArray();
-            $data['image_url'] = $prompt->image_url;
-            return $data;
-        })->values()->all();
-
         return response()->json([
-            'data'         => $promptsData,
+            'data'         => $prompts->through(fn($prompt) => $prompt->toArray()),
             'current_page' => $prompts->currentPage(),
             'last_page'    => $prompts->lastPage(),
         ]);

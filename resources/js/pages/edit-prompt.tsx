@@ -99,6 +99,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
         dynamic_variables: prompt.variables?.map((v) => v.name) ?? [],
         image: null as File | null,
         remove_image: false as boolean,
+        status: String(prompt.status || '0'), // 0: pending, 1: active, 2: rejected
     });
 
     const [imagePreview, setImagePreview] = useState<string | null>(prompt.image_url || null);
@@ -322,6 +323,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                 platform: Array.isArray(currentPlatforms) ? currentPlatforms : [],
                 dynamic_variables: Array.isArray(data.dynamic_variables) ? data.dynamic_variables : [],
                 remove_image: data.image ? false : !imagePreview && prompt.image_url ? true : false,
+                status: data.status || prompt.status || '0', // Include status
             };
 
             // Add image file if exists
@@ -558,6 +560,64 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                             </div>
                                         </div>
                                         {errors.platform && <span className="mt-1 block text-sm text-red-500">{errors.platform}</span>}
+                                    </div>
+
+                                    {/* Status Toggle */}
+                                    <div>
+                                        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Status
+                                        </label>
+                                        <div className="flex items-center gap-6">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="status"
+                                                    value="0"
+                                                    checked={data.status === '0'}
+                                                    onChange={(e) => {
+                                                        setData('status', e.target.value);
+                                                        if (errors.status) {
+                                                            clearErrors('status');
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">Pending</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="status"
+                                                    value="1"
+                                                    checked={data.status === '1'}
+                                                    onChange={(e) => {
+                                                        setData('status', e.target.value);
+                                                        if (errors.status) {
+                                                            clearErrors('status');
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="status"
+                                                    value="2"
+                                                    checked={data.status === '2'}
+                                                    onChange={(e) => {
+                                                        setData('status', e.target.value);
+                                                        if (errors.status) {
+                                                            clearErrors('status');
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
+                                                />
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">Rejected</span>
+                                            </label>
+                                        </div>
+                                        {errors.status && <span className="mt-1 block text-sm text-red-500">{errors.status}</span>}
                                     </div>
 
                                     {/* Submit Buttons */}

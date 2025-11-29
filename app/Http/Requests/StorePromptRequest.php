@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\PromptStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -35,6 +36,7 @@ class StorePromptRequest extends FormRequest
             'dynamic_variables'   => ['nullable', 'array'],
             'dynamic_variables.*' => ['required', 'string', 'max:50'],
             'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'], // Max 2MB before conversion
+            'status'              => ['nullable', 'string', 'in:' . implode(',', PromptStatus::values())], // Use enum values
         ];
     }
 
