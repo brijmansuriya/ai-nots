@@ -148,18 +148,12 @@ export default function Dashboard({ auth }: any) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {prompts.length > 0 ? (
                 prompts.map((prompt, i) => (
-                  <div key={prompt.id} className="relative">
-                    <NoteCard prompt={prompt} index={i} />
-                    <button
-                      onClick={() => handleEdit(prompt.id)}
-                      className="absolute top-2 right-2 bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 px-3 py-1 rounded-lg text-xs font-semibold hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition shadow-md"
-                    >
-                      Edit
-                    </button>
-                  </div>
+                  <NoteCard key={prompt.id} prompt={prompt} index={i} />
                 ))
               ) : (
-                <p className="text-gray-600 dark:text-gray-400 col-span-full text-center">No prompts found.</p>
+                <p className="text-gray-600 dark:text-gray-400 col-span-full text-center">
+                  No prompts found.
+                </p>
               )}
             </div>
 
