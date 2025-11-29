@@ -20,6 +20,12 @@ class AuthUser
             return redirect()->route('login');
         }
 
+        // Prevent users from accessing admin routes
+        if ($request->is('admin/*')) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You do not have permission to access the admin area.');
+        }
+
         // If admin is also logged in, logout admin automatically
         // Admin and user cannot be logged in simultaneously
         if (Auth::guard('admin')->check()) {

@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
+        // Global Middleware Here
+        // Note: GuestUser should not be global as it interferes with public routes
+
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

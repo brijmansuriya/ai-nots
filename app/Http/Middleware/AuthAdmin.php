@@ -15,17 +15,22 @@ class AuthAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if admin is authenticated
-        if (! Auth::guard('admin')->check()) {
-            return redirect()->route('admin.login');
-        }
-
-        // If regular user is also logged in, logout user automatically
-        // Admin and user cannot be logged in simultaneously
+        // First, check if regular user is logged in - block them from admin routes
         if (Auth::guard('web')->check()) {
+            // Logout user and redirect to their dashboard with error message
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
+            // Redirect to login with message that they need admin access
+            return redirect()->route('admin.login')
+                ->with('error', 'You must be logged in as an administrator to access this area.');
+        }
+
+        // Check if admin is authenticated
+        if (! Auth::guard('admin')->check()) {
+            return redirect()->route('admin.login')
+                ->with('error', 'Please login as administrator to access this area.');
         }
 
         Auth::shouldUse('admin');

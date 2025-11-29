@@ -10,4 +10,8 @@ class Platform extends Model
     use HasFactory;
 
     protected $fillable = ['name', 'status'];
+
+    const STATUS_PENDING = 'pending';
+    const STATUS_ACTIVE = 'active';
+    const STATUS_DEACTIVE = 'deactive';
 }

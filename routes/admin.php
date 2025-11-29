@@ -10,10 +10,9 @@ use App\Http\Controllers\Admin\Auth\RegisteredUserController;
 use App\Http\Controllers\Admin\Auth\VerifyEmailController;
 use App\Http\Controllers\Admin\CategorieController;
 use App\Http\Controllers\Admin\HomeController;
+use App\Http\Controllers\Admin\PlatformController;
 use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
-
-Route::get('admin/', [HomeController::class, 'index'])->name('admin.home');
 
 Route::middleware('guest.admin')->prefix('admin')->name('admin.')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -40,6 +39,7 @@ Route::middleware('guest.admin')->prefix('admin')->name('admin.')->group(functio
 });
 
 Route::middleware('auth.admin')->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
@@ -57,4 +57,5 @@ Route::middleware('auth.admin')->prefix('admin')->name('admin.')->group(function
     //tags
     Route::resource('tags', TagController::class);
     Route::resource('categories', CategorieController::class);
+    Route::resource('platforms', PlatformController::class);
 });

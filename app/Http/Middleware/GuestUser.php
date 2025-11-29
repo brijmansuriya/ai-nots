@@ -10,24 +10,22 @@ class GuestUser
 {
     /**
      * Handle an incoming request.
+     * This middleware should only be used on guest routes (login, register, etc.)
+     * It redirects authenticated users away from guest pages.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-
-        // If admin is logged in, redirect to admin dashboard
-        // (Logout will happen when they actually try to login as user)
-        if ($request->is('admin/*') && Auth::guard('admin')->check()) {
-                return redirect()->route('admin.home');
+        // If admin is logged in and trying to access user guest pages, redirect to admin dashboard
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
 
-        // If regular user is already logged in, redirect to user dashboard
+        // If regular user is already logged in, redirect to their dashboard
         if (Auth::guard('web')->check()) {
             return redirect()->route('dashboard');
         }
-
-        
 
         return $next($request);
     }
