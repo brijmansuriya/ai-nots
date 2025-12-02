@@ -5,6 +5,7 @@ import Select from 'react-select';
 import WebLayout from '@/layouts/web-layout';
 import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Upload } from 'lucide-react';
 import type { Tag, Platform } from '@/types';
+import { VersionHistory } from '@/components/version-history';
 
 interface EditPromptProps {
     prompt: {
@@ -378,8 +379,13 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                             <ArrowLeft className="w-5 h-5" />
                             <span>Back to Home</span>
                         </button>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Edit Prompt</h1>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">Update your AI prompt details</p>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Edit Prompt</h1>
+                                <p className="text-gray-600 dark:text-gray-400 mt-2">Update your AI prompt details</p>
+                            </div>
+                            <VersionHistory promptId={prompt.id} />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">

@@ -235,6 +235,14 @@ class PromptNote extends Model implements HasMedia
         return $this->hasMany(PromptUsageHistory::class, 'prompt_note_id');
     }
 
+    /**
+     * Get all versions for this prompt.
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(PromptVersion::class, 'prompt_note_id')->orderBy('version_number', 'desc');
+    }
+
     //promptable
     public function promptable(): MorphTo
     {

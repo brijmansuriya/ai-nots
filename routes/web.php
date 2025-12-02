@@ -30,6 +30,13 @@ Route::prefix('prompt')->group(function () {
         Route::match(['put', 'post'], '{prompt}', [PromptController::class, 'update'])->name('prompt.update');
         Route::delete('{prompt}', [PromptController::class, 'destroy'])->name('prompt.destroy');
 
+        // Version routes
+        Route::get('{prompt}/versions', [PromptController::class, 'versions'])->name('prompt.versions');
+        Route::get('{prompt}/versions/api', [PromptController::class, 'versionsApi'])->name('prompt.versions.api');
+        Route::post('{prompt}/versions/{version}/restore', [PromptController::class, 'restore'])->name('prompt.versions.restore');
+        Route::delete('{prompt}/versions/{version}', [PromptController::class, 'deleteVersion'])->name('prompt.versions.delete');
+        Route::get('{prompt}/versions/{version1}/compare', [PromptController::class, 'compare'])->name('prompt.versions.compare');
+
         // Metrics routes that require authentication
         Route::post('{prompt}/save', [PromptMetricsController::class, 'save'])->name('prompt.save');
         Route::delete('{prompt}/save', [PromptMetricsController::class, 'unsave'])->name('prompt.unsave');

@@ -5,6 +5,7 @@ use App\Enums\PromptStatus;
 use App\Http\Requests\StorePromptRequest;
 use App\Http\Requests\UpdatePromptRequest;
 use App\Models\PromptNote;
+use App\Models\PromptVersion;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -191,6 +192,63 @@ class PromptController extends Controller
             $promptData['status'] = $request->input('status');
         }
 
+        // Check if there are actual changes to save a version
+        $hasChanges = false;
+        $changes = [];
+
+        if (isset($promptData['title']) && $prompt->title !== $promptData['title']) {
+            $hasChanges = true;
+            $changes[] = 'title';
+        }
+
+        if (isset($promptData['prompt']) && $prompt->prompt !== $promptData['prompt']) {
+            $hasChanges = true;
+            $changes[] = 'prompt';
+        }
+
+        if (isset($promptData['description']) && $prompt->description !== $promptData['description']) {
+            $hasChanges = true;
+            $changes[] = 'description';
+        }
+
+        if (isset($promptData['category_id']) && $prompt->category_id != $promptData['category_id']) {
+            $hasChanges = true;
+            $changes[] = 'category';
+        }
+
+        // Save version before updating if there are changes
+        // Pattern: prompts table = latest version, prompt_versions table = old versions
+        // Every edit = store old version to prompt_versions, then update prompts table
+        if ($hasChanges) {
+            // Get the next version number (1, 2, 3, ...)
+            $lastVersion = PromptVersion::where('prompt_note_id', $prompt->id)
+                ->orderBy('version_number', 'desc')
+                ->first();
+            
+            $versionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
+
+            // Store metadata (tags, category, etc.)
+            $metadata = [
+                'category_id' => $prompt->category_id,
+                'tags' => $prompt->tags->pluck('name')->toArray(),
+                'platforms' => $prompt->platforms->pluck('name')->toArray(),
+                'variables' => $prompt->variables->pluck('name')->toArray(),
+            ];
+
+            // Save current state to prompt_versions table (old version)
+            // This happens BEFORE updating the prompts table with new content
+            PromptVersion::create([
+                'prompt_note_id' => $prompt->id,
+                'version_number' => $versionNumber,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+                'created_by' => $user->id,
+                'change_summary' => 'Changed: ' . implode(', ', $changes),
+                'metadata' => $metadata,
+            ]);
+        }
+
         $prompt->update($promptData);
 
         // Handle tags - same logic as store()
@@ -300,5 +358,264 @@ class PromptController extends Controller
         $prompt->delete();
 
         return redirect()->back()->with('success', 'Prompt deleted successfully.');
+    }
+
+    /**
+     * Get all versions for a prompt (API endpoint).
+     */
+    public function versionsApi(PromptNote $prompt)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner to view versions
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to view versions of this prompt.');
+        }
+
+        $versions = $prompt->versions()
+            ->with('creator:id,name')
+            ->get()
+            ->map(function ($version) {
+                return [
+                    'id' => $version->id,
+                    'version_number' => $version->version_number,
+                    'title' => $version->title,
+                    'prompt' => $version->prompt,
+                    'description' => $version->description,
+                    'change_summary' => $version->change_summary,
+                    'metadata' => $version->metadata,
+                    'created_by' => $version->creator?->name,
+                    'created_at' => $version->created_at->toIso8601String(),
+                    'formatted_date' => $version->formatted_date,
+                    'relative_time' => $version->relative_time,
+                ];
+            });
+
+        return response()->json([
+            'versions' => $versions,
+            'current_prompt' => [
+                'id' => $prompt->id,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+            ],
+        ]);
+    }
+
+    /**
+     * Show version history page.
+     */
+    public function versions(PromptNote $prompt)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner to view versions
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to view versions of this prompt.');
+        }
+
+        $versions = $prompt->versions()
+            ->with('creator:id,name')
+            ->orderBy('version_number', 'desc')
+            ->get()
+            ->map(function ($version) {
+                return [
+                    'id' => $version->id,
+                    'version_number' => $version->version_number,
+                    'title' => $version->title,
+                    'prompt' => $version->prompt,
+                    'description' => $version->description,
+                    'change_summary' => $version->change_summary,
+                    'metadata' => $version->metadata,
+                    'created_by' => $version->creator?->name,
+                    'created_at' => $version->created_at->toIso8601String(),
+                    'formatted_date' => $version->formatted_date,
+                    'relative_time' => $version->relative_time,
+                ];
+            });
+
+        return Inertia::render('prompt-versions', [
+            'prompt' => [
+                'id' => $prompt->id,
+                'title' => $prompt->title,
+            ],
+            'versions' => $versions,
+            'currentPrompt' => [
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+            ],
+        ]);
+    }
+
+    /**
+     * Restore a specific version of a prompt.
+     */
+    public function restore(Request $request, PromptNote $prompt, PromptVersion $version)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner to restore versions
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to restore versions of this prompt.');
+        }
+
+        // Verify version belongs to this prompt
+        if ($version->prompt_note_id !== $prompt->id) {
+            abort(404, 'Version not found for this prompt.');
+        }
+
+        // Restore flow (as per requirements):
+        // 1. Take version's content
+        // 2. Save current (latest) into versions table
+        // 3. Update main prompt with the older content
+        // This creates a new version while restoring
+
+        // Step 1: Get next version number for saving current state
+        $lastVersion = PromptVersion::where('prompt_note_id', $prompt->id)
+            ->orderBy('version_number', 'desc')
+            ->first();
+        
+        $versionNumber = $lastVersion ? $lastVersion->version_number + 1 : 1;
+
+        // Step 2: Save current (latest) state to prompt_versions table
+        $metadata = [
+            'category_id' => $prompt->category_id,
+            'tags' => $prompt->tags->pluck('name')->toArray(),
+            'platforms' => $prompt->platforms->pluck('name')->toArray(),
+            'variables' => $prompt->variables->pluck('name')->toArray(),
+        ];
+
+        PromptVersion::create([
+            'prompt_note_id' => $prompt->id,
+            'version_number' => $versionNumber,
+            'title' => $prompt->title,
+            'prompt' => $prompt->prompt,
+            'description' => $prompt->description,
+            'created_by' => $user->id,
+            'change_summary' => 'Restored from version ' . $version->version_number,
+            'metadata' => $metadata,
+        ]);
+
+        // Step 3: Update main prompt (prompts table) with the older version's content
+        $prompt->update([
+            'title' => $version->title,
+            'prompt' => $version->prompt,
+            'description' => $version->description,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Prompt restored to version ' . $version->version_number . ' successfully.',
+            'prompt' => [
+                'id' => $prompt->id,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+            ],
+        ]);
+    }
+
+    /**
+     * Compare two versions of a prompt.
+     */
+    public function compare(Request $request, PromptNote $prompt, $versionId1)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner to compare versions
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to compare versions of this prompt.');
+        }
+
+        $versionId2 = $request->input('version2');
+
+        $version1 = PromptVersion::where('id', $versionId1)
+            ->where('prompt_note_id', $prompt->id)
+            ->firstOrFail();
+
+        // If no second version, compare with current
+        if ($versionId2 === null) {
+            $version2 = [
+                'id' => $prompt->id,
+                'version_number' => 'current',
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+                'created_at' => $prompt->updated_at->toIso8601String(),
+            ];
+        } else {
+            $version2Model = PromptVersion::where('id', $versionId2)
+                ->where('prompt_note_id', $prompt->id)
+                ->firstOrFail();
+            
+            $version2 = [
+                'id' => $version2Model->id,
+                'version_number' => $version2Model->version_number,
+                'title' => $version2Model->title,
+                'prompt' => $version2Model->prompt,
+                'description' => $version2Model->description,
+                'created_at' => $version2Model->created_at->toIso8601String(),
+                'formatted_date' => $version2Model->formatted_date,
+            ];
+        }
+
+        return response()->json([
+            'version1' => [
+                'id' => $version1->id,
+                'version_number' => $version1->version_number,
+                'title' => $version1->title,
+                'prompt' => $version1->prompt,
+                'description' => $version1->description,
+                'created_at' => $version1->created_at->toIso8601String(),
+                'formatted_date' => $version1->formatted_date,
+            ],
+            'version2' => $version2,
+        ]);
+    }
+
+    /**
+     * Delete a specific version of a prompt.
+     */
+    public function deleteVersion(PromptNote $prompt, PromptVersion $version)
+    {
+        $user = auth()->user();
+
+        // Only allow the owner to delete versions
+        if (
+            ! $user ||
+            $prompt->promptable_id !== $user->id ||
+            $prompt->promptable_type !== $user->getMorphClass()
+        ) {
+            abort(403, 'You are not allowed to delete versions of this prompt.');
+        }
+
+        // Verify version belongs to this prompt
+        if ($version->prompt_note_id !== $prompt->id) {
+            abort(404, 'Version not found for this prompt.');
+        }
+
+        $version->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Version deleted successfully.',
+        ]);
     }
 }
