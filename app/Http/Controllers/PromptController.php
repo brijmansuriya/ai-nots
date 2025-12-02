@@ -6,6 +6,7 @@ use App\Http\Requests\StorePromptRequest;
 use App\Http\Requests\UpdatePromptRequest;
 use App\Models\PromptNote;
 use App\Services\ImageService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use \App\Models\Tag;
 
@@ -130,7 +131,7 @@ class PromptController extends Controller
         return redirect()->route('home')->with('success', 'Prompt created successfully.');
     }
 
-    public function show(Request $request, $id)
+    public function show($id, Request $request)
     {
         $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media'])->findOrFail($id);
         $user   = auth()->user();

@@ -40,8 +40,8 @@ export function MetricsDisplay({
     const textSize = size === 'sm' ? 'text-xs' : 'text-sm';
 
     // Ensure popularityScore is a number
-    const popularityScoreNum = typeof popularityScore === 'number' 
-        ? popularityScore 
+    const popularityScoreNum = typeof popularityScore === 'number'
+        ? popularityScore
         : parseFloat(String(popularityScore || 0)) || 0;
 
     const metrics = [

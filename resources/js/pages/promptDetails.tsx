@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Prompt, Tags } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
@@ -12,7 +12,7 @@ import {
     FacebookIcon,
     LinkedinIcon
 } from 'react-share';
-import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon, Download, ChevronDown } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
 import { SaveButton } from '@/components/ui/save-button';
 import { LikeButton } from '@/components/ui/like-button';
@@ -22,6 +22,13 @@ import {
     DialogTrigger,
     DialogContent,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface PromptDetailsProps {
     prompt: Prompt;
@@ -41,6 +48,93 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
 
     // View tracking is handled by the backend when the page loads
     // No need to track again on frontend to avoid duplicates
+
+    // Export functions
+    const exportToMarkdown = () => {
+        const tags = prompt.tags?.map(tag => tag.name).join(', ') || 'None';
+        const content = `# ${prompt.title}
+
+${prompt.description ? `## Description\n\n${prompt.description}\n\n` : ''}## Prompt
+
+\`\`\`
+${prompt.prompt || 'No prompt content available.'}
+\`\`\`
+
+${prompt.tags && prompt.tags.length > 0 ? `## Tags\n\n${tags}\n\n` : ''}## Metadata
+
+- **ID**: ${prompt.id}
+- **Created**: ${new Date(prompt.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- **Updated**: ${new Date(prompt.updated_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}
+- **Status**: ${prompt.status === 1 ? 'Active' : 'Inactive'}
+`;
+
+        const blob = new Blob([content], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${prompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportToJSON = () => {
+        const data = {
+            id: prompt.id,
+            title: prompt.title,
+            description: prompt.description || null,
+            prompt: prompt.prompt || null,
+            tags: prompt.tags?.map(tag => tag.name) || [],
+            status: prompt.status,
+            created_at: prompt.created_at,
+            updated_at: prompt.updated_at || null,
+            metadata: {
+                save_count: prompt.save_count ?? 0,
+                copy_count: prompt.copy_count ?? 0,
+                likes_count: prompt.likes_count ?? 0,
+                views_count: prompt.views_count ?? 0,
+                popularity_score: prompt.popularity_score ?? 0,
+            }
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${prompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const exportToTXT = () => {
+        const tags = prompt.tags?.map(tag => tag.name).join(', ') || 'None';
+        const content = `${prompt.title}
+${'='.repeat(prompt.title.length)}
+
+${prompt.description ? `${prompt.description}\n\n` : ''}PROMPT:
+${'-'.repeat(50)}
+${prompt.prompt || 'No prompt content available.'}
+${'-'.repeat(50)}
+
+${prompt.tags && prompt.tags.length > 0 ? `TAGS: ${tags}\n\n` : ''}METADATA:
+- ID: ${prompt.id}
+- Created: ${new Date(prompt.created_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${new Date(prompt.updated_at).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}\n` : ''}- Status: ${prompt.status === 1 ? 'Active' : 'Inactive'}
+`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${prompt.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <WebLayout title={prompt.title}>
@@ -236,6 +330,37 @@ export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }:
                                         promptId={prompt.id}
                                         className="px-6 py-3"
                                     />
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                                <Download className="w-4 h-4" />
+                                                <span>Export</span>
+                                                <ChevronDown className="w-4 h-4" />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 min-w-[180px]">
+                                            <DropdownMenuItem
+                                                onClick={exportToMarkdown}
+                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
+                                            >
+                                                <span className="text-sm">Export as Markdown (.md)</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={exportToJSON}
+                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
+                                            >
+                                                <span className="text-sm">Export as JSON (.json)</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={exportToTXT}
+                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
+                                            >
+                                                <span className="text-sm">Export as Text (.txt)</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
 
                                     {user && (
                                         <>

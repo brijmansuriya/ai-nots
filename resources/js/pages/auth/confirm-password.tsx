@@ -20,37 +20,42 @@ export default function ConfirmPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ai-cyan/20 via-black to-ai-coral/20 px-4 py-12">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black p-4 transition-colors">
       <Head title="Confirm password" />
 
-      <div className="w-full max-w-md bg-black/20 backdrop-blur-lg rounded-3xl shadow-xl p-8 space-y-6">
+      <div className="w-full max-w-md bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 shadow-xl p-8 space-y-6 transition-colors">
         <div className="text-center">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-ai-cyan to-ai-coral text-transparent bg-clip-text">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent">
             Confirm your password
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
             This is a secure area of the application. Please confirm your password before continuing.
           </p>
         </div>
 
-        <form onSubmit={submit} className="space-y-5">
+        <form className="space-y-5" onSubmit={submit}>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
             <Input
               id="password"
               type="password"
-              name="password"
-              placeholder="Password"
-              autoComplete="current-password"
+              required
               autoFocus
+              autoComplete="current-password"
+              placeholder="••••••••"
               value={data.password}
               onChange={(e) => setData('password', e.target.value)}
               disabled={processing}
+              className="border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-gray-900 dark:focus:ring-white"
             />
             <InputError message={errors.password} />
           </div>
 
-          <Button className="w-full" disabled={processing}>
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300"
+            disabled={processing}
+          >
             {processing && <LoaderCircle className="h-4 w-4 animate-spin mr-2" />}
             Confirm password
           </Button>
