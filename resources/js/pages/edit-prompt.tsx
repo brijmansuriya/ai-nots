@@ -379,12 +379,14 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                             <ArrowLeft className="w-5 h-5" />
                             <span>Back to Home</span>
                         </button>
-                        <div className="flex items-start justify-between">
-                            <div>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div className="flex-1">
                                 <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">Edit Prompt</h1>
                                 <p className="text-gray-600 dark:text-gray-400 mt-2">Update your AI prompt details</p>
                             </div>
-                            <VersionHistory promptId={prompt.id} />
+                            <div className="flex-shrink-0">
+                                <VersionHistory promptId={prompt.id} />
+                            </div>
                         </div>
                     </div>
 
