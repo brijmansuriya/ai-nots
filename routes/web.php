@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AboutController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PromptMetricsController;
@@ -57,6 +58,21 @@ Route::middleware(['auth.user', 'verified'])->group(function () {
         return Inertia::render('saved-prompts');
     })->name('saved');
     Route::get('saved/prompts', [PromptMetricsController::class, 'getSavedPrompts'])->name('saved.prompts');
+
+    // Folder routes
+    Route::prefix('api/folders')->group(function () {
+        Route::get('/', [FolderController::class, 'index'])->name('folders.index');
+        Route::get('/tree', [FolderController::class, 'tree'])->name('folders.tree');
+        Route::post('/', [FolderController::class, 'store'])->name('folders.store');
+        Route::get('/{folder}', [FolderController::class, 'show'])->name('folders.show');
+        Route::put('/{folder}', [FolderController::class, 'update'])->name('folders.update');
+        Route::delete('/{folder}', [FolderController::class, 'destroy'])->name('folders.destroy');
+        Route::post('/{folder}/restore', [FolderController::class, 'restore'])->name('folders.restore');
+        Route::post('/reorder', [FolderController::class, 'reorder'])->name('folders.reorder');
+    });
+
+    // Move prompt to folder
+    Route::post('/api/prompts/{prompt}/move', [FolderController::class, 'movePrompt'])->name('prompts.move');
 });
 
 require __DIR__ . '/settings.php';

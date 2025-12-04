@@ -28,6 +28,7 @@ class PromptNote extends Model implements HasMedia
         'is_public', //'0 : pending, 1 : approved, 2 : rejected'
         'status',    //'0 : pending, 1 : approved, 2 : rejected'
         'category_id',
+        'folder_id',
         'save_count',
         'copy_count',
         'likes_count',
@@ -184,6 +185,11 @@ class PromptNote extends Model implements HasMedia
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function folder(): BelongsTo
+    {
+        return $this->belongsTo(Folder::class);
     }
 
     public function tags(): BelongsToMany

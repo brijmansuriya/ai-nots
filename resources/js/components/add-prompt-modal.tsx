@@ -140,11 +140,30 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white/10 backdrop-blur-lg shadow-lg">
+    <div 
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 sm:p-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-2xl rounded-2xl bg-white/10 backdrop-blur-lg shadow-lg flex flex-col max-h-[90vh]">
         {/* Scrollable content with themed scrollbar */}
-        <div className="max-h-[80vh] overflow-y-auto p-6 themed-scrollbar">
-          <h2 className="mb-6 text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
+        <div className="flex-1 overflow-y-auto p-6 themed-scrollbar min-h-0">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-ai-cyan">Add New AI Prompt</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white/60 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              aria-label="Close modal"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
           {/* Error Messages */}
           {/* {Object.keys(errors).length > 0 && (
@@ -248,8 +267,8 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
           </form>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-4 p-4 border-t border-white/20">
+        {/* Buttons - Fixed at bottom */}
+        <div className="flex justify-end gap-4 p-4 sm:p-6 border-t border-white/20 flex-shrink-0">
           <button
             type="submit"
             form="prompt-form" // Link button to form

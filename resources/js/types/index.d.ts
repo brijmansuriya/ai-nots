@@ -90,6 +90,21 @@ export interface Tags {
     };
 }
 
+export interface Folder {
+    id: number;
+    user_id: number;
+    parent_id: number | null;
+    name: string;
+    color?: string | null;
+    emoji?: string | null;
+    position: number;
+    prompts_count?: number;
+    children?: Folder[];
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string | null;
+}
+
 export interface Prompt {
     id: number;
     title: string;
@@ -100,11 +115,13 @@ export interface Prompt {
     is_public: 0 | 1 | 2;
     status: 0 | 1 | 2;
     category_id: number;
+    folder_id?: number | null;
     dynamic_variables: Record<string, any>;
     tags: Tags[];
     platforms?: Platform[];
     variables?: PromptVariable[];
     image_url?: string | null;
+    folder?: Folder | null;
     // Metrics
     save_count?: number;
     copy_count?: number;

@@ -63,9 +63,9 @@ export function SaveButton({
     };
 
     const baseClasses =
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed';
+        'inline-flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg font-medium text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-gray-900 dark:focus-visible:ring-white focus-visible:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed min-w-0';
 
-    const sizeClasses = size === 'sm' ? 'px-3.5 py-2' : 'px-4 py-2.5';
+    const sizeClasses = size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2.5';
 
     const variantClasses =
         variant === 'ghost'
@@ -87,13 +87,13 @@ export function SaveButton({
             {isSaved ? (
                 <>
                     <BookmarkCheck className="w-4 h-4 flex-shrink-0" />
-                    <span className="whitespace-nowrap">Saved</span>
+                    <span className="whitespace-nowrap hidden sm:inline">Saved</span>
                     {saveCount > 0 && <span className="text-xs whitespace-nowrap ml-0.5">({saveCount})</span>}
                 </>
             ) : (
                 <>
                     <Bookmark className="w-4 h-4 flex-shrink-0" />
-                    <span className="whitespace-nowrap">Save</span>
+                    <span className="whitespace-nowrap hidden sm:inline">Save</span>
                     {saveCount > 0 && <span className="text-xs whitespace-nowrap ml-0.5">({saveCount})</span>}
                 </>
             )}

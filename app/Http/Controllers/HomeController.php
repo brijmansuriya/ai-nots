@@ -60,13 +60,23 @@ class HomeController extends Controller
 
     public function getUserPrompts(Request $request)
     {
-        $user   = $request->user();              // Get the logged-in user
-        $search = $request->input('search', ''); // Get the search query
+        $user     = $request->user();              // Get the logged-in user
+        $search   = $request->input('search', ''); // Get the search query
+        $folderId = $request->input('folder_id');  // Get folder filter
 
-        $prompts = PromptNote::with(['tags', 'platforms', 'media'])
+        $prompts = PromptNote::with(['tags', 'platforms', 'media', 'folder'])
             ->withTrashed()                                    // Include soft-deleted prompts for user's own prompts
             ->where('promptable_id', $user->id)                // Filter by user ID
             ->where('promptable_type', $user->getMorphClass()) // Filter by user type
+            ->when($folderId !== null, function ($query) use ($folderId) {
+                if ($folderId === 'unfoldered') {
+                    // Show prompts without a folder
+                    $query->whereNull('folder_id');
+                } else {
+                    // Show prompts in specific folder
+                    $query->where('folder_id', $folderId);
+                }
+            })
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")

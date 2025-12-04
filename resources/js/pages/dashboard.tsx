@@ -5,18 +5,35 @@ import WebLayout from '@/layouts/web-layout';
 import Header from '@/components/header';
 import NoteCard from '@/components/note-card';
 import LoadMoreTrigger from '@/components/LoadMoreTrigger';
+import FolderTree from '@/components/folder-tree';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import InputError from '@/components/input-error';
-import { Prompt } from '@/types';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
+import { Prompt, Folder } from '@/types';
+import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import FolderDialog from '@/components/folder-dialog';
+import CommandBar from '@/components/command-bar';
+
+type TabValue = 'prompts' | 'profile' | 'statistics';
 
 export default function Dashboard({ auth }: any) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [lastPage, setLastPage] = useState<number>(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with true to show loading initially
   const [search, setSearch] = useState<string>('');
+  const [selectedFolderId, setSelectedFolderId] = useState<number | 'all' | 'unfoldered' | null>('all');
+  const [activeTab, setActiveTab] = useState<TabValue>('prompts');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
+  const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('latest');
   const isFetching = useRef(false);
   const isInitialMount = useRef(true);
   const lastPageRef = useRef(1);
@@ -26,7 +43,7 @@ export default function Dashboard({ auth }: any) {
     email: auth.user.email,
   });
 
-  const fetchPrompts = useCallback(async (page: number, searchQuery = '') => {
+  const fetchPrompts = useCallback(async (page: number, searchQuery = '', folderId: number | 'all' | 'unfoldered' | null = 'all') => {
     // Prevent fetching if already fetching
     if (isFetching.current) {
       console.log('Already fetching, skipping...');
@@ -44,14 +61,32 @@ export default function Dashboard({ auth }: any) {
     setLoading(true);
 
     try {
-      const response = await axios.get(route('dashboard.prompts'), {
-        params: { page, search: searchQuery },
-      });
+      const params: any = { page, search: searchQuery };
+      if (folderId !== 'all' && folderId !== null) {
+        params.folder_id = folderId;
+      }
+
+      console.log('Fetching prompts with params:', params);
+      const response = await axios.get(route('dashboard.prompts'), { params });
 
       // Debug logging
-      console.log('Dashboard API Response:', response.data);
+      console.log('Dashboard API Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response data.data:', response.data?.data);
 
-      const newPrompts = Array.isArray(response.data.data) ? response.data.data : [];
+      // Handle different response structures
+      let newPrompts: Prompt[] = [];
+      if (Array.isArray(response.data)) {
+        // If response.data is directly an array
+        newPrompts = response.data;
+      } else if (Array.isArray(response.data?.data)) {
+        // If response.data.data is an array (standard Laravel pagination)
+        newPrompts = response.data.data;
+      } else if (response.data?.items && Array.isArray(response.data.items)) {
+        // Alternative structure
+        newPrompts = response.data.items;
+      }
+
       console.log('Parsed prompts:', newPrompts.length, newPrompts);
 
       setPrompts(prev => {
@@ -61,14 +96,19 @@ export default function Dashboard({ auth }: any) {
         return result;
       });
 
-      const newCurrentPage = response.data.current_page || 1;
-      const newLastPage = response.data.last_page || 1;
+      const newCurrentPage = response.data?.current_page || response.data?.currentPage || 1;
+      const newLastPage = response.data?.last_page || response.data?.lastPage || 1;
       setCurrentPage(newCurrentPage);
       setLastPage(newLastPage);
       lastPageRef.current = newLastPage; // Update ref
     } catch (error: any) {
       console.error('Failed to fetch prompts:', error);
-      console.error('Error response:', error.response?.data);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
       // Only clear prompts on error if it's the first page
       if (page === 1) {
         setPrompts([]);
@@ -83,29 +123,78 @@ export default function Dashboard({ auth }: any) {
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      fetchPrompts(1, '');
+      console.log('Initial mount - fetching prompts...');
+      fetchPrompts(1, '', selectedFolderId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Fetch when search changes - but not on initial mount
+  // Fetch when search or folder changes - but not on initial mount
   useEffect(() => {
     if (!isInitialMount.current) {
-      // Reset pagination when search changes
+      console.log('Search or folder changed - fetching prompts...', { search, selectedFolderId });
+      // Reset pagination when search or folder changes
       setCurrentPage(1);
       setLastPage(1);
       lastPageRef.current = 1;
       // Don't clear prompts immediately - let the new data replace it
-      fetchPrompts(1, search);
+      fetchPrompts(1, search, selectedFolderId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, selectedFolderId]);
 
   const handleLoadMore = useCallback(() => {
     if (!loading && currentPage < lastPageRef.current) {
-      fetchPrompts(currentPage + 1, search);
+      fetchPrompts(currentPage + 1, search, selectedFolderId);
     }
-  }, [loading, currentPage, fetchPrompts, search]);
+  }, [loading, currentPage, fetchPrompts, search, selectedFolderId]);
+
+  // Fetch folders for breadcrumbs
+  useEffect(() => {
+    const fetchFolderData = async () => {
+      try {
+        const response = await axios.get(route('folders.tree'));
+        const allFolders = response.data.data || [];
+        setFolders(allFolders);
+
+        if (selectedFolderId && typeof selectedFolderId === 'number') {
+          const findFolder = (folders: Folder[], id: number): Folder | null => {
+            for (const folder of folders) {
+              if (folder.id === id) return folder;
+              if (folder.children) {
+                const found = findFolder(folder.children, id);
+                if (found) return found;
+              }
+            }
+            return null;
+          };
+          const folder = findFolder(allFolders, selectedFolderId);
+          setSelectedFolder(folder);
+        } else {
+          setSelectedFolder(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch folders:', error);
+      }
+    };
+
+    fetchFolderData();
+  }, [selectedFolderId]);
+
+  const handleFolderSelect = useCallback((folderId: number | 'all' | 'unfoldered' | null) => {
+    setSelectedFolderId(folderId);
+  }, []);
+
+  const handlePromptMove = useCallback(async (promptId: number, folderId: number | null) => {
+    try {
+      await axios.post(route('prompts.move', { prompt: promptId }), { folder_id: folderId });
+      // Refresh prompts after move
+      fetchPrompts(1, search, selectedFolderId);
+    } catch (error) {
+      console.error('Failed to move prompt:', error);
+      alert('Failed to move prompt');
+    }
+  }, [search, selectedFolderId, fetchPrompts]);
 
   const handleEdit = (promptId: number) => {
     router.visit(route('prompt.edit', { id: promptId })); // Redirect to edit page
@@ -116,124 +205,502 @@ export default function Dashboard({ auth }: any) {
     patch(route('profile.update')); // Update user profile
   };
 
+  // Calculate statistics
+  const totalPrompts = prompts.length;
+  const totalFolders = 0; // Will be updated when folder count is available
+  const savedPrompts = prompts.filter(p => p.is_saved).length;
+
   return (
     <WebLayout title="Dashboard">
-      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors">
+      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
         {/* Main Content */}
-        <main className="py-6 sm:py-8 md:py-10 lg:py-12 mx-4 sm:mx-8 md:mx-12 lg:mx-16">
-          <div className="container mx-auto max-w-7xl">
-            <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent">
-              Welcome, {auth.user.name}
-            </h1>
-            <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
-              Here you can manage your prompts and profile settings.
-            </p>
-          </div>
-
-          {/* Top Section */}
-          <section className="mx-auto max-w-7xl py-8 px-6 mt-8 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6 transition-colors">
-
-            {/* Profile Section */}
-            <div className="flex flex-col items-center text-center">
-              <img
-                src={`https://ui-avatars.com/api/?name=${auth.user.name}&background=111827&color=ffffff&size=128&rounded=true`}
-                alt="Avatar"
-                className="h-24 w-24 rounded-full border-2 border-gray-200 dark:border-gray-700 shadow mb-4"
-              />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{auth.user.name}</h2>
-              <p className="text-gray-600 dark:text-gray-400">{auth.user.email}</p>
-            </div>
-
-            {/* Update Name and Email Section */}
-            <form onSubmit={submit} className="space-y-6">
-              <div>
-                <Label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Full Name
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={data.name}
-                  onChange={(e) => setData('name', e.target.value)}
-                  className="mt-1 block w-full border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
-                />
-                <InputError message={errors.name} className="mt-2 text-red-600 dark:text-red-400" />
-              </div>
-
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={data.email}
-                  onChange={(e) => setData('email', e.target.value)}
-                  className="mt-1 block w-full border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
-                />
-                <InputError message={errors.email} className="mt-2 text-red-600 dark:text-red-400" />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={processing}
-                className="w-full bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 text-white dark:text-gray-900 py-2 px-4 rounded-md hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition"
-              >
-                {processing ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </form>
-          </section>
-
-          {/* Prompts Section */}
-          <section className="notes-section mx-auto max-w-7xl py-8 px-6 mt-10 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg transition-colors">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent uppercase">
-                My Prompts
-              </h2>
-              <Input
-                type="text"
-                placeholder="Search prompts..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-1/3 border-gray-300 dark:border-gray-800 rounded-md shadow-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-gray-900 dark:focus:ring-white focus:border-gray-900 dark:focus:border-white"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {!loading && prompts.length > 0 ? (
-                prompts.map((prompt, i) => (
-                  <NoteCard
-                    key={prompt.id}
-                    prompt={prompt}
-                    index={i}
-                    onDeleted={(id) =>
-                      setPrompts((prev) => prev.filter((p) => p.id !== id))
-                    }
-                  />
-                ))
-              ) : !loading ? (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-600 dark:text-gray-400 text-lg mb-2">
-                    No prompts found.
-                  </p>
-                  <p className="text-gray-500 dark:text-gray-500 text-sm">
-                    {search ? 'Try a different search term.' : 'Create your first prompt to get started!'}
+        <main className="py-4 sm:py-6 md:py-8 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12">
+          <div className="max-w-7xl mx-auto">
+            {/* Header Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-300 bg-clip-text text-transparent">
+                    Dashboard
+                  </h1>
+                  <p className="mt-1 text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                    Welcome back, {auth.user.name}
                   </p>
                 </div>
-              ) : null}
-            </div>
 
-            {loading && (
-              <div className="text-center py-4">
-                <p className="animate-pulse text-gray-600 dark:text-gray-400">Loading...</p>
+                {/* Mobile Folder Menu Button */}
+                <div className="md:hidden">
+                  <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Menu className="w-4 h-4" />
+                        <span>Folders</span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-80 p-0">
+                      <div className="p-4">
+                        <FolderTree
+                          selectedFolderId={selectedFolderId}
+                          onFolderSelect={(id) => {
+                            handleFolderSelect(id);
+                            setSidebarOpen(false);
+                          }}
+                          onPromptMove={handlePromptMove}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
               </div>
-            )}
 
-            {!loading && currentPage < lastPage && (
-              <LoadMoreTrigger onVisible={handleLoadMore} />
-            )}
-          </section>
+
+              {/* Tab Navigation */}
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+                  <TabsTrigger value="prompts" className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    <span className="hidden sm:inline">My Prompts</span>
+                    <span className="sm:hidden">Prompts</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="profile" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span>Profile</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="statistics" className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Statistics</span>
+                    <span className="sm:hidden">Stats</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Tab Content */}
+                {/* Prompts Tab */}
+                <TabsContent value="prompts" className="mt-6">
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Folder Sidebar - Desktop */}
+                    <aside className="hidden lg:block w-72 flex-shrink-0">
+                      <div className="bg-card border border-border rounded-xl p-4 sticky top-4 shadow-sm">
+                        <FolderTree
+                          selectedFolderId={selectedFolderId}
+                          onFolderSelect={handleFolderSelect}
+                          onPromptMove={handlePromptMove}
+                        />
+                      </div>
+                    </aside>
+
+                    {/* Prompts Content */}
+                    <div className="flex-1 min-w-0">
+                      <section className="bg-card border border-border shadow-sm rounded-xl p-4 sm:p-6 lg:p-8 transition-colors">
+                        {/* Breadcrumb Navigation - Shows folder path */}
+                        <div className="mb-6 pb-4 border-b border-border">
+                          <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <Breadcrumb>
+                              <BreadcrumbList className="flex-wrap items-center">
+                                <BreadcrumbItem>
+                                  <BreadcrumbLink
+                                    onClick={() => handleFolderSelect('all')}
+                                    className="cursor-pointer flex items-center gap-1.5 text-muted-foreground hover:text-primary font-medium transition-colors"
+                                  >
+                                    <Home className="w-4 h-4" />
+                                    <span>All Prompts</span>
+                                  </BreadcrumbLink>
+                                </BreadcrumbItem>
+                                {selectedFolderId !== 'all' && selectedFolderId !== 'unfoldered' && selectedFolder && (
+                                  <>
+                                    <BreadcrumbSeparator>
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                    </BreadcrumbSeparator>
+                                    <BreadcrumbItem>
+                                      <BreadcrumbPage className="flex items-center gap-1.5 text-foreground font-semibold">
+                                        <FolderIcon className="w-4 h-4 text-primary" />
+                                        <span>{selectedFolder.name}</span>
+                                      </BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                  </>
+                                )}
+                                {selectedFolderId === 'unfoldered' && (
+                                  <>
+                                    <BreadcrumbSeparator>
+                                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                    </BreadcrumbSeparator>
+                                    <BreadcrumbItem>
+                                      <BreadcrumbPage className="flex items-center gap-1.5 text-foreground font-semibold">
+                                        <FolderIcon className="w-4 h-4 text-muted-foreground" />
+                                        <span>Unfoldered</span>
+                                      </BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                  </>
+                                )}
+                              </BreadcrumbList>
+                            </Breadcrumb>
+                            <Button
+                              onClick={() => setShowCreateFolderDialog(true)}
+                              size="sm"
+                              className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span className="hidden sm:inline">Create Folder</span>
+                              <span className="sm:hidden">New</span>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Section Header - Premium Design */}
+                        <div className="mb-8">
+                          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 shadow-sm">
+                                <FolderOpen className="w-6 h-6 text-primary" />
+                              </div>
+                              <div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+                                  {selectedFolderId === 'all' ? 'My Prompts' : selectedFolderId === 'unfoldered' ? 'Unfoldered Prompts' : selectedFolder ? (
+                                    <span>{selectedFolder.name}</span>
+                                  ) : 'My Prompts'}
+                                </h2>
+                                <div className="flex items-center gap-3">
+                                  <p className="text-sm text-muted-foreground">
+                                    <span className="font-semibold text-foreground">{prompts.length}</span> {prompts.length === 1 ? 'prompt' : 'prompts'}
+                                    {selectedFolderId !== 'all' && selectedFolderId !== 'unfoldered' && selectedFolder && ` in this folder`}
+                                  </p>
+                                  {prompts.length > 0 && (
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                  )}
+                                  {prompts.length > 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Press <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border text-xs font-mono">⌘K</kbd> to search
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 flex-1 lg:flex-initial lg:max-w-md">
+                              <div className="relative flex-1 min-w-[200px]">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                  type="text"
+                                  placeholder="Search prompts..."
+                                  value={search}
+                                  onChange={(e) => setSearch(e.target.value)}
+                                  className="w-full pl-9 pr-9 bg-background border-border text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 h-10"
+                                />
+                                {search && (
+                                  <button
+                                    onClick={() => setSearch('')}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded-md transition-colors"
+                                  >
+                                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </button>
+                                )}
+                              </div>
+                              <Select value={sortBy} onValueChange={setSortBy}>
+                                <SelectTrigger className="w-[160px] bg-background border-border h-10">
+                                  <div className="flex items-center gap-2">
+                                    <Filter className="w-4 h-4 text-muted-foreground" />
+                                    <SelectValue placeholder="Sort by" />
+                                  </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="latest">Latest</SelectItem>
+                                  <SelectItem value="a-z">A-Z</SelectItem>
+                                  <SelectItem value="z-a">Z-A</SelectItem>
+                                  <SelectItem value="popular">Most Popular</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Help Banner - Premium Design */}
+                        {prompts.length > 0 && selectedFolderId === 'all' && folders.length === 0 && (
+                          <div className="mb-6 p-4 bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-xl shadow-sm">
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0">
+                                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                                  <Move className="w-5 h-5 text-primary" />
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-foreground mb-1.5">
+                                  Organize Your Prompts with Folders
+                                </p>
+                                <p className="text-sm text-muted-foreground mb-3 leading-relaxed">
+                                  Create folders to organize your prompts. Drag any prompt card onto a folder to move it.
+                                </p>
+                                <Button
+                                  onClick={() => setShowCreateFolderDialog(true)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-primary/30 text-primary hover:bg-primary/10"
+                                >
+                                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                                  Create Your First Folder
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Loading State */}
+                        {loading && (
+                          <div className="text-center py-16">
+                            <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-muted border-t-primary mb-4"></div>
+                            <p className="text-muted-foreground font-medium">Loading prompts...</p>
+                          </div>
+                        )}
+
+                        {/* Prompts Grid - Premium Layout */}
+                        {!loading && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 auto-rows-fr">
+                            {prompts.length > 0 ? (
+                              prompts.map((prompt, i) => (
+                                <NoteCard
+                                  key={prompt.id}
+                                  prompt={prompt}
+                                  index={i}
+                                  onDeleted={(id) =>
+                                    setPrompts((prev) => prev.filter((p) => p.id !== id))
+                                  }
+                                />
+                              ))
+                            ) : (
+                              <div className="col-span-full text-center py-24">
+                                <div className="inline-flex items-center justify-center w-28 h-28 rounded-2xl bg-gradient-to-br from-muted to-muted/50 border border-border mb-6 shadow-sm">
+                                  <FolderOpen className="w-14 h-14 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-foreground mb-2">
+                                  No prompts found
+                                </h3>
+                                <p className="text-muted-foreground text-sm mb-8 max-w-md mx-auto leading-relaxed">
+                                  {search
+                                    ? 'Try a different search term or clear the search to see all prompts.'
+                                    : selectedFolderId === 'unfoldered'
+                                      ? 'All your prompts are organized in folders. Check other folders to find your prompts.'
+                                      : 'Get started by creating your first prompt or organizing existing ones into folders.'
+                                  }
+                                </p>
+                                <div className="flex items-center justify-center gap-3">
+                                  {search && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => setSearch('')}
+                                      className="border-border hover:bg-accent"
+                                    >
+                                      Clear Search
+                                    </Button>
+                                  )}
+                                  {!search && (
+                                    <Button
+                                      onClick={() => router.visit('/prompt/create')}
+                                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                    >
+                                      <Plus className="w-4 h-4 mr-2" />
+                                      Create Your First Prompt
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Load More */}
+                        {!loading && currentPage < lastPage && (
+                          <LoadMoreTrigger onVisible={handleLoadMore} />
+                        )}
+                      </section>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Profile Tab */}
+                <TabsContent value="profile" className="mt-6">
+                  <section className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg p-6 lg:p-8">
+                    <div className="max-w-3xl mx-auto">
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profile Settings</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Manage your account information and preferences
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+
+                        {/* Profile Avatar Section */}
+                        <div className="flex flex-col items-center text-center md:col-span-1">
+                          <div className="relative mb-4">
+                            <img
+                              src={`https://ui-avatars.com/api/?name=${auth.user.name}&background=111827&color=ffffff&size=128&rounded=true`}
+                              alt="Avatar"
+                              className="h-32 w-32 rounded-full border-4 border-gray-200 dark:border-gray-700 shadow-lg"
+                            />
+                            <div className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-gray-950 flex items-center justify-center">
+                              <User className="w-5 h-5 text-primary-foreground" />
+                            </div>
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{auth.user.name}</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{auth.user.email}</p>
+                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>Member since</span>
+                            <span>{new Date(auth.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                          </div>
+                        </div>
+
+                        {/* Profile Form Section */}
+                        <div className="md:col-span-2">
+                          <form onSubmit={submit} className="space-y-5">
+                            <div>
+                              <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                                Full Name
+                              </Label>
+                              <Input
+                                id="name"
+                                type="text"
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                placeholder="Enter your full name"
+                              />
+                              <InputError message={errors.name} className="mt-1" />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                                Email Address
+                              </Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                placeholder="Enter your email address"
+                              />
+                              <InputError message={errors.email} className="mt-1" />
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                We'll never share your email with anyone else.
+                              </p>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                              <Button
+                                type="submit"
+                                disabled={processing}
+                                className="w-full sm:w-auto"
+                              >
+                                {processing ? (
+                                  <>
+                                    <span className="animate-spin mr-2">⏳</span>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  'Save Changes'
+                                )}
+                              </Button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </TabsContent>
+
+                {/* Statistics Tab */}
+                <TabsContent value="statistics" className="mt-6">
+                  <section className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg p-6 lg:p-8">
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Statistics</h2>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Overview of your prompts and activity
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Total Prompts Card */}
+                      <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <FileText className="w-8 h-8 text-primary" />
+                        </div>
+                        <div className="text-3xl font-bold text-primary mb-1">{totalPrompts}</div>
+                        <div className="text-sm text-muted-foreground">Total Prompts</div>
+                      </div>
+
+                      {/* Saved Prompts Card */}
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <Bell className="w-8 h-8 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-1">{savedPrompts}</div>
+                        <div className="text-sm text-green-700 dark:text-green-400">Saved Prompts</div>
+                      </div>
+
+                      {/* Folders Card */}
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <FolderOpen className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-1">-</div>
+                        <div className="text-sm text-purple-700 dark:text-purple-400">Folders</div>
+                      </div>
+
+                      {/* Activity Card */}
+                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <BarChart3 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-1">-</div>
+                        <div className="text-sm text-orange-700 dark:text-orange-400">Activity</div>
+                      </div>
+                    </div>
+
+                    {/* Additional Stats Section */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-accent rounded-lg">
+                          <div className="w-2 h-2 rounded-full bg-primary"></div>
+                          <div className="flex-1">
+                            <p className="text-sm text-foreground">No recent activity</p>
+                            <p className="text-xs text-muted-foreground">Your activity will appear here</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
         </main>
       </div>
+
+      {/* Create Folder Dialog */}
+      {showCreateFolderDialog && (
+        <FolderDialog
+          folder={null}
+          parentId={typeof selectedFolderId === 'number' ? selectedFolderId : null}
+          onClose={() => setShowCreateFolderDialog(false)}
+          onSuccess={() => {
+            setShowCreateFolderDialog(false);
+            // Refresh folders if needed
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Command Bar */}
+      <CommandBar
+        folders={folders}
+        onNewPrompt={() => router.visit('/prompt/create')}
+        onNewFolder={() => setShowCreateFolderDialog(true)}
+      />
+
+      {/* Floating New Prompt Button */}
+      <Button
+        onClick={() => router.visit('/prompt/create')}
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-50 bg-primary text-primary-foreground hover:bg-primary/90"
+      >
+        <Plus className="w-6 h-6" />
+      </Button>
     </WebLayout>
   );
 }
