@@ -66,6 +66,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
     const [errorDialogOpen, setErrorDialogOpen] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const [draggedOverFolderId, setDraggedOverFolderId] = useState<number | 'unfoldered' | null>(null);
+    const [dragEnterCount, setDragEnterCount] = useState<Map<number | 'unfoldered', number>>(new Map());
 
     // Save expanded folders to localStorage whenever they change
     useEffect(() => {
@@ -79,6 +81,22 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
 
     useEffect(() => {
         fetchFolders();
+    }, []);
+
+    // Global drag end handler to clean up state
+    useEffect(() => {
+        const handleGlobalDragEnd = () => {
+            // Small delay to allow drop handlers to complete
+            setTimeout(() => {
+                setDraggedOverFolderId(null);
+                setDragEnterCount(new Map());
+            }, 100);
+        };
+
+        document.addEventListener('dragend', handleGlobalDragEnd);
+        return () => {
+            document.removeEventListener('dragend', handleGlobalDragEnd);
+        };
     }, []);
 
     const fetchFolders = async () => {
@@ -173,6 +191,119 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
         const isSelected = selectedFolderId === folder.id;
         const hasChildren = folder.children && folder.children.length > 0;
         const hasPrompts = folder.prompts && folder.prompts.length > 0;
+        const isDraggedOver = draggedOverFolderId === folder.id;
+
+        // Handle drag enter with proper counting to prevent false dragleave
+        const handleDragEnter = (e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Check if we're dragging a prompt (has draggedPromptId or dataTransfer has data)
+            const draggedPromptId = (window as any).draggedPromptId;
+
+            // Some browsers don't expose types in dragenter, so check window variable first
+            let hasPromptData = !!draggedPromptId;
+
+            // Try to check dataTransfer types if available
+            try {
+                if (e.dataTransfer.types) {
+                    const types = Array.from(e.dataTransfer.types);
+                    hasPromptData = hasPromptData || types.includes('text/plain') || types.includes('application/json');
+                }
+            } catch (err) {
+                // Types might not be available in dragenter in some browsers
+            }
+
+
+            if (!hasPromptData) {
+                return;
+            }
+
+            // Auto-expand folder when dragging over it
+            if (!isExpanded && (hasChildren || hasPrompts)) {
+                setExpandedFolders(prev => {
+                    const newSet = new Set(prev);
+                    newSet.add(folder.id);
+                    try {
+                        const folderIds = Array.from(newSet);
+                        localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+                    } catch (error) {
+                        console.error('Failed to save expanded folders:', error);
+                    }
+                    return newSet;
+                });
+            }
+
+            // Increment drag enter count
+            setDragEnterCount(prev => {
+                const newMap = new Map(prev);
+                const count = newMap.get(folder.id) || 0;
+                newMap.set(folder.id, count + 1);
+                return newMap;
+            });
+
+            setDraggedOverFolderId(folder.id);
+        };
+
+        // Handle drag leave with relatedTarget check
+        const handleDragLeave = (e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Check if we're actually leaving the element (not just moving to a child)
+            const relatedTarget = e.relatedTarget as HTMLElement;
+            const currentTarget = e.currentTarget as HTMLElement;
+
+            if (relatedTarget && currentTarget.contains(relatedTarget)) {
+                // Still inside the element, don't remove highlight
+                return;
+            }
+
+            // Decrement drag enter count
+            setDragEnterCount(prev => {
+                const newMap = new Map(prev);
+                const count = newMap.get(folder.id) || 0;
+                if (count <= 1) {
+                    newMap.delete(folder.id);
+                    if (draggedOverFolderId === folder.id) {
+                        setDraggedOverFolderId(null);
+                    }
+                } else {
+                    newMap.set(folder.id, count - 1);
+                }
+                return newMap;
+            });
+        };
+
+        // Handle drag over
+        const handleDragOver = (e: React.DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+
+            // Check if we have prompt data
+            const draggedPromptId = (window as any).draggedPromptId;
+            let hasPromptData = !!draggedPromptId;
+
+            // Check dataTransfer types if available
+            try {
+                if (e.dataTransfer.types) {
+                    const types = Array.from(e.dataTransfer.types);
+                    hasPromptData = hasPromptData || types.includes('text/plain') || types.includes('application/json');
+                }
+            } catch (err) {
+                // Types might not be available
+            }
+
+            if (!hasPromptData) {
+                return;
+            }
+
+            // Ensure we're highlighted
+            if (draggedOverFolderId !== folder.id) {
+                setDraggedOverFolderId(folder.id);
+            }
+        };
 
         return (
             <div key={folder.id} className="select-none mb-1">
@@ -204,135 +335,128 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                     )}
 
                     {/* Folder Name & Drop Zone */}
-                    <button
-                        onClick={() => onFolderSelect(folder.id)}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.currentTarget.classList.add('bg-primary/10', 'ring-2', 'ring-primary/30');
-                            e.currentTarget.classList.add('scale-[1.02]');
-                        }}
-                        onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
-                            e.currentTarget.classList.remove('scale-[1.02]');
-                        }}
+                    <div
+                        className={cn(
+                            "flex-1 flex items-center gap-2.5 text-left min-w-0 group/drop rounded-md transition-all",
+                            isDraggedOver && "bg-primary/10 ring-2 ring-primary/30 scale-[1.02]"
+                        )}
+                        onDragEnter={handleDragEnter}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
                         onDrop={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
-                            e.currentTarget.classList.remove('scale-[1.02]');
 
-                            const promptIdStr = (window as any).draggedPromptId || e.dataTransfer.getData('text/plain');
-                            const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(promptIdStr);
+                            // Reset drag state
+                            setDraggedOverFolderId(null);
+                            setDragEnterCount(new Map());
+
+                            // Get prompt ID from multiple sources for reliability
+                            let promptIdStr = (window as any).draggedPromptId;
+
+                            if (!promptIdStr) {
+                                promptIdStr = e.dataTransfer.getData('text/plain');
+                            }
+                            if (!promptIdStr) {
+                                try {
+                                    const jsonData = e.dataTransfer.getData('application/json');
+                                    if (jsonData) {
+                                        const data = JSON.parse(jsonData);
+                                        promptIdStr = data.promptId;
+                                    }
+                                } catch (err) {
+                                    // Ignore JSON parse errors
+                                }
+                            }
+
+                            const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(String(promptIdStr));
 
                             if (!promptId || isNaN(promptId)) {
                                 console.error('Invalid prompt ID:', promptIdStr);
+                                (window as any).draggedPromptId = null;
                                 return;
                             }
 
                             if (!onPromptMove) {
                                 console.error('onPromptMove handler not available');
+                                (window as any).draggedPromptId = null;
                                 return;
                             }
 
                             // Check if prompt is already in this folder (prevent unnecessary moves)
                             const promptInThisFolder = folder.prompts?.some(p => p.id === promptId);
                             if (promptInThisFolder) {
-                                console.log('Prompt already in this folder');
                                 (window as any).draggedPromptId = null;
                                 return;
                             }
 
-                            // Optimistic update: Add prompt to folder immediately
-                            setFolders(prev => {
-                                const updateFolder = (folders: FolderType[]): FolderType[] => {
-                                    return folders.map(f => {
-                                        if (f.id === folder.id) {
-                                            // Check if prompt already exists in this folder
-                                            const promptExists = f.prompts?.some(p => p.id === promptId);
-                                            if (!promptExists) {
-                                                return {
-                                                    ...f,
-                                                    prompts: [
-                                                        ...(f.prompts || []),
-                                                        { id: promptId, title: 'Loading...', folder_id: folder.id }
-                                                    ],
-                                                    prompts_count: (f.prompts_count || 0) + 1
-                                                };
-                                            }
-                                        }
-                                        // Remove prompt from other folders
-                                        if (f.prompts) {
-                                            const filteredPrompts = f.prompts.filter(p => p.id !== promptId);
-                                            if (filteredPrompts.length !== f.prompts.length) {
-                                                return {
-                                                    ...f,
-                                                    prompts: filteredPrompts,
-                                                    prompts_count: Math.max(0, (f.prompts_count || 0) - 1)
-                                                };
-                                            }
-                                        }
-                                        // Recursively update children
-                                        if (f.children) {
-                                            return { ...f, children: updateFolder(f.children) };
-                                        }
-                                        return f;
-                                    });
-                                };
-                                return updateFolder(prev);
-                            });
+                            // Clear draggedPromptId immediately to prevent reuse
+                            const currentPromptId = promptId;
+                            (window as any).draggedPromptId = null;
 
                             try {
                                 // Call the move handler
-                                await onPromptMove(promptId, folder.id);
+                                await onPromptMove(currentPromptId, folder.id);
 
-                                // Clear dragged prompt ID immediately
-                                (window as any).draggedPromptId = null;
+                                // Refresh folders immediately and ensure folder is expanded
+                                await fetchFolders();
 
-                                // Wait a bit for the API to process, then refresh folders
-                                setTimeout(() => {
-                                    fetchFolders();
-                                    if (onFoldersRefresh) {
-                                        onFoldersRefresh();
+                                // Ensure the folder is expanded to show the moved prompt
+                                setExpandedFolders(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.add(folder.id);
+                                    try {
+                                        const folderIds = Array.from(newSet);
+                                        localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+                                    } catch (error) {
+                                        console.error('Failed to save expanded folders:', error);
                                     }
-                                }, 500);
+                                    return newSet;
+                                });
+
+                                if (onFoldersRefresh) {
+                                    onFoldersRefresh();
+                                }
                             } catch (error) {
                                 console.error('Failed to move prompt to folder:', error);
-                                // Clear dragged prompt ID on error
-                                (window as any).draggedPromptId = null;
                                 // Revert by refreshing
-                                fetchFolders();
+                                await fetchFolders();
                                 if (onFoldersRefresh) {
                                     onFoldersRefresh();
                                 }
                             }
                         }}
-                        className="flex-1 flex items-center gap-2.5 text-left min-w-0 group/drop rounded-md transition-all"
                     >
-                        <Folder className={cn(
-                            "w-4 h-4 flex-shrink-0 transition-colors",
-                            isSelected ? "text-primary" : "text-muted-foreground"
-                        )} />
-                        <span className={cn(
-                            "text-sm flex-1 min-w-0 transition-colors truncate",
-                            isSelected ? "text-primary font-semibold" : "text-foreground font-medium"
-                        )} title={folder.name}>
-                            {folder.name}
-                        </span>
-                        {folder.prompts_count !== undefined && folder.prompts_count > 0 && (
+                        <button
+                            onClick={() => onFolderSelect(folder.id)}
+                            className="flex-1 flex items-center gap-2.5 text-left min-w-0"
+                            type="button"
+                        >
+                            <Folder className={cn(
+                                "w-4 h-4 flex-shrink-0 transition-colors",
+                                isSelected ? "text-primary" : "text-muted-foreground"
+                            )} />
                             <span className={cn(
-                                "text-xs flex-shrink-0 px-2 py-0.5 rounded-full font-medium transition-colors",
-                                isSelected
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-muted-foreground"
-                            )}>
-                                {folder.prompts_count}
+                                "text-sm flex-1 min-w-0 transition-colors truncate",
+                                isSelected ? "text-primary font-semibold" : "text-foreground font-medium"
+                            )} title={folder.name}>
+                                {folder.name}
                             </span>
-                        )}
-                        <span className="text-xs text-primary opacity-0 group-hover/drop:opacity-100 transition-opacity flex-shrink-0 whitespace-nowrap ml-1 font-medium">
+                            {folder.prompts_count !== undefined && folder.prompts_count > 0 && (
+                                <span className={cn(
+                                    "text-xs flex-shrink-0 px-2 py-0.5 rounded-full font-medium transition-colors",
+                                    isSelected
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-muted-foreground"
+                                )}>
+                                    {folder.prompts_count}
+                                </span>
+                            )}
+                        </button>
+                        <span className="text-xs text-primary opacity-0 group-hover/drop:opacity-100 transition-opacity flex-shrink-0 whitespace-nowrap ml-1 font-medium pointer-events-none">
                             Drop
                         </span>
-                    </button>
+                    </div>
 
                     {/* Three Dots Menu - Clean UI */}
                     <DropdownMenu
@@ -514,81 +638,124 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         <TooltipTrigger asChild>
                             <button
                                 onClick={() => onFolderSelect('unfoldered')}
+                                onDragEnter={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+
+                                    const draggedPromptId = (window as any).draggedPromptId;
+                                    let hasPromptData = !!draggedPromptId;
+
+                                    try {
+                                        if (e.dataTransfer.types) {
+                                            const types = Array.from(e.dataTransfer.types);
+                                            hasPromptData = hasPromptData || types.includes('text/plain') || types.includes('application/json');
+                                        }
+                                    } catch (err) {
+                                        // Types might not be available
+                                    }
+
+                                    if (!hasPromptData) return;
+                                    setDragEnterCount(prev => {
+                                        const newMap = new Map(prev);
+                                        const count = newMap.get('unfoldered') || 0;
+                                        newMap.set('unfoldered', count + 1);
+                                        return newMap;
+                                    });
+                                    setDraggedOverFolderId('unfoldered');
+                                }}
                                 onDragOver={(e) => {
                                     e.preventDefault();
-                                    e.currentTarget.classList.add('bg-primary/10', 'ring-2', 'ring-primary/30');
-                                    e.currentTarget.classList.add('scale-[1.02]');
+                                    e.stopPropagation();
+                                    e.dataTransfer.dropEffect = 'move';
+                                    if (draggedOverFolderId !== 'unfoldered') {
+                                        setDraggedOverFolderId('unfoldered');
+                                    }
                                 }}
                                 onDragLeave={(e) => {
-                                    e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
-                                    e.currentTarget.classList.remove('scale-[1.02]');
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const relatedTarget = e.relatedTarget as HTMLElement;
+                                    const currentTarget = e.currentTarget as HTMLElement;
+                                    if (relatedTarget && currentTarget.contains(relatedTarget)) {
+                                        return;
+                                    }
+                                    setDragEnterCount(prev => {
+                                        const newMap = new Map(prev);
+                                        const count = newMap.get('unfoldered') || 0;
+                                        if (count <= 1) {
+                                            newMap.delete('unfoldered');
+                                            if (draggedOverFolderId === 'unfoldered') {
+                                                setDraggedOverFolderId(null);
+                                            }
+                                        } else {
+                                            newMap.set('unfoldered', count - 1);
+                                        }
+                                        return newMap;
+                                    });
                                 }}
                                 onDrop={async (e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
-                                    e.currentTarget.classList.remove('scale-[1.02]');
+                                    console.log('Drop event fired on unfoldered');
+                                    setDraggedOverFolderId(null);
+                                    setDragEnterCount(new Map());
 
-                                    const promptIdStr = (window as any).draggedPromptId || e.dataTransfer.getData('text/plain');
-                                    const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(promptIdStr);
+                                    // Get prompt ID from multiple sources for reliability
+                                    let promptIdStr = (window as any).draggedPromptId;
+                                    if (!promptIdStr) {
+                                        promptIdStr = e.dataTransfer.getData('text/plain');
+                                    }
+                                    if (!promptIdStr) {
+                                        try {
+                                            const jsonData = e.dataTransfer.getData('application/json');
+                                            if (jsonData) {
+                                                const data = JSON.parse(jsonData);
+                                                promptIdStr = data.promptId;
+                                            }
+                                        } catch (err) {
+                                            // Ignore JSON parse errors
+                                        }
+                                    }
+
+                                    const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(String(promptIdStr));
 
                                     if (!promptId || isNaN(promptId)) {
                                         console.error('Invalid prompt ID:', promptIdStr);
+                                        (window as any).draggedPromptId = null;
                                         return;
                                     }
 
-                                    if (onPromptMove) {
-                                        // Optimistic update: Remove prompt from all folders
-                                        setFolders(prev => {
-                                            const updateFolder = (folders: FolderType[]): FolderType[] => {
-                                                return folders.map(f => {
-                                                    // Remove prompt from this folder
-                                                    if (f.prompts) {
-                                                        const filteredPrompts = f.prompts.filter(p => p.id !== promptId);
-                                                        if (filteredPrompts.length !== f.prompts.length) {
-                                                            return {
-                                                                ...f,
-                                                                prompts: filteredPrompts,
-                                                                prompts_count: Math.max(0, (f.prompts_count || 0) - 1)
-                                                            };
-                                                        }
-                                                    }
-                                                    // Recursively update children
-                                                    if (f.children) {
-                                                        return { ...f, children: updateFolder(f.children) };
-                                                    }
-                                                    return f;
-                                                });
-                                            };
-                                            return updateFolder(prev);
-                                        });
+                                    if (!onPromptMove) {
+                                        console.error('onPromptMove handler not available');
+                                        (window as any).draggedPromptId = null;
+                                        return;
+                                    }
 
-                                        try {
-                                            await onPromptMove(promptId, null);
-                                            // Clear dragged prompt ID immediately
-                                            (window as any).draggedPromptId = null;
-                                            // Wait a bit for the API to process, then refresh folders
-                                            setTimeout(() => {
-                                                fetchFolders();
-                                                if (onFoldersRefresh) {
-                                                    onFoldersRefresh();
-                                                }
-                                            }, 500);
-                                        } catch (error) {
-                                            console.error('Failed to move prompt to unfoldered:', error);
-                                            // Clear dragged prompt ID on error
-                                            (window as any).draggedPromptId = null;
-                                            // Revert by refreshing
-                                            fetchFolders();
-                                            if (onFoldersRefresh) {
-                                                onFoldersRefresh();
-                                            }
+                                    // Clear draggedPromptId immediately to prevent reuse
+                                    const currentPromptId = promptId;
+                                    (window as any).draggedPromptId = null;
+
+                                    try {
+                                        await onPromptMove(currentPromptId, null);
+
+                                        // Refresh folders immediately
+                                        await fetchFolders();
+                                        if (onFoldersRefresh) {
+                                            onFoldersRefresh();
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to move prompt to unfoldered:', error);
+                                        // Revert by refreshing
+                                        await fetchFolders();
+                                        if (onFoldersRefresh) {
+                                            onFoldersRefresh();
                                         }
                                     }
                                 }}
                                 className={cn(
                                     'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-accent/50 transition-all text-base font-medium relative group/drop',
-                                    selectedFolderId === 'unfoldered' && 'bg-primary/10 border border-primary/30 shadow-sm'
+                                    selectedFolderId === 'unfoldered' && 'bg-primary/10 border border-primary/30 shadow-sm',
+                                    draggedOverFolderId === 'unfoldered' && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02]'
                                 )}
                             >
                                 <Folder className={cn(

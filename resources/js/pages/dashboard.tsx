@@ -103,8 +103,10 @@ export default function Dashboard({ auth }: any) {
       setPrompts(prev => {
         const prevArray = Array.isArray(prev) ? prev : [];
         const result = page === 1 ? newPrompts : [...prevArray, ...newPrompts];
-        console.log('Setting prompts:', result.length);
-        return result;
+        // Filter out soft-deleted prompts (they shouldn't be draggable)
+        const activePrompts = result.filter(p => !(p as any).deleted_at);
+        console.log('Setting prompts:', activePrompts.length, '(filtered from', result.length, ')');
+        return activePrompts;
       });
 
       const newCurrentPage = response.data?.current_page || response.data?.currentPage || 1;
@@ -205,10 +207,12 @@ export default function Dashboard({ auth }: any) {
       return;
     }
 
+    console.log('handlePromptMove called:', { promptId, folderId, currentPromptsCount: prompts.length });
+
     // Find the current prompt to check if it's already in the target folder
     const currentPrompt = prompts.find(p => p.id === promptId);
     if (currentPrompt && currentPrompt.folder_id === folderId) {
-      console.log('Prompt already in target folder');
+      console.log('Prompt already in target folder, skipping move');
       return; // No need to move
     }
 
@@ -249,26 +253,33 @@ export default function Dashboard({ auth }: any) {
       if (response.data && response.data.data) {
         console.log('Move successful, refreshing data...');
 
+        // Reset fetching flag first to allow subsequent moves
+        isFetching.current = false;
+
         // Force refresh prompts list - reset to page 1 and clear current list
         setPrompts([]);
         setCurrentPage(1);
         lastPageRef.current = 1;
-        isFetching.current = false; // Reset fetching flag
 
         // Refresh prompts to get updated data - use current folder filter
-        await fetchPrompts(1, search, selectedFolderId);
+        // Use setTimeout to allow the current move operation to complete
+        setTimeout(async () => {
+          await fetchPrompts(1, search, selectedFolderId);
+        }, 100);
 
         // Also refresh folders to update counts
-        try {
-          const folderResponse = await axios.get(route('folders.tree'));
-          const allFolders = folderResponse.data.data || [];
-          setFolders(allFolders);
-          console.log('Folders refreshed:', allFolders.length);
-        } catch (folderError) {
-          console.error('Failed to refresh folders:', folderError);
-        }
+        setTimeout(async () => {
+          try {
+            const folderResponse = await axios.get(route('folders.tree'));
+            const allFolders = folderResponse.data.data || [];
+            setFolders(allFolders);
+            console.log('Folders refreshed:', allFolders.length);
+          } catch (folderError) {
+            console.error('Failed to refresh folders:', folderError);
+          }
+        }, 200);
 
-        console.log('Data refresh completed');
+        console.log('Data refresh initiated');
       } else {
         throw new Error('Invalid response from server');
       }
@@ -289,7 +300,13 @@ export default function Dashboard({ auth }: any) {
       // Show user-friendly error message
       let errorMessage = 'Failed to move prompt. Please try again.';
       if (error.response?.status === 404) {
-        errorMessage = 'Prompt or folder not found. Please refresh the page and try again.';
+        // Check if prompt is soft-deleted
+        const currentPrompt = prompts.find(p => p.id === promptId);
+        if (currentPrompt && (currentPrompt as any).deleted_at) {
+          errorMessage = 'This prompt has been deleted and cannot be moved.';
+        } else {
+          errorMessage = 'Prompt or folder not found. The prompt may have been deleted. Please refresh the page.';
+        }
       } else if (error.response?.status === 403) {
         errorMessage = 'You do not have permission to move this prompt.';
       } else if (error.response?.data?.error) {

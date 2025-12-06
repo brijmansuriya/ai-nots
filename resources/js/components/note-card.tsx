@@ -49,27 +49,42 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
   const handleDragStart = (e: React.DragEvent) => {
     // Don't start drag if clicking on the menu button or other interactive elements
     const target = e.target as HTMLElement;
-    if (target.closest('[role="button"]') || 
-        target.closest('button') || 
-        target.closest('a') ||
-        target.closest('[role="menuitem"]')) {
+    if (target.closest('[role="button"]') ||
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('[role="menuitem"]') ||
+      target.closest('[role="dialog"]')) {
       e.preventDefault();
       return;
     }
-    
+
     // Validate prompt ID
     if (!prompt.id || isNaN(prompt.id)) {
       console.error('Invalid prompt ID for drag:', prompt.id);
       e.preventDefault();
       return;
     }
-    
+
+    // Check if prompt is soft-deleted (has deleted_at field)
+    if ((prompt as any).deleted_at) {
+      console.warn('Cannot drag soft-deleted prompt:', prompt.id);
+      e.preventDefault();
+      return;
+    }
+
     // Store the prompt ID in a global variable (simple approach)
     (window as any).draggedPromptId = prompt.id;
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', prompt.id.toString());
-    e.dataTransfer.setData('application/json', JSON.stringify({ promptId: prompt.id }));
-    
+    e.dataTransfer.dropEffect = 'move';
+
+    // Set data in multiple formats for maximum compatibility
+    try {
+      e.dataTransfer.setData('text/plain', prompt.id.toString());
+      e.dataTransfer.setData('application/json', JSON.stringify({ promptId: prompt.id }));
+    } catch (err) {
+      console.warn('Failed to set some drag data:', err);
+    }
+
     // Add visual feedback
     setIsDragging(true);
     e.currentTarget.style.opacity = '0.6';
@@ -82,11 +97,15 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
     e.currentTarget.style.opacity = '1';
     e.currentTarget.style.transform = 'scale(1)';
     e.currentTarget.style.cursor = '';
-    
-    // Clear dragged prompt ID after a short delay to allow drop handler to read it
+
+    // Clear dragged prompt ID after a delay to ensure drop handler can read it
+    // The drop handler will clear it immediately, but we have a fallback
     setTimeout(() => {
-      (window as any).draggedPromptId = null;
-    }, 100);
+      // Only clear if it's still the same prompt (not already cleared by drop handler)
+      if ((window as any).draggedPromptId === prompt.id) {
+        (window as any).draggedPromptId = null;
+      }
+    }, 1000);
   };
 
   return (
@@ -113,7 +132,7 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
 
       {/* Row 1: Header - Title and Actions */}
       <div className="flex items-start justify-between mb-3 flex-shrink-0">
-        <div 
+        <div
           className="flex-1 min-w-0 pr-2"
           onDragStart={(e) => e.stopPropagation()}
         >
@@ -128,7 +147,7 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
           </Link>
         </div>
         {isOwner && (
-          <div 
+          <div
             className="flex items-center gap-1 ml-2 flex-shrink-0"
             onDragStart={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
@@ -333,8 +352,8 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
               <div className="flex flex-col items-center justify-center p-1.5 rounded-md bg-primary/10 border border-primary/20">
                 <TrendingUp className="w-3 h-3 text-primary mb-0.5" />
                 <span className="text-xs font-semibold text-primary">
-                  {(typeof prompt.popularity_score === 'number' 
-                    ? prompt.popularity_score 
+                  {(typeof prompt.popularity_score === 'number'
+                    ? prompt.popularity_score
                     : parseFloat(String(prompt.popularity_score || 0)) || 0).toFixed(1)}
                 </span>
               </div>
