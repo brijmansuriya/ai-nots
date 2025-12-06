@@ -13,7 +13,7 @@ import InputError from '@/components/input-error';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Prompt, Folder } from '@/types';
-import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight, AlertCircle } from 'lucide-react';
+import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight, AlertCircle, Upload, Download as DownloadIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -27,8 +27,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import FolderDialog from '@/components/folder-dialog';
 import CommandBar from '@/components/command-bar';
+import ImportExportTab from '@/components/import-export-tab';
 
-type TabValue = 'prompts' | 'profile' | 'statistics';
+type TabValue = 'prompts' | 'profile' | 'statistics' | 'import-export';
 
 export default function Dashboard({ auth }: any) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -390,7 +391,7 @@ export default function Dashboard({ auth }: any) {
 
               {/* Tab Navigation */}
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+                <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
                   <TabsTrigger value="prompts" className="flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     <span className="hidden sm:inline">My Prompts</span>
@@ -404,6 +405,11 @@ export default function Dashboard({ auth }: any) {
                     <BarChart3 className="w-4 h-4" />
                     <span className="hidden sm:inline">Statistics</span>
                     <span className="sm:hidden">Stats</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="import-export" className="flex items-center gap-2">
+                    <DownloadIcon className="w-4 h-4" />
+                    <span className="hidden sm:inline">Import/Export</span>
+                    <span className="sm:hidden">I/E</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -809,6 +815,11 @@ export default function Dashboard({ auth }: any) {
                       </div>
                     </div>
                   </section>
+                </TabsContent>
+
+                {/* Import/Export Tab */}
+                <TabsContent value="import-export" className="mt-6">
+                  <ImportExportTab />
                 </TabsContent>
               </Tabs>
             </div>

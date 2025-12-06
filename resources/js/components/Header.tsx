@@ -15,6 +15,7 @@ export default function Header() {
 
   const commonLinks = [
     { name: 'Home', url: route('home') },
+    { name: 'Features', url: route('features') },
     { name: 'About', url: route('about') },
   ];
 

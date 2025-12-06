@@ -12,6 +12,9 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensure this route is correct
 
 Route::get('/about', [AboutController::class, 'index'])->name('about');
+Route::get('/features', function () {
+    return Inertia::render('features');
+})->name('features');
 
 Route::prefix('prompt')->group(function () {
     Route::get('create', function () {
@@ -54,6 +57,9 @@ Route::get('list/meta/all', [HomeController::class, 'metaAll'])->name('meta.all'
 Route::middleware(['auth.user', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/prompts', [HomeController::class, 'getUserPrompts'])->name('dashboard.prompts'); // New route
+    Route::get('dashboard/export', [HomeController::class, 'export'])->name('dashboard.export');
+    Route::get('dashboard/export/template', [HomeController::class, 'exportTemplate'])->name('dashboard.export.template');
+    Route::post('dashboard/import', [HomeController::class, 'import'])->name('dashboard.import');
     Route::get('saved', function () {
         return Inertia::render('saved-prompts');
     })->name('saved');

@@ -10,6 +10,8 @@ export default function Footer() {
   // Navigation links
   const navLinks = [
     { name: 'Home', href: route('home') },
+    { name: 'Features', href: route('features') },
+    { name: 'About', href: route('about') },
     { name: 'Blog', href: 'https://www.web-beast.com/2025/04/how-to-reset-your-password-step-by-step.html' },
     { name: 'Prompts', href: route('home') }, // Updated to 'prompt.index' for consistency
     { name: 'Contact', href: 'mailto:support@web-beast.com' },
