@@ -310,9 +310,96 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 <div
                     className={cn(
                         'group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
-                        isSelected && 'bg-primary/10 font-semibold border border-primary/30 shadow-sm'
+                        isSelected && 'bg-primary/10 font-semibold border border-primary/30 shadow-sm',
+                        isDraggedOver && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-md'
                     )}
                     style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Reset drag state
+                        setDraggedOverFolderId(null);
+                        setDragEnterCount(new Map());
+
+                        // Get prompt ID from multiple sources for reliability
+                        let promptIdStr = (window as any).draggedPromptId;
+
+                        if (!promptIdStr) {
+                            promptIdStr = e.dataTransfer.getData('text/plain');
+                        }
+                        if (!promptIdStr) {
+                            try {
+                                const jsonData = e.dataTransfer.getData('application/json');
+                                if (jsonData) {
+                                    const data = JSON.parse(jsonData);
+                                    promptIdStr = data.promptId;
+                                }
+                            } catch (err) {
+                                // Ignore JSON parse errors
+                            }
+                        }
+
+                        const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(String(promptIdStr));
+
+                        if (!promptId || isNaN(promptId)) {
+                            console.error('Invalid prompt ID:', promptIdStr);
+                            (window as any).draggedPromptId = null;
+                            return;
+                        }
+
+                        if (!onPromptMove) {
+                            console.error('onPromptMove handler not available');
+                            (window as any).draggedPromptId = null;
+                            return;
+                        }
+
+                        // Check if prompt is already in this folder (prevent unnecessary moves)
+                        const promptInThisFolder = folder.prompts?.some(p => p.id === promptId);
+                        if (promptInThisFolder) {
+                            (window as any).draggedPromptId = null;
+                            return;
+                        }
+
+                        // Clear draggedPromptId immediately to prevent reuse
+                        const currentPromptId = promptId;
+                        (window as any).draggedPromptId = null;
+
+                        try {
+                            // Call the move handler
+                            await onPromptMove(currentPromptId, folder.id);
+
+                            // Refresh folders immediately and ensure folder is expanded
+                            await fetchFolders();
+
+                            // Ensure the folder is expanded to show the moved prompt
+                            setExpandedFolders(prev => {
+                                const newSet = new Set(prev);
+                                newSet.add(folder.id);
+                                try {
+                                    const folderIds = Array.from(newSet);
+                                    localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+                                } catch (error) {
+                                    console.error('Failed to save expanded folders:', error);
+                                }
+                                return newSet;
+                            });
+
+                            if (onFoldersRefresh) {
+                                onFoldersRefresh();
+                            }
+                        } catch (error) {
+                            console.error('Failed to move prompt to folder:', error);
+                            // Revert by refreshing
+                            await fetchFolders();
+                            if (onFoldersRefresh) {
+                                onFoldersRefresh();
+                            }
+                        }
+                    }}
                 >
                     {/* Expand/Collapse Button */}
                     {(hasChildren || hasPrompts) ? (
@@ -321,8 +408,10 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 e.stopPropagation();
                                 toggleExpanded(folder.id);
                             }}
-                            className="p-1 hover:bg-accent rounded-md flex-shrink-0 transition-colors"
+                            className="p-1 hover:bg-accent rounded-md flex-shrink-0 transition-colors z-10"
                             title={isExpanded ? "Collapse" : "Expand"}
+                            onDragStart={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
                         >
                             {isExpanded ? (
                                 <ChevronDown className="w-4 h-4 text-primary" />
@@ -334,129 +423,41 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         <div className="w-6 flex-shrink-0" />
                     )}
 
-                    {/* Folder Name & Drop Zone */}
-                    <div
-                        className={cn(
-                            "flex-1 flex items-center gap-2.5 text-left min-w-0 group/drop rounded-md transition-all",
-                            isDraggedOver && "bg-primary/10 ring-2 ring-primary/30 scale-[1.02]"
-                        )}
-                        onDragEnter={handleDragEnter}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            // Reset drag state
-                            setDraggedOverFolderId(null);
-                            setDragEnterCount(new Map());
-
-                            // Get prompt ID from multiple sources for reliability
-                            let promptIdStr = (window as any).draggedPromptId;
-
-                            if (!promptIdStr) {
-                                promptIdStr = e.dataTransfer.getData('text/plain');
-                            }
-                            if (!promptIdStr) {
-                                try {
-                                    const jsonData = e.dataTransfer.getData('application/json');
-                                    if (jsonData) {
-                                        const data = JSON.parse(jsonData);
-                                        promptIdStr = data.promptId;
-                                    }
-                                } catch (err) {
-                                    // Ignore JSON parse errors
-                                }
-                            }
-
-                            const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(String(promptIdStr));
-
-                            if (!promptId || isNaN(promptId)) {
-                                console.error('Invalid prompt ID:', promptIdStr);
-                                (window as any).draggedPromptId = null;
-                                return;
-                            }
-
-                            if (!onPromptMove) {
-                                console.error('onPromptMove handler not available');
-                                (window as any).draggedPromptId = null;
-                                return;
-                            }
-
-                            // Check if prompt is already in this folder (prevent unnecessary moves)
-                            const promptInThisFolder = folder.prompts?.some(p => p.id === promptId);
-                            if (promptInThisFolder) {
-                                (window as any).draggedPromptId = null;
-                                return;
-                            }
-
-                            // Clear draggedPromptId immediately to prevent reuse
-                            const currentPromptId = promptId;
-                            (window as any).draggedPromptId = null;
-
-                            try {
-                                // Call the move handler
-                                await onPromptMove(currentPromptId, folder.id);
-
-                                // Refresh folders immediately and ensure folder is expanded
-                                await fetchFolders();
-
-                                // Ensure the folder is expanded to show the moved prompt
-                                setExpandedFolders(prev => {
-                                    const newSet = new Set(prev);
-                                    newSet.add(folder.id);
-                                    try {
-                                        const folderIds = Array.from(newSet);
-                                        localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
-                                    } catch (error) {
-                                        console.error('Failed to save expanded folders:', error);
-                                    }
-                                    return newSet;
-                                });
-
-                                if (onFoldersRefresh) {
-                                    onFoldersRefresh();
-                                }
-                            } catch (error) {
-                                console.error('Failed to move prompt to folder:', error);
-                                // Revert by refreshing
-                                await fetchFolders();
-                                if (onFoldersRefresh) {
-                                    onFoldersRefresh();
-                                }
-                            }
-                        }}
+                    {/* Folder Name */}
+                    <button
+                        onClick={() => onFolderSelect(folder.id)}
+                        className="flex-1 flex items-center gap-2.5 text-left min-w-0"
+                        type="button"
+                        onDragStart={(e) => e.stopPropagation()}
                     >
-                        <button
-                            onClick={() => onFolderSelect(folder.id)}
-                            className="flex-1 flex items-center gap-2.5 text-left min-w-0"
-                            type="button"
-                        >
-                            <Folder className={cn(
-                                "w-4 h-4 flex-shrink-0 transition-colors",
-                                isSelected ? "text-primary" : "text-muted-foreground"
-                            )} />
-                            <span className={cn(
-                                "text-sm flex-1 min-w-0 transition-colors truncate",
-                                isSelected ? "text-primary font-semibold" : "text-foreground font-medium"
-                            )} title={folder.name}>
-                                {folder.name}
-                            </span>
-                            {folder.prompts_count !== undefined && folder.prompts_count > 0 && (
-                                <span className={cn(
-                                    "text-xs flex-shrink-0 px-2 py-0.5 rounded-full font-medium transition-colors",
-                                    isSelected
-                                        ? "bg-primary text-primary-foreground"
-                                        : "bg-muted text-muted-foreground"
-                                )}>
-                                    {folder.prompts_count}
-                                </span>
-                            )}
-                        </button>
-                        <span className="text-xs text-primary opacity-0 group-hover/drop:opacity-100 transition-opacity flex-shrink-0 whitespace-nowrap ml-1 font-medium pointer-events-none">
-                            Drop
+                        <Folder className={cn(
+                            "w-4 h-4 flex-shrink-0 transition-colors",
+                            isSelected ? "text-primary" : "text-muted-foreground"
+                        )} />
+                        <span className={cn(
+                            "text-sm flex-1 min-w-0 transition-colors truncate",
+                            isSelected ? "text-primary font-semibold" : "text-foreground font-medium"
+                        )} title={folder.name}>
+                            {folder.name}
                         </span>
-                    </div>
+                        {folder.prompts_count !== undefined && folder.prompts_count > 0 && (
+                            <span className={cn(
+                                "text-xs flex-shrink-0 px-2 py-0.5 rounded-full font-medium transition-colors",
+                                isSelected
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                            )}>
+                                {folder.prompts_count}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Drop Indicator - Shows when dragging */}
+                    {isDraggedOver && (
+                        <span className="text-xs text-primary font-semibold flex-shrink-0 whitespace-nowrap ml-1 animate-pulse">
+                            Drop here
+                        </span>
+                    )}
 
                     {/* Three Dots Menu - Clean UI */}
                     <DropdownMenu
