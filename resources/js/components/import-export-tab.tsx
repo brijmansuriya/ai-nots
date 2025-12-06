@@ -310,19 +310,25 @@ export default function ImportExportTab() {
                                             {exportScope === 'all' && (
                                                 <span className="flex items-center gap-2">
                                                     <Database className="w-4 h-4 flex-shrink-0" />
-                                                    All Data (Prompts + Folders)
+                                                    {/* 
+                                                        FIX: Text color for 'All Data (Prompts + Folders)' 
+                                                        in light mode should be 'text-foreground' with opacity (soft/lite) for readability.
+                                                    */}
+                                                    <span className="text-foreground/70 dark:text-foreground flex items-center">
+                                                        All Data (Prompts + Folders)
+                                                    </span>
                                                 </span>
                                             )}
                                             {exportScope === 'prompts' && (
                                                 <span className="flex items-center gap-2">
                                                     <FileText className="w-4 h-4 flex-shrink-0" />
-                                                    Prompts Only
+                                                    <span className="text-foreground">Prompts Only</span>
                                                 </span>
                                             )}
                                             {exportScope === 'folders' && (
                                                 <span className="flex items-center gap-2">
                                                     <FolderOpen className="w-4 h-4 flex-shrink-0" />
-                                                    Folders Only
+                                                    <span className="text-foreground">Folders Only</span>
                                                 </span>
                                             )}
                                         </SelectValue>
@@ -331,19 +337,22 @@ export default function ImportExportTab() {
                                         <SelectItem value="all">
                                             <span className="flex items-center gap-2">
                                                 <Database className="w-4 h-4 flex-shrink-0" />
-                                                <span>All Data (Prompts + Folders)</span>
+                                                {/* Lite text for light mode, default for dark */}
+                                                <span className="text-foreground/70 dark:text-foreground">
+                                                    All Data (Prompts + Folders)
+                                                </span>
                                             </span>
                                         </SelectItem>
                                         <SelectItem value="prompts">
                                             <span className="flex items-center gap-2">
                                                 <FileText className="w-4 h-4 flex-shrink-0" />
-                                                <span>Prompts Only</span>
+                                                <span className="text-foreground">Prompts Only</span>
                                             </span>
                                         </SelectItem>
                                         <SelectItem value="folders">
                                             <span className="flex items-center gap-2">
                                                 <FolderOpen className="w-4 h-4 flex-shrink-0" />
-                                                <span>Folders Only</span>
+                                                <span className="text-foreground">Folders Only</span>
                                             </span>
                                         </SelectItem>
                                     </SelectContent>
@@ -360,13 +369,13 @@ export default function ImportExportTab() {
                                             {exportFormat === 'json' && (
                                                 <span className="flex items-center gap-2">
                                                     <FileJson className="w-4 h-4 flex-shrink-0" />
-                                                    JSON
+                                                    <span className="text-foreground">JSON</span>
                                                 </span>
                                             )}
                                             {exportFormat === 'csv' && (
                                                 <span className="flex items-center gap-2">
                                                     <FileSpreadsheet className="w-4 h-4 flex-shrink-0" />
-                                                    CSV
+                                                    <span className="text-foreground">CSV</span>
                                                 </span>
                                             )}
                                             {exportFormat === 'excel' && (
@@ -468,8 +477,8 @@ export default function ImportExportTab() {
                                         onClick={() => downloadTemplate('json')}
                                         className="text-xs flex items-center gap-1.5 whitespace-nowrap"
                                     >
-                                        <FileJson className="w-3.5 h-3.5 flex-shrink-0" />
-                                        JSON Template
+                                        <FileJson className="w-3.5 h-3.5 flex-shrink-0 text-foreground" />
+                                        <span className="text-foreground">JSON Template</span>
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -477,8 +486,8 @@ export default function ImportExportTab() {
                                         onClick={() => downloadTemplate('csv')}
                                         className="text-xs flex items-center gap-1.5 whitespace-nowrap"
                                     >
-                                        <FileSpreadsheet className="w-3.5 h-3.5 flex-shrink-0" />
-                                        CSV Template
+                                        <FileSpreadsheet className="w-3.5 h-3.5 flex-shrink-0 text-foreground" />
+                                        <span className="text-foreground">CSV Template</span>
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -486,8 +495,8 @@ export default function ImportExportTab() {
                                         onClick={() => downloadTemplate('excel')}
                                         className="text-xs flex items-center gap-1.5 whitespace-nowrap"
                                     >
-                                        <FileSpreadsheet className="w-3.5 h-3.5 flex-shrink-0" />
-                                        Excel Template
+                                        <FileSpreadsheet className="w-3.5 h-3.5 flex-shrink-0 text-foreground" />
+                                        <span className="text-foreground">Excel Template</span>
                                     </Button>
                                 </div>
                             </div>
@@ -501,7 +510,7 @@ export default function ImportExportTab() {
                                     type="file"
                                     accept=".json,application/json,.csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xls,application/vnd.ms-excel"
                                     onChange={handleFileSelect}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer text-foreground"
                                     disabled={importing}
                                 />
                                 <p className="text-xs text-muted-foreground mt-2">
