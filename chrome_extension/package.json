@@ -1,0 +1,39 @@
+{
+  "name": "ai-notes-chrome-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension for AI Notes prompt management",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run create-icons && vite build --watch",
+    "build": "npm run create-icons && tsc && vite build && node copy-static.js",
+    "build:watch": "npm run create-icons && tsc --watch & vite build --watch",
+    "create-icons": "node create-placeholder-icons.js && node create-png-icons.js",
+    "create-png-icons": "node create-png-icons.js",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "copy-static": "node copy-static.js"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.475.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.34.5",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/vite": "^4.1.17",
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^22.13.5",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0"
+  }
+}
