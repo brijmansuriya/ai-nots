@@ -68,6 +68,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
     const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
     const [draggedOverFolderId, setDraggedOverFolderId] = useState<number | 'unfoldered' | null>(null);
     const [dragEnterCount, setDragEnterCount] = useState<Map<number | 'unfoldered', number>>(new Map());
+    const [draggedFolderId, setDraggedFolderId] = useState<number | null>(null);
+    const [isDraggingFolder, setIsDraggingFolder] = useState(false);
 
     // Save expanded folders to localStorage whenever they change
     useEffect(() => {
@@ -90,6 +92,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
             setTimeout(() => {
                 setDraggedOverFolderId(null);
                 setDragEnterCount(new Map());
+                setDraggedFolderId(null);
+                setIsDraggingFolder(false);
             }, 100);
         };
 
@@ -98,6 +102,84 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
             document.removeEventListener('dragend', handleGlobalDragEnd);
         };
     }, []);
+
+    // Helper to get all folders recursively
+    const getAllFoldersRecursive = (folderList: FolderType[]): FolderType[] => {
+        const all: FolderType[] = [];
+        const traverse = (folders: FolderType[]) => {
+            for (const folder of folders) {
+                all.push(folder);
+                if (folder.children && folder.children.length > 0) {
+                    traverse(folder.children);
+                }
+            }
+        };
+        traverse(folderList);
+        return all;
+    };
+
+    // Helper function to check if a folder is a descendant of another folder
+    const isDescendant = (potentialDescendantId: number, potentialAncestorId: number, folderList: FolderType[]): boolean => {
+        const findFolder = (id: number, list: FolderType[]): FolderType | null => {
+            for (const folder of list) {
+                if (folder.id === id) return folder;
+                if (folder.children) {
+                    const found = findFolder(id, folder.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+
+        const folder = findFolder(potentialDescendantId, folderList);
+        if (!folder) return false;
+
+        // Check if the folder is a descendant of the potential ancestor
+        let current = folder;
+        while (current.parent_id !== null) {
+            if (current.parent_id === potentialAncestorId) return true;
+            const parent = findFolder(current.parent_id, folderList);
+            if (!parent) break;
+            current = parent;
+        }
+        return false;
+    };
+
+    // Move folder to a new parent
+    const handleFolderMove = async (folderId: number, newParentId: number | null) => {
+        try {
+            // Prevent moving folder into itself or its descendants
+            if (newParentId !== null) {
+                if (isDescendant(newParentId, folderId, folders)) {
+                    setErrorMessage('Cannot move folder into its own descendant');
+                    setErrorDialogOpen(true);
+                    return;
+                }
+            }
+
+            const response = await axios.put(route('folders.update', { folder: folderId }), {
+                parent_id: newParentId
+            });
+
+            if (response.data && response.data.data) {
+                // Refresh folders immediately
+                await fetchFolders();
+                if (onFoldersRefresh) {
+                    onFoldersRefresh();
+                }
+            }
+        } catch (error: any) {
+            console.error('Failed to move folder:', error);
+            let errorMessage = 'Failed to move folder. Please try again.';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            }
+            setErrorMessage(errorMessage);
+            setErrorDialogOpen(true);
+            // Refresh to revert any optimistic updates
+            await fetchFolders();
+        }
+    };
 
     const fetchFolders = async () => {
         try {
@@ -198,6 +280,41 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
             e.preventDefault();
             e.stopPropagation();
 
+            // Check if we're dragging a folder
+            const draggedFolder = draggedFolderId;
+            if (draggedFolder) {
+                // Prevent dropping folder on itself or its descendants
+                if (draggedFolder === folder.id || isDescendant(folder.id, draggedFolder, folders)) {
+                    return;
+                }
+
+                // Auto-expand folder when dragging over it
+                if (!isExpanded && (hasChildren || hasPrompts)) {
+                    setExpandedFolders(prev => {
+                        const newSet = new Set(prev);
+                        newSet.add(folder.id);
+                        try {
+                            const folderIds = Array.from(newSet);
+                            localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+                        } catch (error) {
+                            console.error('Failed to save expanded folders:', error);
+                        }
+                        return newSet;
+                    });
+                }
+
+                // Increment drag enter count
+                setDragEnterCount(prev => {
+                    const newMap = new Map(prev);
+                    const count = newMap.get(folder.id) || 0;
+                    newMap.set(folder.id, count + 1);
+                    return newMap;
+                });
+
+                setDraggedOverFolderId(folder.id);
+                return;
+            }
+
             // Check if we're dragging a prompt (has draggedPromptId or dataTransfer has data)
             const draggedPromptId = (window as any).draggedPromptId;
 
@@ -213,7 +330,6 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
             } catch (err) {
                 // Types might not be available in dragenter in some browsers
             }
-
 
             if (!hasPromptData) {
                 return;
@@ -279,7 +395,22 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
         const handleDragOver = (e: React.DragEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            e.dataTransfer.dropEffect = 'move';
+
+            // Check if we're dragging a folder
+            const draggedFolder = draggedFolderId;
+            if (draggedFolder) {
+                // Prevent dropping folder on itself or its descendants
+                if (draggedFolder === folder.id || isDescendant(folder.id, draggedFolder, folders)) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+                e.dataTransfer.dropEffect = 'move';
+                // Ensure we're highlighted
+                if (draggedOverFolderId !== folder.id) {
+                    setDraggedOverFolderId(folder.id);
+                }
+                return;
+            }
 
             // Check if we have prompt data
             const draggedPromptId = (window as any).draggedPromptId;
@@ -299,19 +430,39 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 return;
             }
 
+            e.dataTransfer.dropEffect = 'move';
+
             // Ensure we're highlighted
             if (draggedOverFolderId !== folder.id) {
                 setDraggedOverFolderId(folder.id);
             }
         };
 
+        const isBeingDragged = draggedFolderId === folder.id;
+        const canDropFolder = draggedFolderId !== null && draggedFolderId !== folder.id && !isDescendant(folder.id, draggedFolderId, folders);
+
         return (
             <div key={folder.id} className="select-none mb-1">
                 <div
+                    draggable={true}
+                    onDragStart={(e) => {
+                        e.stopPropagation();
+                        setDraggedFolderId(folder.id);
+                        setIsDraggingFolder(true);
+                        e.dataTransfer.effectAllowed = 'move';
+                        // Store folder ID in dataTransfer for cross-browser compatibility
+                        e.dataTransfer.setData('application/json', JSON.stringify({ folderId: folder.id }));
+                        e.dataTransfer.setData('text/plain', String(folder.id));
+                    }}
+                    onDragEnd={() => {
+                        // Cleanup is handled by global dragend handler
+                    }}
                     className={cn(
                         'group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
                         isSelected && 'bg-primary/10 font-semibold border border-primary/30 shadow-sm',
-                        isDraggedOver && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-md'
+                        isDraggedOver && (canDropFolder || draggedFolderId === null) && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-md',
+                        isBeingDragged && 'opacity-50 cursor-grabbing',
+                        !isBeingDragged && 'cursor-grab active:cursor-grabbing'
                     )}
                     style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
                     onDragEnter={handleDragEnter}
@@ -325,6 +476,50 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         setDraggedOverFolderId(null);
                         setDragEnterCount(new Map());
 
+                        // Check if we're dropping a folder
+                        const draggedFolder = draggedFolderId;
+                        if (draggedFolder) {
+                            // Prevent dropping folder on itself or its descendants
+                            if (draggedFolder === folder.id || isDescendant(folder.id, draggedFolder, folders)) {
+                                setDraggedFolderId(null);
+                                setIsDraggingFolder(false);
+                                return;
+                            }
+
+                            // Check if folder is already in this parent (prevent unnecessary moves)
+                            const allFolders = getAllFoldersRecursive(folders);
+                            const folderToMove = allFolders.find(f => f.id === draggedFolder);
+                            if (folderToMove && folderToMove.parent_id === folder.id) {
+                                setDraggedFolderId(null);
+                                setIsDraggingFolder(false);
+                                return;
+                            }
+
+                            const currentFolderId = draggedFolder;
+                            setDraggedFolderId(null);
+                            setIsDraggingFolder(false);
+
+                            try {
+                                await handleFolderMove(currentFolderId, folder.id);
+                                // Ensure the folder is expanded to show the moved folder
+                                setExpandedFolders(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.add(folder.id);
+                                    try {
+                                        const folderIds = Array.from(newSet);
+                                        localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+                                    } catch (error) {
+                                        console.error('Failed to save expanded folders:', error);
+                                    }
+                                    return newSet;
+                                });
+                            } catch (error) {
+                                console.error('Failed to move folder:', error);
+                            }
+                            return;
+                        }
+
+                        // Handle prompt drop
                         // Get prompt ID from multiple sources for reliability
                         let promptIdStr = (window as any).draggedPromptId;
 
@@ -428,7 +623,13 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         onClick={() => onFolderSelect(folder.id)}
                         className="flex-1 flex items-center gap-2.5 text-left min-w-0"
                         type="button"
-                        onDragStart={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => {
+                            // Allow dragging from folder name area
+                            if (e.button === 0) {
+                                // Left mouse button - allow drag to start
+                                e.stopPropagation();
+                            }
+                        }}
                     >
                         <Folder className={cn(
                             "w-4 h-4 flex-shrink-0 transition-colors",
@@ -453,9 +654,14 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                     </button>
 
                     {/* Drop Indicator - Shows when dragging */}
-                    {isDraggedOver && (
+                    {isDraggedOver && (canDropFolder || draggedFolderId === null) && (
                         <span className="text-xs text-primary font-semibold flex-shrink-0 whitespace-nowrap ml-1 animate-pulse">
-                            Drop here
+                            {draggedFolderId ? 'Drop folder here' : 'Drop here'}
+                        </span>
+                    )}
+                    {isDraggedOver && draggedFolderId !== null && !canDropFolder && draggedFolderId !== folder.id && (
+                        <span className="text-xs text-destructive font-semibold flex-shrink-0 whitespace-nowrap ml-1">
+                            Invalid drop
                         </span>
                     )}
 
@@ -572,6 +778,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 <p className="font-medium mb-1">Get Started with Folders</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
                                     <li>Click <strong>+</strong> to create your first folder</li>
+                                    <li>Drag folders to reorganize and create nested structures</li>
                                     <li>Drag prompts onto folders to organize them</li>
                                     <li>Create nested folders by clicking <strong>+</strong> on a folder</li>
                                 </ul>
@@ -607,9 +814,11 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-lg text-xs">
                             <p className="font-semibold mb-2 text-primary">💡 Quick Tips:</p>
                             <ul className="list-disc list-inside space-y-1.5 text-muted-foreground">
-                                <li>Drag prompts to folders to organize</li>
+                                <li>Drag folders to reorganize and create nested structures</li>
+                                <li>Drag prompts to folders to organize them</li>
                                 <li>Click folder name to view its prompts</li>
                                 <li>Use <strong>+</strong> button to create subfolders</li>
+                                <li>Drag folders to "Unfoldered" to move them to root level</li>
                             </ul>
                         </div>
                     )}
@@ -642,6 +851,19 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 onDragEnter={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
+
+                                    // Check if dragging a folder
+                                    const draggedFolder = draggedFolderId;
+                                    if (draggedFolder) {
+                                        setDragEnterCount(prev => {
+                                            const newMap = new Map(prev);
+                                            const count = newMap.get('unfoldered') || 0;
+                                            newMap.set('unfoldered', count + 1);
+                                            return newMap;
+                                        });
+                                        setDraggedOverFolderId('unfoldered');
+                                        return;
+                                    }
 
                                     const draggedPromptId = (window as any).draggedPromptId;
                                     let hasPromptData = !!draggedPromptId;
@@ -697,11 +919,34 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 onDrop={async (e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    console.log('Drop event fired on unfoldered');
                                     setDraggedOverFolderId(null);
                                     setDragEnterCount(new Map());
 
-                                    // Get prompt ID from multiple sources for reliability
+                                    // Check if dropping a folder
+                                    const draggedFolder = draggedFolderId;
+                                    if (draggedFolder) {
+                                        // Check if folder is already at root level (prevent unnecessary moves)
+                                        const allFolders = getAllFoldersRecursive(folders);
+                                        const folderToMove = allFolders.find(f => f.id === draggedFolder);
+                                        if (folderToMove && folderToMove.parent_id === null) {
+                                            setDraggedFolderId(null);
+                                            setIsDraggingFolder(false);
+                                            return;
+                                        }
+
+                                        const currentFolderId = draggedFolder;
+                                        setDraggedFolderId(null);
+                                        setIsDraggingFolder(false);
+
+                                        try {
+                                            await handleFolderMove(currentFolderId, null);
+                                        } catch (error) {
+                                            console.error('Failed to move folder to root:', error);
+                                        }
+                                        return;
+                                    }
+
+                                    // Handle prompt drop
                                     let promptIdStr = (window as any).draggedPromptId;
                                     if (!promptIdStr) {
                                         promptIdStr = e.dataTransfer.getData('text/plain');
@@ -775,7 +1020,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                             </button>
                         </TooltipTrigger>
                         <TooltipContent>
-                            <p className="text-xs">Prompts without a folder. Drag prompts here to remove from folders.</p>
+                            <p className="text-xs">Prompts and folders without a parent. Drag items here to move them to root level.</p>
                         </TooltipContent>
                     </Tooltip>
                 </div>

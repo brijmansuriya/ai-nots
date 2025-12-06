@@ -11,8 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { Info, FolderTree as FolderTreeIcon } from 'lucide-react';
+import { FolderTree as FolderTreeIcon } from 'lucide-react';
 
 interface FolderDialogProps {
     folder: Folder | null;
@@ -21,27 +20,14 @@ interface FolderDialogProps {
     onSuccess: () => void;
 }
 
-const COLOR_OPTIONS = [
-    { name: 'Blue', value: '#3b82f6' },
-    { name: 'Green', value: '#10b981' },
-    { name: 'Purple', value: '#8b5cf6' },
-    { name: 'Pink', value: '#ec4899' },
-    { name: 'Orange', value: '#f59e0b' },
-    { name: 'Red', value: '#ef4444' },
-    { name: 'Yellow', value: '#eab308' },
-    { name: 'Gray', value: '#6b7280' },
-];
-
 export default function FolderDialog({ folder, parentId, onClose, onSuccess }: FolderDialogProps) {
     const [name, setName] = useState(folder?.name || '');
-    const [color, setColor] = useState(folder?.color || null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (folder) {
             setName(folder.name);
-            setColor(folder.color || null);
         }
     }, [folder]);
 
@@ -54,7 +40,7 @@ export default function FolderDialog({ folder, parentId, onClose, onSuccess }: F
             const data: any = {
                 name,
                 emoji: null, // Emoji removed - always set to null
-                color,
+                color: null, // Color removed - always set to null
             };
 
             if (!folder && parentId) {
@@ -97,7 +83,7 @@ export default function FolderDialog({ folder, parentId, onClose, onSuccess }: F
                     </DialogTitle>
                     <DialogDescription className="text-gray-600 dark:text-gray-400 text-sm mt-1">
                         {folder
-                            ? 'Update your folder name or color.'
+                            ? 'Update your folder name.'
                             : isNestedFolder
                                 ? 'This folder will be created inside the selected folder.'
                                 : 'Organize your prompts by creating folders. You can create nested folders later.'
@@ -129,45 +115,6 @@ export default function FolderDialog({ folder, parentId, onClose, onSuccess }: F
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                             Choose a descriptive name to easily identify this folder
                         </p>
-                    </div>
-
-                    <div>
-                        <Label className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold mb-2">
-                            Folder Color
-                            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">(optional)</span>
-                        </Label>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                            Add a color accent to your folder for quick visual identification
-                        </p>
-                        <div className="grid grid-cols-4 gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setColor(null)}
-                                className={cn(
-                                    'p-3 rounded-md border-2 text-sm font-medium transition-all hover:scale-105',
-                                    color === null
-                                        ? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white ring-2 ring-gray-300 dark:ring-gray-600'
-                                        : 'border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900'
-                                )}
-                            >
-                                None
-                            </button>
-                            {COLOR_OPTIONS.map((colorOption) => (
-                                <button
-                                    key={colorOption.value}
-                                    type="button"
-                                    onClick={() => setColor(colorOption.value)}
-                                    className={cn(
-                                        'p-3 rounded-md border-2 transition-all hover:scale-105',
-                                        color === colorOption.value
-                                            ? 'border-gray-900 dark:border-white ring-2 ring-offset-2 ring-gray-300 dark:ring-gray-600 shadow-md'
-                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                    )}
-                                    style={{ backgroundColor: colorOption.value }}
-                                    title={colorOption.name}
-                                />
-                            ))}
-                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
