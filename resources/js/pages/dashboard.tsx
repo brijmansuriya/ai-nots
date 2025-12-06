@@ -13,7 +13,7 @@ import InputError from '@/components/input-error';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Prompt, Folder } from '@/types';
-import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight, AlertCircle, Upload, Download as DownloadIcon } from 'lucide-react';
+import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight, AlertCircle, Upload, Download as DownloadIcon, Lock } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -38,7 +38,23 @@ export default function Dashboard({ auth }: any) {
   const [loading, setLoading] = useState(true); // Start with true to show loading initially
   const [search, setSearch] = useState<string>('');
   const [selectedFolderId, setSelectedFolderId] = useState<number | 'all' | 'unfoldered' | null>('all');
-  const [activeTab, setActiveTab] = useState<TabValue>('prompts');
+
+  // Load active tab from localStorage on mount
+  const loadActiveTab = (): TabValue => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('dashboardActiveTab');
+        if (saved && ['prompts', 'profile', 'statistics', 'import-export'].includes(saved)) {
+          return saved as TabValue;
+        }
+      } catch (error) {
+        console.error('Failed to load active tab from localStorage:', error);
+      }
+    }
+    return 'prompts';
+  };
+
+  const [activeTab, setActiveTab] = useState<TabValue>(loadActiveTab);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -46,13 +62,29 @@ export default function Dashboard({ auth }: any) {
   const [sortBy, setSortBy] = useState<string>('latest');
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isSuccessMessage, setIsSuccessMessage] = useState(false);
   const isFetching = useRef(false);
   const isInitialMount = useRef(true);
   const lastPageRef = useRef(1);
+  const [statistics, setStatistics] = useState<{
+    total_prompts: number;
+    total_folders: number;
+    saved_prompts: number;
+    prompts_this_week: number;
+    prompts_this_month: number;
+    recent_activity: Array<{ id: number; title: string; created_at: string; date: string }>;
+  } | null>(null);
+  const [statisticsLoading, setStatisticsLoading] = useState(false);
 
   const { data, setData, patch, processing, errors } = useForm({
-    name: auth.user.name,
-    email: auth.user.email,
+    name: auth.user.name || '',
+    email: auth.user.email || '',
+  });
+
+  const { data: passwordData, setData: setPasswordData, put: putPassword, processing: passwordProcessing, errors: passwordErrors, reset: resetPasswordForm } = useForm({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
   });
 
   const fetchPrompts = useCallback(async (page: number, searchQuery = '', folderId: number | 'all' | 'unfoldered' | null = 'all') => {
@@ -330,10 +362,56 @@ export default function Dashboard({ auth }: any) {
     patch(route('profile.update')); // Update user profile
   };
 
-  // Calculate statistics
-  const totalPrompts = prompts.length;
-  const totalFolders = 0; // Will be updated when folder count is available
-  const savedPrompts = prompts.filter(p => p.is_saved).length;
+  const submitPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    putPassword(route('dashboard.password.update'), {
+      onSuccess: () => {
+        resetPasswordForm();
+        setErrorMessage('Password updated successfully!');
+        setIsSuccessMessage(true);
+        setErrorDialogOpen(true);
+      },
+      onError: (errors) => {
+        console.error('Password update errors:', errors);
+        setIsSuccessMessage(false);
+      },
+    });
+  };
+
+  const fetchStatistics = useCallback(async () => {
+    setStatisticsLoading(true);
+    try {
+      const response = await axios.get(route('dashboard.statistics'));
+      setStatistics(response.data);
+    } catch (error) {
+      console.error('Failed to fetch statistics:', error);
+    } finally {
+      setStatisticsLoading(false);
+    }
+  }, []);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('dashboardActiveTab', activeTab);
+      } catch (error) {
+        console.error('Failed to save active tab to localStorage:', error);
+      }
+    }
+  }, [activeTab]);
+
+  // Fetch statistics when Statistics tab is opened
+  useEffect(() => {
+    if (activeTab === 'statistics' && !statistics) {
+      fetchStatistics();
+    }
+  }, [activeTab, statistics, fetchStatistics]);
+
+  // Calculate statistics (fallback to local data if API data not available)
+  const totalPrompts = statistics?.total_prompts ?? prompts.length;
+  const totalFolders = statistics?.total_folders ?? 0;
+  const savedPrompts = statistics?.saved_prompts ?? prompts.filter(p => p.is_saved).length;
 
   return (
     <WebLayout title="Dashboard">
@@ -665,11 +743,11 @@ export default function Dashboard({ auth }: any) {
 
                 {/* Profile Tab */}
                 <TabsContent value="profile" className="mt-6">
-                  <section className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg p-6 lg:p-8">
+                  <section className="bg-card border border-border shadow-sm rounded-xl p-6 lg:p-8 transition-colors">
                     <div className="max-w-3xl mx-auto">
                       <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Profile Settings</h2>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Profile Settings</h2>
+                        <p className="text-sm text-muted-foreground">
                           Manage your account information and preferences
                         </p>
                       </div>
@@ -680,19 +758,23 @@ export default function Dashboard({ auth }: any) {
                         <div className="flex flex-col items-center text-center md:col-span-1">
                           <div className="relative mb-4">
                             <img
-                              src={`https://ui-avatars.com/api/?name=${auth.user.name}&background=111827&color=ffffff&size=128&rounded=true`}
+                              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(auth.user.name || auth.user.email || 'User')}&background=6366f1&color=ffffff&size=128&rounded=true`}
                               alt="Avatar"
-                              className="h-32 w-32 rounded-full border-4 border-gray-200 dark:border-gray-700 shadow-lg"
+                              className="h-32 w-32 rounded-full border-4 border-border shadow-lg"
                             />
-                            <div className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-gray-950 flex items-center justify-center">
+                            <div className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full border-4 border-card flex items-center justify-center shadow-md">
                               <User className="w-5 h-5 text-primary-foreground" />
                             </div>
                           </div>
-                          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">{auth.user.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{auth.user.email}</p>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <h3 className="text-xl font-semibold text-foreground mb-1">
+                            {auth.user.name || 'No name set'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {auth.user.email || 'No email set'}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>Member since</span>
-                            <span>{new Date(auth.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                            <span>{auth.user.created_at ? new Date(auth.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span>
                           </div>
                         </div>
 
@@ -700,41 +782,43 @@ export default function Dashboard({ auth }: any) {
                         <div className="md:col-span-2">
                           <form onSubmit={submit} className="space-y-5">
                             <div>
-                              <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                              <Label htmlFor="name" className="text-sm font-medium text-foreground mb-2 block">
                                 Full Name
                               </Label>
                               <Input
                                 id="name"
                                 type="text"
-                                value={data.name}
+                                value={data.name || ''}
                                 onChange={(e) => setData('name', e.target.value)}
                                 placeholder="Enter your full name"
+                                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                               />
                               <InputError message={errors.name} className="mt-1" />
                             </div>
 
                             <div>
-                              <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                              <Label htmlFor="email" className="text-sm font-medium text-foreground mb-2 block">
                                 Email Address
                               </Label>
                               <Input
                                 id="email"
                                 type="email"
-                                value={data.email}
+                                value={data.email || ''}
                                 onChange={(e) => setData('email', e.target.value)}
                                 placeholder="Enter your email address"
+                                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                               />
                               <InputError message={errors.email} className="mt-1" />
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 We'll never share your email with anyone else.
                               </p>
                             </div>
 
-                            <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                            <div className="pt-4 border-t border-border">
                               <Button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full sm:w-auto"
+                                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
                               >
                                 {processing ? (
                                   <>
@@ -749,71 +833,198 @@ export default function Dashboard({ auth }: any) {
                           </form>
                         </div>
                       </div>
+
+                      {/* Password Change Section */}
+                      <div className="mt-8 pt-8 border-t border-border">
+                        <div className="mb-6 flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                            <Lock className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-semibold text-foreground mb-1">Change Password</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Update your password to keep your account secure
+                            </p>
+                          </div>
+                        </div>
+
+                        <form onSubmit={submitPassword} className="space-y-5 max-w-2xl">
+                          <div>
+                            <Label htmlFor="current_password" className="text-sm font-medium text-foreground mb-2 block">
+                              Current Password
+                            </Label>
+                            <Input
+                              id="current_password"
+                              type="password"
+                              value={passwordData.current_password}
+                              onChange={(e) => setPasswordData('current_password', e.target.value)}
+                              placeholder="Enter your current password"
+                              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            <InputError message={passwordErrors.current_password} className="mt-1" />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="password" className="text-sm font-medium text-foreground mb-2 block">
+                              New Password
+                            </Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={passwordData.password}
+                              onChange={(e) => setPasswordData('password', e.target.value)}
+                              placeholder="Enter your new password"
+                              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            <InputError message={passwordErrors.password} className="mt-1" />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Password must be at least 8 characters long
+                            </p>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="password_confirmation" className="text-sm font-medium text-foreground mb-2 block">
+                              Confirm New Password
+                            </Label>
+                            <Input
+                              id="password_confirmation"
+                              type="password"
+                              value={passwordData.password_confirmation}
+                              onChange={(e) => setPasswordData('password_confirmation', e.target.value)}
+                              placeholder="Confirm your new password"
+                              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                            />
+                            <InputError message={passwordErrors.password_confirmation} className="mt-1" />
+                          </div>
+
+                          <div className="pt-2">
+                            <Button
+                              type="submit"
+                              disabled={passwordProcessing}
+                              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              {passwordProcessing ? (
+                                <>
+                                  <span className="animate-spin mr-2">⏳</span>
+                                  Updating Password...
+                                </>
+                              ) : (
+                                'Update Password'
+                              )}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </section>
                 </TabsContent>
 
                 {/* Statistics Tab */}
                 <TabsContent value="statistics" className="mt-6">
-                  <section className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-lg p-6 lg:p-8">
+                  <section className="bg-card border border-border shadow-sm rounded-xl p-6 lg:p-8 transition-colors">
                     <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Statistics</h2>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">Statistics</h2>
+                      <p className="text-sm text-muted-foreground">
                         Overview of your prompts and activity
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {/* Total Prompts Card */}
-                      <div className="bg-primary/10 border border-primary/20 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <FileText className="w-8 h-8 text-primary" />
-                        </div>
-                        <div className="text-3xl font-bold text-primary mb-1">{totalPrompts}</div>
-                        <div className="text-sm text-muted-foreground">Total Prompts</div>
+                    {statisticsLoading ? (
+                      <div className="text-center py-16">
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-muted border-t-primary mb-4"></div>
+                        <p className="text-muted-foreground font-medium">Loading statistics...</p>
                       </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                          {/* Total Prompts Card */}
+                          <div className="bg-primary/10 border border-primary/20 rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-2">
+                              <FileText className="w-8 h-8 text-primary" />
+                            </div>
+                            <div className="text-3xl font-bold text-primary mb-1">{totalPrompts}</div>
+                            <div className="text-sm text-muted-foreground">Total Prompts</div>
+                          </div>
 
-                      {/* Saved Prompts Card */}
-                      <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <Bell className="w-8 h-8 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-1">{savedPrompts}</div>
-                        <div className="text-sm text-green-700 dark:text-green-400">Saved Prompts</div>
-                      </div>
+                          {/* Saved Prompts Card */}
+                          <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-2">
+                              <Bell className="w-8 h-8 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-1">{savedPrompts}</div>
+                            <div className="text-sm text-green-700 dark:text-green-400">Saved Prompts</div>
+                          </div>
 
-                      {/* Folders Card */}
-                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <FolderOpen className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-1">-</div>
-                        <div className="text-sm text-purple-700 dark:text-purple-400">Folders</div>
-                      </div>
+                          {/* Folders Card */}
+                          <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-2">
+                              <FolderOpen className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-1">{totalFolders}</div>
+                            <div className="text-sm text-purple-700 dark:text-purple-400">Folders</div>
+                          </div>
 
-                      {/* Activity Card */}
-                      <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <BarChart3 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-                        </div>
-                        <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-1">-</div>
-                        <div className="text-sm text-orange-700 dark:text-orange-400">Activity</div>
-                      </div>
-                    </div>
-
-                    {/* Additional Stats Section */}
-                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-accent rounded-lg">
-                          <div className="w-2 h-2 rounded-full bg-primary"></div>
-                          <div className="flex-1">
-                            <p className="text-sm text-foreground">No recent activity</p>
-                            <p className="text-xs text-muted-foreground">Your activity will appear here</p>
+                          {/* This Month Card */}
+                          <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between mb-2">
+                              <BarChart3 className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                            </div>
+                            <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-1">{statistics?.prompts_this_month ?? 0}</div>
+                            <div className="text-sm text-orange-700 dark:text-orange-400">This Month</div>
                           </div>
                         </div>
-                      </div>
-                    </div>
+
+                        {/* Additional Stats Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Weekly Stats */}
+                          <div className="bg-muted/50 border border-border rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                              <BarChart3 className="w-5 h-5 text-primary" />
+                              Weekly Activity
+                            </h3>
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                                <span className="text-sm text-muted-foreground">Prompts created this week</span>
+                                <span className="text-lg font-bold text-foreground">{statistics?.prompts_this_week ?? 0}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                                <span className="text-sm text-muted-foreground">Prompts created this month</span>
+                                <span className="text-lg font-bold text-foreground">{statistics?.prompts_this_month ?? 0}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Recent Activity */}
+                          <div className="bg-muted/50 border border-border rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                              <Bell className="w-5 h-5 text-primary" />
+                              Recent Activity
+                            </h3>
+                            <div className="space-y-3">
+                              {statistics?.recent_activity && statistics.recent_activity.length > 0 ? (
+                                statistics.recent_activity.map((activity) => (
+                                  <div key={activity.id} className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-accent transition-colors">
+                                    <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
+                                      <p className="text-xs text-muted-foreground">{activity.created_at}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="flex items-center gap-3 p-3 bg-background rounded-lg">
+                                  <div className="w-2 h-2 rounded-full bg-muted-foreground"></div>
+                                  <div className="flex-1">
+                                    <p className="text-sm text-foreground">No recent activity</p>
+                                    <p className="text-xs text-muted-foreground">Your activity will appear here</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </section>
                 </TabsContent>
 
@@ -857,20 +1068,40 @@ export default function Dashboard({ auth }: any) {
         <Plus className="w-6 h-6" />
       </Button>
 
-      {/* Error Dialog */}
-      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+      {/* Error/Success Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={(open) => {
+        setErrorDialogOpen(open);
+        if (!open) setIsSuccessMessage(false);
+      }}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-foreground">
-              <AlertCircle className="w-5 h-5 text-destructive" />
-              Error
+              {isSuccessMessage ? (
+                <>
+                  <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                    <span className="text-white text-xs">✓</span>
+                  </div>
+                  Success
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="w-5 h-5 text-destructive" />
+                  Error
+                </>
+              )}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
+            <AlertDialogDescription className={`${isSuccessMessage ? 'text-foreground' : 'text-muted-foreground'}`}>
               {errorMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+            <AlertDialogAction
+              onClick={() => {
+                setErrorDialogOpen(false);
+                setIsSuccessMessage(false);
+              }}
+              className={isSuccessMessage ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
               OK
             </AlertDialogAction>
           </AlertDialogFooter>

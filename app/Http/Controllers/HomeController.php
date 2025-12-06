@@ -9,7 +9,9 @@ use App\Models\PromptNote;
 use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class HomeController extends Controller
@@ -93,6 +95,73 @@ class HomeController extends Controller
             'data'         => $prompts->items(), // Return the items array directly
             'current_page' => $prompts->currentPage(),
             'last_page'    => $prompts->lastPage(),
+        ]);
+    }
+
+    /**
+     * Get statistics for the authenticated user
+     */
+    public function getStatistics(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // Total prompts count (excluding soft-deleted)
+        $totalPrompts = PromptNote::where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->whereNull('deleted_at')
+            ->count();
+
+        // Total folders count
+        $totalFolders = Folder::forUser($user->id)
+            ->whereNull('deleted_at')
+            ->count();
+
+        // Saved prompts count (prompts saved by the user)
+        $savedPrompts = DB::table('prompt_saves')
+            ->where('user_id', $user->id)
+            ->count();
+
+        // Prompts created this week
+        $promptsThisWeek = PromptNote::where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->startOfWeek())
+            ->count();
+
+        // Prompts created this month
+        $promptsThisMonth = PromptNote::where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->whereNull('deleted_at')
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->count();
+
+        // Recent activity (last 5 prompts created)
+        $recentActivity = PromptNote::where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->whereNull('deleted_at')
+            ->latest('created_at')
+            ->limit(5)
+            ->get(['id', 'title', 'created_at'])
+            ->map(function ($prompt) {
+                return [
+                    'id'         => $prompt->id,
+                    'title'      => $prompt->title,
+                    'created_at' => $prompt->created_at->diffForHumans(),
+                    'date'       => $prompt->created_at->format('Y-m-d H:i'),
+                ];
+            });
+
+        return response()->json([
+            'total_prompts'      => $totalPrompts,
+            'total_folders'      => $totalFolders,
+            'saved_prompts'      => $savedPrompts,
+            'prompts_this_week'  => $promptsThisWeek,
+            'prompts_this_month' => $promptsThisMonth,
+            'recent_activity'    => $recentActivity,
         ]);
     }
 
@@ -849,6 +918,31 @@ class HomeController extends Controller
             'prompts'     => $prompts,
             'folders'     => [], // CSV doesn't support folders
         ];
+    }
+
+    /**
+     * Update user password
+     */
+    public function updatePassword(Request $request)
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password'         => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return response()->json([
+            'message' => 'Password updated successfully',
+        ]);
     }
 
 }

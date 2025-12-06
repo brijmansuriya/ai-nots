@@ -57,6 +57,8 @@ Route::get('list/meta/all', [HomeController::class, 'metaAll'])->name('meta.all'
 Route::middleware(['auth.user', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/prompts', [HomeController::class, 'getUserPrompts'])->name('dashboard.prompts'); // New route
+    Route::get('dashboard/statistics', [HomeController::class, 'getStatistics'])->name('dashboard.statistics');
+    Route::put('dashboard/password', [HomeController::class, 'updatePassword'])->name('dashboard.password.update');
     Route::get('dashboard/export', [HomeController::class, 'export'])->name('dashboard.export');
     Route::get('dashboard/export/template', [HomeController::class, 'exportTemplate'])->name('dashboard.export.template');
     Route::post('dashboard/import', [HomeController::class, 'import'])->name('dashboard.import');
