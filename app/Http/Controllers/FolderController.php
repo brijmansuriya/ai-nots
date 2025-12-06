@@ -295,25 +295,47 @@ class FolderController extends Controller
             ->orderBy('position')
             ->get();
 
-        // Build tree structure
-        $tree = $this->buildTree($folders);
+        // Get all prompts for the user
+        $prompts = PromptNote::where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->whereNotNull('folder_id')
+            ->with(['tags', 'platforms'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($prompt) {
+                return [
+                    'id' => $prompt->id,
+                    'title' => $prompt->title,
+                    'folder_id' => $prompt->folder_id,
+                ];
+            });
+
+        // Build tree structure with prompts
+        $tree = $this->buildTree($folders, null, $prompts);
 
         return response()->json(['data' => $tree]);
     }
 
     /**
-     * Build a tree structure from flat folder list.
+     * Build a tree structure from flat folder list with prompts.
      */
-    private function buildTree($folders, $parentId = null)
+    private function buildTree($folders, $parentId = null, $prompts = null)
     {
         $branch = [];
 
         foreach ($folders as $folder) {
             if ($folder->parent_id == $parentId) {
-                $children = $this->buildTree($folders, $folder->id);
+                $children = $this->buildTree($folders, $folder->id, $prompts);
                 if ($children) {
                     $folder->children = $children;
                 }
+                
+                // Add prompts for this folder
+                if ($prompts) {
+                    $folderPrompts = $prompts->where('folder_id', $folder->id)->values()->toArray();
+                    $folder->prompts = $folderPrompts;
+                }
+                
                 $branch[] = $folder;
             }
         }

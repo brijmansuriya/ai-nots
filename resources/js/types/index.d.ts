@@ -100,6 +100,11 @@ export interface Folder {
     position: number;
     prompts_count?: number;
     children?: Folder[];
+    prompts?: Array<{
+        id: number;
+        title: string;
+        folder_id: number;
+    }>;
     created_at: string;
     updated_at: string;
     deleted_at?: string | null;

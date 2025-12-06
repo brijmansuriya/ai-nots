@@ -47,9 +47,19 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragStart = (e: React.DragEvent) => {
-    // Don't start drag if clicking on the menu button
+    // Don't start drag if clicking on the menu button or other interactive elements
     const target = e.target as HTMLElement;
-    if (target.closest('[role="button"]') || target.closest('button')) {
+    if (target.closest('[role="button"]') || 
+        target.closest('button') || 
+        target.closest('a') ||
+        target.closest('[role="menuitem"]')) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Validate prompt ID
+    if (!prompt.id || isNaN(prompt.id)) {
+      console.error('Invalid prompt ID for drag:', prompt.id);
       e.preventDefault();
       return;
     }
@@ -58,17 +68,25 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
     (window as any).draggedPromptId = prompt.id;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', prompt.id.toString());
+    e.dataTransfer.setData('application/json', JSON.stringify({ promptId: prompt.id }));
+    
     // Add visual feedback
     setIsDragging(true);
     e.currentTarget.style.opacity = '0.6';
     e.currentTarget.style.transform = 'scale(0.98)';
+    e.currentTarget.style.cursor = 'grabbing';
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     setIsDragging(false);
     e.currentTarget.style.opacity = '1';
     e.currentTarget.style.transform = 'scale(1)';
-    (window as any).draggedPromptId = null;
+    e.currentTarget.style.cursor = '';
+    
+    // Clear dragged prompt ID after a short delay to allow drop handler to read it
+    setTimeout(() => {
+      (window as any).draggedPromptId = null;
+    }, 100);
   };
 
   return (

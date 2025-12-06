@@ -13,9 +13,18 @@ import InputError from '@/components/input-error';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Prompt, Folder } from '@/types';
-import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight } from 'lucide-react';
+import { Menu, X, Settings, FolderOpen, Move, User, FileText, BarChart3, Bell, Plus, Home, ChevronRight, Folder as FolderIcon, Search, Filter, Download, Copy, ArrowRight, AlertCircle } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import FolderDialog from '@/components/folder-dialog';
 import CommandBar from '@/components/command-bar';
 
@@ -34,6 +43,8 @@ export default function Dashboard({ auth }: any) {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
   const [sortBy, setSortBy] = useState<string>('latest');
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const isFetching = useRef(false);
   const isInitialMount = useRef(true);
   const lastPageRef = useRef(1);
@@ -186,15 +197,111 @@ export default function Dashboard({ auth }: any) {
   }, []);
 
   const handlePromptMove = useCallback(async (promptId: number, folderId: number | null) => {
-    try {
-      await axios.post(route('prompts.move', { prompt: promptId }), { folder_id: folderId });
-      // Refresh prompts after move
-      fetchPrompts(1, search, selectedFolderId);
-    } catch (error) {
-      console.error('Failed to move prompt:', error);
-      alert('Failed to move prompt');
+    // Validate promptId
+    if (!promptId || isNaN(promptId)) {
+      console.error('Invalid prompt ID:', promptId);
+      setErrorMessage('Invalid prompt ID. Please try again.');
+      setErrorDialogOpen(true);
+      return;
     }
-  }, [search, selectedFolderId, fetchPrompts]);
+
+    // Find the current prompt to check if it's already in the target folder
+    const currentPrompt = prompts.find(p => p.id === promptId);
+    if (currentPrompt && currentPrompt.folder_id === folderId) {
+      console.log('Prompt already in target folder');
+      return; // No need to move
+    }
+
+    // Optimistic update: Update UI immediately
+    setPrompts(prev => {
+      // If moving to a different folder and we're viewing a specific folder, remove it
+      if (selectedFolderId !== 'all' && selectedFolderId !== folderId && selectedFolderId !== null) {
+        return prev.filter(p => p.id !== promptId);
+      }
+      // Otherwise, update the folder_id
+      return prev.map(p => {
+        if (p.id === promptId) {
+          return { ...p, folder_id: folderId };
+        }
+        return p;
+      });
+    });
+
+    try {
+      // Use direct URL - more reliable than route helper
+      const moveUrl = `/api/prompts/${promptId}/move`;
+
+      console.log('Moving prompt:', { promptId, folderId, moveUrl, selectedFolderId });
+
+      const response = await axios.post(moveUrl, {
+        folder_id: folderId
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      console.log('Move response:', response.data);
+
+      // Check if the move was successful
+      if (response.data && response.data.data) {
+        console.log('Move successful, refreshing data...');
+
+        // Force refresh prompts list - reset to page 1 and clear current list
+        setPrompts([]);
+        setCurrentPage(1);
+        lastPageRef.current = 1;
+        isFetching.current = false; // Reset fetching flag
+
+        // Refresh prompts to get updated data - use current folder filter
+        await fetchPrompts(1, search, selectedFolderId);
+
+        // Also refresh folders to update counts
+        try {
+          const folderResponse = await axios.get(route('folders.tree'));
+          const allFolders = folderResponse.data.data || [];
+          setFolders(allFolders);
+          console.log('Folders refreshed:', allFolders.length);
+        } catch (folderError) {
+          console.error('Failed to refresh folders:', folderError);
+        }
+
+        console.log('Data refresh completed');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error: any) {
+      console.error('Failed to move prompt:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url
+      });
+
+      // Revert optimistic update on error by refreshing
+      setPrompts([]);
+      setCurrentPage(1);
+      await fetchPrompts(1, search, selectedFolderId);
+
+      // Show user-friendly error message
+      let errorMessage = 'Failed to move prompt. Please try again.';
+      if (error.response?.status === 404) {
+        errorMessage = 'Prompt or folder not found. Please refresh the page and try again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to move this prompt.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setErrorMessage(errorMessage);
+      setErrorDialogOpen(true);
+    }
+  }, [search, selectedFolderId, fetchPrompts, prompts]);
 
   const handleEdit = (promptId: number) => {
     router.visit(route('prompt.edit', { id: promptId })); // Redirect to edit page
@@ -246,6 +353,16 @@ export default function Dashboard({ auth }: any) {
                             setSidebarOpen(false);
                           }}
                           onPromptMove={handlePromptMove}
+                          onFoldersRefresh={async () => {
+                            // Refresh folders after prompt move
+                            try {
+                              const response = await axios.get(route('folders.tree'));
+                              const allFolders = response.data.data || [];
+                              setFolders(allFolders);
+                            } catch (error) {
+                              console.error('Failed to refresh folders:', error);
+                            }
+                          }}
                         />
                       </div>
                     </SheetContent>
@@ -284,6 +401,16 @@ export default function Dashboard({ auth }: any) {
                           selectedFolderId={selectedFolderId}
                           onFolderSelect={handleFolderSelect}
                           onPromptMove={handlePromptMove}
+                          onFoldersRefresh={async () => {
+                            // Refresh folders after prompt move
+                            try {
+                              const response = await axios.get(route('folders.tree'));
+                              const allFolders = response.data.data || [];
+                              setFolders(allFolders);
+                            } catch (error) {
+                              console.error('Failed to refresh folders:', error);
+                            }
+                          }}
                         />
                       </div>
                     </aside>
@@ -394,17 +521,17 @@ export default function Dashboard({ auth }: any) {
                                 )}
                               </div>
                               <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger className="w-[160px] bg-background border-border h-10">
-                                  <div className="flex items-center gap-2">
-                                    <Filter className="w-4 h-4 text-muted-foreground" />
-                                    <SelectValue placeholder="Sort by" />
+                                <SelectTrigger className="w-[160px] bg-background border-border h-10 text-foreground">
+                                  <div className="flex items-center gap-2 flex-1">
+                                    <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                    <SelectValue placeholder="Sort by" className="text-foreground" />
                                   </div>
                                 </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="latest">Latest</SelectItem>
-                                  <SelectItem value="a-z">A-Z</SelectItem>
-                                  <SelectItem value="z-a">Z-A</SelectItem>
-                                  <SelectItem value="popular">Most Popular</SelectItem>
+                                <SelectContent className="bg-card border-border">
+                                  <SelectItem value="latest" className="text-foreground focus:bg-accent focus:text-accent-foreground">Latest</SelectItem>
+                                  <SelectItem value="a-z" className="text-foreground focus:bg-accent focus:text-accent-foreground">A-Z</SelectItem>
+                                  <SelectItem value="z-a" className="text-foreground focus:bg-accent focus:text-accent-foreground">Z-A</SelectItem>
+                                  <SelectItem value="popular" className="text-foreground focus:bg-accent focus:text-accent-foreground">Most Popular</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -701,6 +828,26 @@ export default function Dashboard({ auth }: any) {
       >
         <Plus className="w-6 h-6" />
       </Button>
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              Error
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              {errorMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </WebLayout>
   );
 }

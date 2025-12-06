@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Folder, ChevronRight, ChevronDown, Plus, FolderOpen, Trash2, Edit2, Info, HelpCircle, MoreVertical } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Folder, ChevronRight, ChevronDown, Plus, FolderOpen, Trash2, Edit2, Info, HelpCircle, MoreVertical, AlertCircle, FileText } from 'lucide-react';
 import { Folder as FolderType } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +11,16 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
     Tooltip,
     TooltipContent,
@@ -23,17 +34,48 @@ interface FolderTreeProps {
     selectedFolderId: number | 'all' | 'unfoldered' | null;
     onFolderSelect: (folderId: number | 'all' | 'unfoldered' | null) => void;
     onPromptMove?: (promptId: number, folderId: number | null) => void;
+    onFoldersRefresh?: () => void;
 }
 
 
-function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTreeProps) {
+function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersRefresh }: FolderTreeProps) {
     const [folders, setFolders] = useState<FolderType[]>([]);
     const [loading, setLoading] = useState(true);
-    const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
+
+    // Load expanded folders from localStorage on mount
+    const loadExpandedFolders = (): Set<number> => {
+        try {
+            const saved = localStorage.getItem('expandedFolders');
+            if (saved) {
+                const folderIds = JSON.parse(saved) as number[];
+                return new Set(folderIds);
+            }
+        } catch (error) {
+            console.error('Failed to load expanded folders from localStorage:', error);
+        }
+        return new Set();
+    };
+
+    const [expandedFolders, setExpandedFolders] = useState<Set<number>>(loadExpandedFolders);
     const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [parentFolderId, setParentFolderId] = useState<number | null>(null);
     const [showHelp, setShowHelp] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [folderToDelete, setFolderToDelete] = useState<number | null>(null);
+    const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string>('');
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+
+    // Save expanded folders to localStorage whenever they change
+    useEffect(() => {
+        try {
+            const folderIds = Array.from(expandedFolders);
+            localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+        } catch (error) {
+            console.error('Failed to save expanded folders to localStorage:', error);
+        }
+    }, [expandedFolders]);
 
     useEffect(() => {
         fetchFolders();
@@ -51,20 +93,36 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
         }
     };
 
-    const handleDelete = async (folderId: number) => {
-        if (!confirm('Are you sure you want to delete this folder? All prompts in this folder will be moved to Unfoldered.')) {
-            return;
-        }
+    const handleDeleteClick = (folderId: number) => {
+        // Close any open dropdown
+        setOpenDropdownId(null);
+        // Set the folder to delete and open dialog
+        setFolderToDelete(folderId);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!folderToDelete) return;
+
+        const folderIdToDelete = folderToDelete;
+
+        // Close dialog first
+        setDeleteDialogOpen(false);
 
         try {
-            await axios.delete(route('folders.destroy', { folder: folderId }));
+            await axios.delete(route('folders.destroy', { folder: folderIdToDelete }));
             fetchFolders();
-            if (selectedFolderId === folderId) {
+            if (selectedFolderId === folderIdToDelete) {
                 onFolderSelect('all');
             }
+            // Reset state after successful deletion
+            setFolderToDelete(null);
         } catch (error) {
             console.error('Failed to delete folder:', error);
-            alert('Failed to delete folder');
+            setErrorMessage('Failed to delete folder. Please try again.');
+            setErrorDialogOpen(true);
+            // Reset state even on error
+            setFolderToDelete(null);
         }
     };
 
@@ -75,6 +133,13 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                 newSet.delete(folderId);
             } else {
                 newSet.add(folderId);
+            }
+            // Save to localStorage immediately
+            try {
+                const folderIds = Array.from(newSet);
+                localStorage.setItem('expandedFolders', JSON.stringify(folderIds));
+            } catch (error) {
+                console.error('Failed to save expanded folders to localStorage:', error);
             }
             return newSet;
         });
@@ -107,6 +172,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
         const isExpanded = expandedFolders.has(folder.id);
         const isSelected = selectedFolderId === folder.id;
         const hasChildren = folder.children && folder.children.length > 0;
+        const hasPrompts = folder.prompts && folder.prompts.length > 0;
 
         return (
             <div key={folder.id} className="select-none mb-1">
@@ -118,7 +184,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                     style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
                 >
                     {/* Expand/Collapse Button */}
-                    {hasChildren ? (
+                    {(hasChildren || hasPrompts) ? (
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -150,15 +216,95 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                             e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
                             e.currentTarget.classList.remove('scale-[1.02]');
                         }}
-                        onDrop={(e) => {
+                        onDrop={async (e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
                             e.currentTarget.classList.remove('scale-[1.02]');
-                            const promptId = (window as any).draggedPromptId || parseInt(e.dataTransfer.getData('text/plain'));
-                            if (promptId && onPromptMove) {
-                                onPromptMove(promptId, folder.id);
+
+                            const promptIdStr = (window as any).draggedPromptId || e.dataTransfer.getData('text/plain');
+                            const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(promptIdStr);
+
+                            if (!promptId || isNaN(promptId)) {
+                                console.error('Invalid prompt ID:', promptIdStr);
+                                return;
+                            }
+
+                            if (!onPromptMove) {
+                                console.error('onPromptMove handler not available');
+                                return;
+                            }
+
+                            // Check if prompt is already in this folder (prevent unnecessary moves)
+                            const promptInThisFolder = folder.prompts?.some(p => p.id === promptId);
+                            if (promptInThisFolder) {
+                                console.log('Prompt already in this folder');
                                 (window as any).draggedPromptId = null;
+                                return;
+                            }
+
+                            // Optimistic update: Add prompt to folder immediately
+                            setFolders(prev => {
+                                const updateFolder = (folders: FolderType[]): FolderType[] => {
+                                    return folders.map(f => {
+                                        if (f.id === folder.id) {
+                                            // Check if prompt already exists in this folder
+                                            const promptExists = f.prompts?.some(p => p.id === promptId);
+                                            if (!promptExists) {
+                                                return {
+                                                    ...f,
+                                                    prompts: [
+                                                        ...(f.prompts || []),
+                                                        { id: promptId, title: 'Loading...', folder_id: folder.id }
+                                                    ],
+                                                    prompts_count: (f.prompts_count || 0) + 1
+                                                };
+                                            }
+                                        }
+                                        // Remove prompt from other folders
+                                        if (f.prompts) {
+                                            const filteredPrompts = f.prompts.filter(p => p.id !== promptId);
+                                            if (filteredPrompts.length !== f.prompts.length) {
+                                                return {
+                                                    ...f,
+                                                    prompts: filteredPrompts,
+                                                    prompts_count: Math.max(0, (f.prompts_count || 0) - 1)
+                                                };
+                                            }
+                                        }
+                                        // Recursively update children
+                                        if (f.children) {
+                                            return { ...f, children: updateFolder(f.children) };
+                                        }
+                                        return f;
+                                    });
+                                };
+                                return updateFolder(prev);
+                            });
+
+                            try {
+                                // Call the move handler
+                                await onPromptMove(promptId, folder.id);
+
+                                // Clear dragged prompt ID immediately
+                                (window as any).draggedPromptId = null;
+
+                                // Wait a bit for the API to process, then refresh folders
+                                setTimeout(() => {
+                                    fetchFolders();
+                                    if (onFoldersRefresh) {
+                                        onFoldersRefresh();
+                                    }
+                                }, 500);
+                            } catch (error) {
+                                console.error('Failed to move prompt to folder:', error);
+                                // Clear dragged prompt ID on error
+                                (window as any).draggedPromptId = null;
+                                // Revert by refreshing
+                                fetchFolders();
+                                if (onFoldersRefresh) {
+                                    onFoldersRefresh();
+                                }
                             }
                         }}
                         className="flex-1 flex items-center gap-2.5 text-left min-w-0 group/drop rounded-md transition-all"
@@ -176,8 +322,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                         {folder.prompts_count !== undefined && folder.prompts_count > 0 && (
                             <span className={cn(
                                 "text-xs flex-shrink-0 px-2 py-0.5 rounded-full font-medium transition-colors",
-                                isSelected 
-                                    ? "bg-primary text-primary-foreground" 
+                                isSelected
+                                    ? "bg-primary text-primary-foreground"
                                     : "bg-muted text-muted-foreground"
                             )}>
                                 {folder.prompts_count}
@@ -189,7 +335,12 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                     </button>
 
                     {/* Three Dots Menu - Clean UI */}
-                    <DropdownMenu>
+                    <DropdownMenu
+                        open={openDropdownId === folder.id}
+                        onOpenChange={(open) => {
+                            setOpenDropdownId(open ? folder.id : null);
+                        }}
+                    >
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="ghost"
@@ -200,22 +351,28 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                                 <MoreVertical className="w-3.5 h-3.5" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 bg-card border-border shadow-lg">
-                            <DropdownMenuItem 
+                        <DropdownMenuContent
+                            align="end"
+                            className="w-48 bg-card border-border shadow-lg"
+                            onCloseAutoFocus={(e) => e.preventDefault()}
+                        >
+                            <DropdownMenuItem
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    setOpenDropdownId(null);
                                     handleEditFolder(folder);
-                                }} 
+                                }}
                                 className="cursor-pointer focus:bg-accent"
                             >
                                 <Edit2 className="w-4 h-4 mr-2" />
                                 <span>Rename</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    setOpenDropdownId(null);
                                     handleCreateFolder(folder.id);
-                                }} 
+                                }}
                                 className="cursor-pointer focus:bg-accent"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
@@ -224,8 +381,10 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onClick={(e) => {
+                                    e.preventDefault();
                                     e.stopPropagation();
-                                    handleDelete(folder.id);
+                                    setOpenDropdownId(null);
+                                    handleDeleteClick(folder.id);
                                 }}
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                             >
@@ -236,6 +395,29 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                     </DropdownMenu>
                 </div>
 
+                {/* Show prompts when folder is expanded */}
+                {isExpanded && folder.prompts && folder.prompts.length > 0 && (
+                    <div className="ml-8 mt-1 space-y-0.5">
+                        {folder.prompts.map((prompt) => (
+                            <button
+                                key={prompt.id}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.visit(`/prompt/${prompt.id}/edit`);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-accent/50 transition-colors text-left group/prompt"
+                                style={{ paddingLeft: `${(level + 1) * 1.25 + 0.5}rem` }}
+                            >
+                                <FileText className="w-3.5 h-3.5 text-muted-foreground group-hover/prompt:text-primary flex-shrink-0" />
+                                <span className="text-xs text-muted-foreground group-hover/prompt:text-foreground truncate flex-1">
+                                    {prompt.title}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Show child folders when expanded */}
                 {hasChildren && isExpanded && (
                     <div className="ml-2 mt-1">
                         {folder.children!.map(child => renderFolder(child, level + 1))}
@@ -306,7 +488,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                             </ul>
                         </div>
                     )}
-                    
+
                     {/* All Prompts */}
                     <button
                         onClick={() => onFolderSelect('all')}
@@ -341,14 +523,67 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                                     e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
                                     e.currentTarget.classList.remove('scale-[1.02]');
                                 }}
-                                onDrop={(e) => {
+                                onDrop={async (e) => {
                                     e.preventDefault();
+                                    e.stopPropagation();
                                     e.currentTarget.classList.remove('bg-primary/10', 'ring-2', 'ring-primary/30');
                                     e.currentTarget.classList.remove('scale-[1.02]');
-                                    const promptId = (window as any).draggedPromptId || parseInt(e.dataTransfer.getData('text/plain'));
-                                    if (promptId && onPromptMove) {
-                                        onPromptMove(promptId, null);
-                                        (window as any).draggedPromptId = null;
+
+                                    const promptIdStr = (window as any).draggedPromptId || e.dataTransfer.getData('text/plain');
+                                    const promptId = typeof promptIdStr === 'number' ? promptIdStr : parseInt(promptIdStr);
+
+                                    if (!promptId || isNaN(promptId)) {
+                                        console.error('Invalid prompt ID:', promptIdStr);
+                                        return;
+                                    }
+
+                                    if (onPromptMove) {
+                                        // Optimistic update: Remove prompt from all folders
+                                        setFolders(prev => {
+                                            const updateFolder = (folders: FolderType[]): FolderType[] => {
+                                                return folders.map(f => {
+                                                    // Remove prompt from this folder
+                                                    if (f.prompts) {
+                                                        const filteredPrompts = f.prompts.filter(p => p.id !== promptId);
+                                                        if (filteredPrompts.length !== f.prompts.length) {
+                                                            return {
+                                                                ...f,
+                                                                prompts: filteredPrompts,
+                                                                prompts_count: Math.max(0, (f.prompts_count || 0) - 1)
+                                                            };
+                                                        }
+                                                    }
+                                                    // Recursively update children
+                                                    if (f.children) {
+                                                        return { ...f, children: updateFolder(f.children) };
+                                                    }
+                                                    return f;
+                                                });
+                                            };
+                                            return updateFolder(prev);
+                                        });
+
+                                        try {
+                                            await onPromptMove(promptId, null);
+                                            // Clear dragged prompt ID immediately
+                                            (window as any).draggedPromptId = null;
+                                            // Wait a bit for the API to process, then refresh folders
+                                            setTimeout(() => {
+                                                fetchFolders();
+                                                if (onFoldersRefresh) {
+                                                    onFoldersRefresh();
+                                                }
+                                            }, 500);
+                                        } catch (error) {
+                                            console.error('Failed to move prompt to unfoldered:', error);
+                                            // Clear dragged prompt ID on error
+                                            (window as any).draggedPromptId = null;
+                                            // Revert by refreshing
+                                            fetchFolders();
+                                            if (onFoldersRefresh) {
+                                                onFoldersRefresh();
+                                            }
+                                        }
                                     }
                                 }}
                                 className={cn(
@@ -434,6 +669,67 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove }: FolderTr
                     onSuccess={handleDialogSuccess}
                 />
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    setDeleteDialogOpen(open);
+                    if (!open) {
+                        // Reset state when dialog closes
+                        setFolderToDelete(null);
+                    }
+                }}
+            >
+                <AlertDialogContent className="bg-card border-border">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            <AlertCircle className="w-5 h-5 text-destructive" />
+                            Delete Folder?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
+                            Are you sure you want to delete this folder? All prompts in this folder will be moved to Unfoldered. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            onClick={() => {
+                                setDeleteDialogOpen(false);
+                                setFolderToDelete(null);
+                            }}
+                            className="text-foreground border-border hover:bg-accent hover:text-accent-foreground"
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            className="!bg-destructive !text-white hover:!bg-destructive/90 focus:ring-destructive focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 shadow-xs"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Error Dialog */}
+            <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+                <AlertDialogContent className="bg-card border-border">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            <AlertCircle className="w-5 h-5 text-destructive" />
+                            Error
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-muted-foreground">
+                            {errorMessage}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+                            OK
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
