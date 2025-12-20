@@ -1,0 +1,202 @@
+.bottom-bar-container {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 999999 !important;
+  pointer-events: none !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.bottom-bar {
+  width: 100% !important;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%) !important;
+  backdrop-filter: blur(10px) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
+  pointer-events: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-bar {
+    background: linear-gradient(to top, rgba(32, 33, 35, 0.95) 0%, rgba(32, 33, 35, 0.98) 100%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.bottom-bar-content {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bottom-bar-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 24px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-bar-input:focus {
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 1);
+}
+
+.bottom-bar-input::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-bar-input {
+    background-color: rgba(64, 65, 79, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .bottom-bar-input:focus {
+    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(64, 65, 79, 1);
+  }
+
+  .bottom-bar-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+}
+
+.bottom-bar-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bottom-bar-button {
+  padding: 10px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.bottom-bar-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.bottom-bar-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-bar-button {
+    background-color: rgba(64, 65, 79, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .bottom-bar-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Toggle Button */
+.bottom-bar-toggle {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border: none !important;
+  color: white !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  z-index: 9999999 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  pointer-events: auto !important;
+}
+
+.bottom-bar-toggle:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.bottom-bar-toggle:active {
+  transform: scale(0.95) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bottom-bar-toggle {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .bottom-bar-toggle {
+    bottom: 15px !important;
+    right: 15px !important;
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 18px !important;
+  }
+
+  .bottom-bar-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bottom-bar-input {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .bottom-bar-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .bottom-bar-button {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+

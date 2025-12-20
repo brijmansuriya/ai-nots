@@ -1,104 +1,181 @@
-import { Prompt } from '@/types';
+// API service for communicating with AI Notes backend
+import { ENV } from '../config/env';
+import { debug } from '../utils/debug';
+
+interface ApiConfig {
+  baseUrl: string;
+  token?: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface Tag {
+  id: number;
+  name: string;
+}
+
+interface Platform {
+  id: number;
+  name: string;
+}
+
+interface SavePromptData {
+  title: string;
+  prompt: string;
+  description?: string;
+  category_id: number;
+  tags: string[];
+  platform: string[];
+  dynamic_variables?: string[];
+  status?: string;
+}
 
 class ApiService {
-    private apiUrl: string = '';
-    private authToken: string = '';
+  private baseUrl: string = '';
+  private token: string = '';
 
-    setConfig(apiUrl: string, token: string) {
-        this.apiUrl = apiUrl.replace(/\/$/, ''); // Remove trailing slash
-        this.authToken = token;
+  async initialize(): Promise<void> {
+    return new Promise((resolve) => {
+      debug.info('Initializing API service', 'ApiService');
+      chrome.storage.local.get(['apiBaseUrl', 'apiToken'], (result: { [key: string]: any }) => {
+        this.baseUrl = result.apiBaseUrl || ENV.API_BASE_URL;
+        this.token = result.apiToken || '';
+        debug.info('API service initialized', 'ApiService', {
+          baseUrl: this.baseUrl,
+          hasToken: !!this.token,
+        });
+        resolve();
+      });
+    });
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    await this.initialize();
+
+    if (!this.baseUrl) {
+      throw new Error('API base URL not configured. Please set it in extension settings.');
     }
 
-    clearConfig() {
-        this.apiUrl = '';
-        this.authToken = '';
+    const url = `${this.baseUrl.replace(/\/$/, '')}${endpoint}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(options.headers as Record<string, string> || {}),
+    };
+
+    // Add authentication if token is available (API token auth)
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    private async request<T>(
-        endpoint: string,
-        options: RequestInit = {}
-    ): Promise<T> {
-        if (!this.apiUrl || !this.authToken) {
-            throw new Error('API not configured. Please set up your credentials.');
-        }
+    // Use API token auth (no cookies needed)
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers: headers as HeadersInit,
+    };
 
-        const url = `${this.apiUrl}${endpoint}`;
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            ...(options.headers as Record<string, string>),
-        };
+    debug.network(options.method || 'GET', url, undefined, {
+      hasAuth: !!this.token,
+      authType: 'Bearer',
+    });
 
-        // Add auth token (could be Bearer token or cookie-based)
-        if (this.authToken) {
-            headers['Authorization'] = `Bearer ${this.authToken}`;
-        }
+    try {
+      const response = await fetch(url, fetchOptions);
+      debug.network(options.method || 'GET', url, response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
         try {
-            const response = await fetch(url, {
-                ...options,
-                headers: headers as HeadersInit,
-                credentials: 'include', // Include cookies for Laravel Sanctum
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(
-                    errorData.message || `HTTP error! status: ${response.status}`
-                );
-            }
-
-            return await response.json();
-        } catch (error) {
-            if (error instanceof Error) {
-                throw error;
-            }
-            throw new Error('Network error occurred');
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
         }
-    }
 
-    async getUser() {
-        try {
-            // Try to get user from API endpoint (recommended)
-            // Create this endpoint in your Laravel backend: Route::get('/api/user', ...)
-            return await this.request<any>('/api/user');
-        } catch (error) {
-            // If /api/user doesn't exist, you'll need to create it
-            // See BACKEND_SETUP.md for instructions
-            throw new Error(
-                'API endpoint /api/user not available. Please create this endpoint in your Laravel backend. See BACKEND_SETUP.md for instructions.'
-            );
-        }
-    }
-
-    async getPrompts(search: string = '', page: number = 1) {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            ...(search && { search }),
+        debug.error(`API request failed: ${errorMessage}`, 'ApiService', {
+          url,
+          status: response.status,
+          statusText: response.statusText,
         });
+        throw new Error(errorMessage);
+      }
 
-        const response = await this.request<{
-            data: Prompt[];
-            current_page: number;
-            last_page: number;
-        }>(`/dashboard/prompts?${params}`);
-
-        return response.data || [];
+      const data = await response.json();
+      return data as T;
+    } catch (error) {
+      debug.error('Network request failed', 'ApiService', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Network request failed');
     }
+  }
 
-    async copyPrompt(promptId: number) {
-        return this.request(`/prompt/${promptId}/copy`, {
-            method: 'POST',
-        });
+  async getCategories(): Promise<Category[]> {
+    try {
+      const response = await this.request<Category[]>('/api/extension/categories');
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+      return [];
     }
+  }
 
-    async trackUsage(promptId: number) {
-        return this.request(`/prompt/${promptId}/usage`, {
-            method: 'POST',
-        });
+  async getTags(): Promise<Tag[]> {
+    try {
+      const response = await this.request<Tag[]>('/api/extension/tags');
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      return [];
     }
+  }
+
+  async getPlatforms(): Promise<Platform[]> {
+    try {
+      const response = await this.request<Platform[]>('/api/extension/platforms');
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.error('Failed to fetch platforms:', error);
+      return [];
+    }
+  }
+
+  async savePrompt(data: SavePromptData): Promise<any> {
+    // Ensure platform array has at least one item (default to ChatGPT)
+    const platform = data.platform.length > 0 ? data.platform : ['ChatGPT'];
+
+    const payload = {
+      title: data.title,
+      prompt: data.prompt,
+      description: data.description || '',
+      category_id: data.category_id,
+      tags: data.tags,
+      platform: platform,
+      dynamic_variables: data.dynamic_variables || [],
+      status: data.status || '1',
+    };
+
+    return this.request('/api/extension/prompts', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  setConfig(config: ApiConfig): void {
+    this.baseUrl = config.baseUrl;
+    this.token = config.token || '';
+  }
 }
 
 export const apiService = new ApiService();
+export type { Category, Tag, Platform, SavePromptData };
 

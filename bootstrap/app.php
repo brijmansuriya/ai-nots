@@ -10,6 +10,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
         api: __DIR__ . '/../routes/api.php',
         apiPrefix: 'api/admin',
+        then: function () {
+            // Register extension API routes with custom prefix
+            Route::middleware('api')
+                ->prefix('api/extension')
+                ->group(base_path('routes/api-extension.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);

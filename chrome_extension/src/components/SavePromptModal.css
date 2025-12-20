@@ -1,0 +1,420 @@
+.save-prompt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: auto;
+}
+
+.save-prompt-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal {
+    background: #1f2937;
+    color: #f9fafb;
+  }
+}
+
+.save-prompt-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.save-prompt-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.save-prompt-modal-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.save-prompt-modal-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-close {
+    color: #9ca3af;
+  }
+
+  .save-prompt-modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+.save-prompt-modal-form {
+  padding: 24px;
+}
+
+.save-prompt-modal-field {
+  margin-bottom: 20px;
+}
+
+.save-prompt-modal-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: #374151;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-field label {
+    color: #e5e7eb;
+  }
+}
+
+.save-prompt-modal-field input[type="text"],
+.save-prompt-modal-field input[type="number"],
+.save-prompt-modal-field textarea,
+.save-prompt-modal-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: #111827;
+  transition: all 0.2s;
+}
+
+.save-prompt-modal-field input:focus,
+.save-prompt-modal-field textarea:focus,
+.save-prompt-modal-field select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-field input[type="text"],
+  .save-prompt-modal-field input[type="number"],
+  .save-prompt-modal-field textarea,
+  .save-prompt-modal-field select {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .save-prompt-modal-field input:focus,
+  .save-prompt-modal-field textarea:focus,
+  .save-prompt-modal-field select:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+  }
+}
+
+.save-prompt-modal-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-prompt-modal-tags-input {
+  display: flex;
+  gap: 8px;
+}
+
+.save-prompt-modal-tags-input input {
+  flex: 1;
+}
+
+.save-prompt-modal-tags-input button {
+  padding: 10px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-prompt-modal-tags-input button:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.save-prompt-modal-tags-input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.save-prompt-modal-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.save-prompt-modal-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-tag {
+    background: #4c1d95;
+    color: #c4b5fd;
+  }
+}
+
+.save-prompt-modal-tag-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.save-prompt-modal-tag-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-tag-remove:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.save-prompt-modal-tags-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.save-prompt-modal-tags-suggestions small {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-tags-suggestions small {
+    color: #9ca3af;
+  }
+}
+
+.save-prompt-modal-tag-suggestion {
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.save-prompt-modal-tag-suggestion:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.save-prompt-modal-tag-suggestion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-tag-suggestion {
+    background: #4b5563;
+    border-color: #6b7280;
+    color: #e5e7eb;
+  }
+
+  .save-prompt-modal-tag-suggestion:hover:not(:disabled) {
+    background: #6b7280;
+    border-color: #9ca3af;
+  }
+}
+
+.save-prompt-modal-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-prompt-modal-platform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.save-prompt-modal-platform:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-platform:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.save-prompt-modal-platform input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
+}
+
+.save-prompt-modal-error {
+  padding: 12px;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-error {
+    background: #7f1d1d;
+    color: #fecaca;
+  }
+}
+
+.save-prompt-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-actions {
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.save-prompt-modal-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.save-prompt-modal-button.cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.save-prompt-modal-button.cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.save-prompt-modal-button.submit {
+  background: #667eea;
+  color: white;
+}
+
+.save-prompt-modal-button.submit:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.save-prompt-modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-button.cancel {
+    background: #4b5563;
+    color: #e5e7eb;
+  }
+
+  .save-prompt-modal-button.cancel:hover:not(:disabled) {
+    background: #6b7280;
+  }
+
+  .save-prompt-modal-button.submit {
+    background: #7c3aed;
+  }
+
+  .save-prompt-modal-button.submit:hover:not(:disabled) {
+    background: #6d28d9;
+  }
+}
+
+.save-prompt-modal-loading {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .save-prompt-modal-loading {
+    color: #9ca3af;
+  }
+}
+

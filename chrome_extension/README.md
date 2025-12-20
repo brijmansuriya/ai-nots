@@ -1,24 +1,22 @@
 # AI Notes Chrome Extension
 
-A Chrome extension for quick access to your AI Notes prompts. Built with React 19, TypeScript, Tailwind CSS, and Manifest v3.
+Chrome extension for saving ChatGPT prompts to AI Notes backend.
 
-## Features
+## Setup
 
-- 🔍 Search your prompts quickly
-- 📋 Copy prompts to clipboard with one click
-- 💾 Offline caching with Chrome storage
-- 🔄 Automatic background sync
-- 🎨 Modern UI matching your main application
-- ⚡ Fast and lightweight
+### Environment Variables
 
-## Development
+1. Create a `.env` file in the `chrome_extension` directory:
+```env
+VITE_API_BASE_URL=http://ai-nots.test/
+```
 
-### Prerequisites
+2. For production, update the URL:
+```env
+VITE_API_BASE_URL=https://your-production-domain.com/
+```
 
-- Node.js 18+
-- npm or yarn
-
-### Setup
+### Development
 
 1. Install dependencies:
 ```bash
@@ -31,77 +29,35 @@ npm run build
 ```
 
 3. Load the extension in Chrome:
-   - Open Chrome and navigate to `chrome://extensions/`
+   - Open Chrome and go to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked"
-   - Select the `dist` folder
+   - Select the `chrome_extension/dist` directory
 
-### Development Mode
+## Features
 
-```bash
-npm run dev
-```
+- **Environment Configuration**: Default URL set to `http://ai-nots.test/` for development
+- **OAuth Login**: Login with Google OAuth
+- **Email/Password Login**: Traditional login form
+- **Session Sync**: Automatically detects if you're logged in on the web and uses that session
+- **Register**: Quick access to registration page
+- **ChatGPT Integration**: Detects ChatGPT input fields and allows saving prompts
 
-This will watch for changes and rebuild automatically.
+## Authentication
+
+The extension supports multiple authentication methods:
+
+1. **Web Session Sync**: If you're already logged in on the web app, the extension will automatically use your existing session
+2. **OAuth Login**: Click "Login with Google" to open OAuth flow in a new tab
+3. **Email/Password Login**: Use the login form in the extension popup
+4. **Register**: Click "Register" to open registration page in a new tab
+
+After logging in via OAuth or registration, refresh the extension popup to sync your session.
 
 ## Configuration
 
-1. Click the extension icon
-2. Click "Configure API" or the settings icon
-3. Enter your API URL (e.g., `https://your-domain.com`)
-4. Enter your authentication token
-5. Click "Save"
-
-## Building Icons
-
-You'll need to create icon files in the `icons` folder:
-- `icon16.png` (16x16)
-- `icon32.png` (32x32)
-- `icon48.png` (48x48)
-- `icon128.png` (128x128)
-
-You can use a tool like [Favicon Generator](https://favicon.io/) to create these from a single image.
-
-## Project Structure
-
-```
-chrome_extension/
-├── src/
-│   ├── popup/           # Popup UI components
-│   ├── background/      # Service worker
-│   ├── content/         # Content scripts
-│   ├── hooks/           # React hooks
-│   ├── services/        # API services
-│   ├── types/           # TypeScript types
-│   ├── utils/           # Utility functions
-│   └── styles/          # Global styles
-├── icons/               # Extension icons
-├── manifest.json        # Extension manifest
-├── popup.html          # Popup HTML
-├── package.json        # Dependencies
-├── tsconfig.json       # TypeScript config
-├── vite.config.ts      # Vite build config
-└── tailwind.config.js  # Tailwind config
-```
-
-## API Integration
-
-The extension integrates with your Laravel backend using:
-- `/dashboard/prompts` - Fetch user prompts
-- `/dashboard` - Get user information
-- `/prompt/{id}/copy` - Track copy actions
-- `/prompt/{id}/usage` - Track usage
-
-Make sure your backend API supports CORS and authentication tokens.
-
-## Caching
-
-The extension uses Chrome storage API for caching:
-- Prompts are cached for 5 minutes
-- Cache is automatically invalidated on auth changes
-- Background sync updates cache every 15 minutes
-
-## License
-
-Same as the main project.
-
+1. Open the extension popup
+2. Set your API Base URL (default: `http://ai-nots.test/`)
+3. Click "Save Configuration"
+4. Login using one of the available methods
+5. Start using the extension!
