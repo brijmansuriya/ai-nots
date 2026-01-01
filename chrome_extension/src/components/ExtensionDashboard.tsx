@@ -99,25 +99,9 @@ const ExtensionDashboard = () => {
 
   const handleToggleBottomBar = () => {
     try {
-      const newVisibility = !bottomBarVisible;
-      setBottomBarVisible(newVisibility);
-      chrome.storage.local.set({ bottomBarVisible: newVisibility }, () => {
-        console.log('🔵 [ExtensionDashboard] Bottom bar visibility toggled:', newVisibility);
-        debug.action('Toggled bottom bar visibility', 'ExtensionDashboard', { visible: newVisibility });
-        
-            // Notify content script to update visibility
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-              if (tabs[0]?.id) {
-                chrome.tabs.sendMessage(tabs[0].id, {
-                  type: 'TOGGLE_BOTTOM_BAR',
-                  visible: newVisibility
-                }).catch(() => {
-                  // This is expected if content script isn't loaded on the current page
-                  console.log('🔵 [ExtensionDashboard] Content script not available on this page (this is normal)');
-                });
-              }
-            });
-      });
+
+      
+
     } catch (error) {
       console.error('❌ [ExtensionDashboard] Error toggling bottom bar:', error);
       debug.error('Failed to toggle bottom bar', 'ExtensionDashboard', error);
@@ -255,6 +239,12 @@ const ExtensionDashboard = () => {
             className={`extension-dashboard-button ${debugEnabled ? 'debug-on' : 'debug-off'}`}
           >
             {debugEnabled ? '🔧 Debug: ON' : '🔧 Debug: OFF'}
+          </button>
+          <button
+           onClick={handleToggleBottomBar}
+            className={`extension-dashboard-button ${bottomBarVisible ? 'bottom-bar-visible' : 'bottom-bar-hidden'}`}
+          >
+           Show bottom bar
           </button>
           <p className="extension-dashboard-debug-hint">
             {debugEnabled

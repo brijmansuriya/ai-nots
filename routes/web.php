@@ -16,20 +16,21 @@ Route::get('/features', function () {
     return Inertia::render('features');
 })->name('features');
 
-Route::prefix('prompt')->group(function () {
-    Route::get('create', function () {
-        return Inertia::render('add-prompt');
-    })->name('prompt.create');
+Route::middleware(['auth.user'])->group(function () {
+    Route::prefix('prompt')->group(function () {
+        Route::get('create', function () {
+            return Inertia::render('add-prompt');
+        })->name('prompt.create');
 
-    Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
-    Route::get('show/{id}', [PromptController::class, 'show'])->name('prompt.show');
+        Route::post('store', [PromptController::class, 'store'])->name('prompt.store');
+        Route::get('show/{id}', [PromptController::class, 'show'])->name('prompt.show');
 
-    // Metrics routes (some require auth, some don't)
-    Route::post('{prompt}/copy', [PromptMetricsController::class, 'trackCopy'])->name('prompt.copy');
-    Route::post('{prompt}/usage', [PromptMetricsController::class, 'trackUsage'])->name('prompt.usage');
+        // Metrics routes (some require auth, some don't)
+        Route::post('{prompt}/copy', [PromptMetricsController::class, 'trackCopy'])->name('prompt.copy');
+        Route::post('{prompt}/usage', [PromptMetricsController::class, 'trackUsage'])->name('prompt.usage');
 
-    // Edit & delete require authenticated user
-    Route::middleware(['auth.user', 'verified'])->group(function () {
+        // Edit & delete require authenticated user
+
         Route::get('{prompt}/edit', [PromptController::class, 'edit'])->name('prompt.edit');
         Route::match(['put', 'post'], '{prompt}', [PromptController::class, 'update'])->name('prompt.update');
         Route::delete('{prompt}', [PromptController::class, 'destroy'])->name('prompt.destroy');
@@ -47,14 +48,12 @@ Route::prefix('prompt')->group(function () {
         Route::post('{prompt}/like', [PromptMetricsController::class, 'like'])->name('prompt.like');
         Route::delete('{prompt}/like', [PromptMetricsController::class, 'unlike'])->name('prompt.unlike');
     });
-});
 
-Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');
-Route::get('list/platform', [HomeController::class, 'platform'])->name('platform');
-Route::get('list/categories', [HomeController::class, 'categories'])->name('categories');
-Route::get('list/meta/all', [HomeController::class, 'metaAll'])->name('meta.all');
+    Route::get('list/tags', [HomeController::class, 'tags'])->name('tags');
+    Route::get('list/platform', [HomeController::class, 'platform'])->name('platform');
+    Route::get('list/categories', [HomeController::class, 'categories'])->name('categories');
+    Route::get('list/meta/all', [HomeController::class, 'metaAll'])->name('meta.all');
 
-Route::middleware(['auth.user', 'verified'])->group(function () {
     Route::get('dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
     Route::get('dashboard/prompts', [HomeController::class, 'getUserPrompts'])->name('dashboard.prompts'); // New route
     Route::get('dashboard/statistics', [HomeController::class, 'getStatistics'])->name('dashboard.statistics');
