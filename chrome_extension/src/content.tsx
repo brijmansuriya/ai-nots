@@ -1,3 +1,4 @@
+import './content.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import BottomBar from './components/BottomBar';
@@ -7,8 +8,8 @@ import { debug } from './utils/debug';
 import './components/BottomBar.css';
 import './components/ChatGPTDetector.css';
 import './components/ChatGPTBottomBar.css';
-import './content.css';
 
+console.log('🔵 [Content Script] Content script loaded');
 // Store root reference to avoid recreating it
 let rootInstance: ReturnType<typeof createRoot> | null = null;
 

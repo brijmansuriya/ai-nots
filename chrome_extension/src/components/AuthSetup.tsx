@@ -80,7 +80,7 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
 
             setMessage({ type: 'success', text: response.message || 'Login successful!' });
             setShowLogin(false);
-            setLoginData({ email: '', password: '' });
+            setLoginData({ email: 'mansuriyabri@gmail.com', password: '12345678' });
             
             setAuthStatus({
                 isAuthenticated: true,

@@ -36,26 +36,17 @@ export default defineConfig({
     },
   ],
   build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    cssCodeSplit: true,
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content.tsx'),
+        // content: resolve(__dirname, 'src/content.tsx'),
       },
       output: {
-        entryFileNames: (chunk) => {
-          if (chunk.name === 'content') return 'content.js'
-          return 'assets/[name]-[hash].js'
-        },
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: (asset) => {
-          if (asset.name?.includes('content')) return 'content.css'
-          return 'assets/[name]-[hash][extname]'
-        },
-        format: 'es', // ES modules work perfectly with Manifest V3
+        format: 'iife', // 👈 IMPORTANT
+        inlineDynamicImports: true, // 👈 VERY IMPORTANT
+        entryFileNames: (chunk) =>
+          chunk.name === 'content' ? 'content.js' : 'assets/[name]-[hash].js',
       },
     },
-  },
+  }
 })
