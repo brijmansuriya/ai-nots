@@ -1,13 +1,38 @@
-import './content.css';
+// Import CSS as inline strings
+import contentStyles from './content.css?inline';
+import bottomBarStyles from './components/BottomBar.css?inline';
+import chatGptDetectorStyles from './components/ChatGPTDetector.css?inline';
+import chatGptBottomBarStyles from './components/ChatGPTBottomBar.css?inline';
+import extensionDashboardStyles from './components/ExtensionDashboard.css?inline';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import BottomBar from './components/BottomBar';
 import ChatGPTDetector from './components/ChatGPTDetector';
 import ChatGPTBottomBar from './components/ChatGPTBottomBar';
 import { debug } from './utils/debug';
-import './components/BottomBar.css';
-import './components/ChatGPTDetector.css';
-import './components/ChatGPTBottomBar.css';
+
+// Function to inject styles
+const injectStyles = () => {
+    const styleId = 'ai-nots-styles';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        ${contentStyles}
+        ${bottomBarStyles}
+        ${chatGptDetectorStyles}
+        ${chatGptBottomBarStyles}
+        ${extensionDashboardStyles}
+    `;
+    document.head.appendChild(style);
+    console.log('🔵 [Content Script] Styles injected');
+    debug.info('Styles injected', 'ContentScript');
+};
+
+// Inject immediately
+injectStyles();
 
 console.log('🔵 [Content Script] Content script loaded');
 // Store root reference to avoid recreating it
@@ -27,12 +52,12 @@ const isChatGPTPage = (): boolean => {
 // Function to render or re-render the component
 const renderComponent = (container: HTMLElement) => {
     const isChatGPT = isChatGPTPage();
-    
+
     // For ChatGPT pages, render both ChatGPTDetector (for save button) and ChatGPTBottomBar (for bottom bar)
     // For other pages, render BottomBar
     let ComponentToRender;
     let componentName;
-    
+
     if (isChatGPT) {
         // Render both components for ChatGPT
         componentName = 'ChatGPTComponents';
@@ -54,7 +79,7 @@ const renderComponent = (container: HTMLElement) => {
             rootInstance = createRoot(container);
             console.log('🔵 [Content Script] Created new React root');
         }
-        
+
         rootInstance.render(
             <StrictMode>
                 <ComponentToRender />
@@ -71,6 +96,12 @@ const renderComponent = (container: HTMLElement) => {
 
 // Function to initialize the extension
 const initExtension = () => {
+    // Safety check for extension context
+    if (!chrome.runtime?.id) {
+        console.warn('⚠️ [Content Script] Extension context invalidated. Stopping initialization.');
+        return;
+    }
+
     try {
         const isChatGPT = isChatGPTPage();
         console.log('🔵 [Content Script] Initializing extension...', {
@@ -79,7 +110,9 @@ const initExtension = () => {
             hostname: window.location.hostname,
             isChatGPT: isChatGPT,
         });
-        
+
+        // ... (rest of logic) ...
+
         debug.info('Initializing extension...', 'ContentScript', {
             readyState: document.readyState,
             url: window.location.href,
@@ -176,48 +209,57 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // Listen for messages from popup
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    console.log('🔵 [Content Script] Message received:', message);
-    debug.info('Message received from popup', 'ContentScript', message);
-    
-    if (message.type === 'TOGGLE_BOTTOM_BAR') {
-        try {
-            console.log('🔵 [Content Script] Toggling bottom bar visibility:', message.visible);
-            debug.action('Toggling bottom bar visibility', 'ContentScript', { visible: message.visible });
-            
-            // Update storage (this will trigger storage.onChanged listeners)
-            chrome.storage.local.set({ bottomBarVisible: message.visible }, () => {
-                console.log('🔵 [Content Script] Bottom bar visibility updated in storage');
-                
-                // Also directly update ChatGPT toolbar if it exists
-                const chatGPTToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-                if (chatGPTToolbar) {
-                    chatGPTToolbar.style.display = message.visible ? 'flex' : 'none';
-                    console.log('🔵 [Content Script] ChatGPT toolbar visibility updated directly');
+if (chrome.runtime?.id) {
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        // Double check context inside listener
+        if (!chrome.runtime?.id) return;
+
+        console.log('🔵 [Content Script] Message received:', message);
+        debug.info('Message received from popup', 'ContentScript', message);
+
+        if (message.type === 'TOGGLE_BOTTOM_BAR') {
+            try {
+                console.log('🔵 [Content Script] Toggling bottom bar visibility:', message.visible);
+                debug.action('Toggling bottom bar visibility', 'ContentScript', { visible: message.visible });
+
+                // Update storage (this will trigger storage.onChanged listeners)
+                if (chrome.runtime?.id) {
+                    chrome.storage.local.set({ bottomBarVisible: message.visible }, () => {
+                        if (chrome.runtime.lastError) return;
+
+                        console.log('🔵 [Content Script] Bottom bar visibility updated in storage');
+
+                        // Also directly update ChatGPT toolbar if it exists
+                        const chatGPTToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
+                        if (chatGPTToolbar) {
+                            chatGPTToolbar.style.display = message.visible ? 'flex' : 'none';
+                            console.log('🔵 [Content Script] ChatGPT toolbar visibility updated directly');
+                        }
+
+                        // Re-render the component to reflect the change (for non-ChatGPT pages)
+                        const container = document.getElementById('ai-notes-bottom-bar-root');
+                        if (container) {
+                            renderComponent(container);
+                            console.log('🔵 [Content Script] Component re-rendered with new visibility');
+                        } else {
+                            console.warn('⚠️ [Content Script] Container not found, initializing extension');
+                            initExtension();
+                        }
+                    });
                 }
-                
-                // Re-render the component to reflect the change (for non-ChatGPT pages)
-                const container = document.getElementById('ai-notes-bottom-bar-root');
-                if (container) {
-                    renderComponent(container);
-                    console.log('🔵 [Content Script] Component re-rendered with new visibility');
-                } else {
-                    console.warn('⚠️ [Content Script] Container not found, initializing extension');
-                    initExtension();
-                }
-            });
-            
-            sendResponse({ success: true });
-        } catch (error) {
-            console.error('❌ [Content Script] Error handling toggle message:', error);
-            debug.error('Failed to toggle bottom bar', 'ContentScript', error);
-            sendResponse({ success: false, error: error });
+
+                sendResponse({ success: true });
+            } catch (error) {
+                console.error('❌ [Content Script] Error handling toggle message:', error);
+                debug.error('Failed to toggle bottom bar', 'ContentScript', error);
+                sendResponse({ success: false, error: error });
+            }
+            return true; // Keep the message channel open for async response
         }
-        return true; // Keep the message channel open for async response
-    }
-    
-    return false;
-});
+
+        return false;
+    });
+}
 
 console.log('🔵 [Content Script] Content script initialized with error handlers and message listener');
 

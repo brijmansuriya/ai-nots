@@ -1,112 +1,224 @@
-/* ChatGPT Bottom Bar Styles */
-.ai-nots-chatgpt-toolbar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  margin-top: 8px;
-  background: #1e1e1e;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 999999;
+/* AI-Nots Professional Bottom Bar */
+.ainots-bottom-bar-root {
   position: relative;
   width: 100%;
-  box-sizing: border-box;
-}
-
-.ai-nots-toolbar-content {
+  margin-top: 8px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
+  justify-content: flex-start;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  z-index: 100;
+  pointer-events: none;
+  /* Let clicks pass through empty areas */
 }
 
-.ai-nots-toolbar-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-  font-size: 14px;
-  font-family: inherit;
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.ai-nots-toolbar-input:focus {
-  outline: none;
-  border-color: #667eea;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-}
-
-.ai-nots-toolbar-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.ai-nots-toolbar-buttons {
+/* The actual bar container */
+.ainots-bottom-bar {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  /* Pill shape */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+  pointer-events: auto;
+  /* Re-enable clicks */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 52px;
+  /* Increased to 52px as requested */
+  overflow: hidden;
+  max-width: fit-content;
 }
 
-.ai-nots-toolbar-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #667eea;
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
+/* Dark mode support - adaptive */
+/* Dark mode support - adaptive (System or Class) */
+@media (prefers-color-scheme: dark) {
+  .ainots-bottom-bar {
+    background-color: #202123;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Explicit class-based overrides (Sync with ChatGPT) */
+:root.dark .ainots-bottom-bar,
+.dark .ainots-bottom-bar {
+  background-color: #202123;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+:root.light .ainots-bottom-bar,
+.light .ainots-bottom-bar {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+/* Collapsed state */
+.ainots-bottom-bar.collapsed {
+  padding: 4px;
+  gap: 0;
+  width: 52px;
+  /* Match height */
+}
+
+/* Tool Pill (Active State) */
+.ainots-tool-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 0 12px;
+  height: 44px;
+  background-color: #f0f0f0;
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-  flex: 1;
-  min-width: 100px;
+  transition: all 0.2s ease;
+  color: #1a1a1a;
+  font-weight: 500;
+  font-size: 14px;
+  border: none;
+  outline: none;
 }
 
-.ai-nots-toolbar-btn:hover {
-  background: #5568d3;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
-.ai-nots-toolbar-btn:active {
-  transform: translateY(0);
-}
-
-/* Dark mode adjustments (ChatGPT is already dark) */
-@media (prefers-color-scheme: light) {
-  .ai-nots-chatgpt-toolbar {
-    background: #f9fafb;
-    border-color: #e5e7eb;
-  }
-
-  .ai-nots-toolbar-input {
-    background: white;
-    color: #111827;
-    border-color: #d1d5db;
-  }
-
-  .ai-nots-toolbar-input:focus {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-
-  .ai-nots-toolbar-input::placeholder {
-    color: #6b7280;
+@media (prefers-color-scheme: dark) {
+  .ainots-tool-pill {
+    background-color: #343541;
+    color: #ececf1;
   }
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .ai-nots-toolbar-buttons {
-    flex-direction: column;
-  }
+:root.dark .ainots-tool-pill,
+.dark .ainots-tool-pill {
+  background-color: #343541;
+  color: #ececf1;
+}
 
-  .ai-nots-toolbar-btn {
-    width: 100%;
+:root.light .ainots-tool-pill,
+.light .ainots-tool-pill {
+  background-color: #f0f0f0;
+  color: #1a1a1a;
+}
+
+.ainots-tool-pill:hover {
+  background-color: #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ainots-tool-pill:hover {
+    background-color: #40414f;
   }
 }
 
+:root.dark .ainots-tool-pill:hover,
+.dark .ainots-tool-pill:hover {
+  background-color: #40414f;
+}
+
+:root.light .ainots-tool-pill:hover,
+.light .ainots-tool-pill:hover {
+  background-color: #e5e5e5;
+}
+
+/* Icon Button (Inactive State) */
+.ainots-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #6e6e80;
+  background: transparent;
+  border: none;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ainots-icon-btn {
+    color: #acacbe;
+  }
+}
+
+:root.dark .ainots-icon-btn,
+.dark .ainots-icon-btn {
+  color: #acacbe;
+}
+
+:root.light .ainots-icon-btn,
+.light .ainots-icon-btn {
+  color: #6e6e80;
+}
+
+.ainots-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ainots-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ececf1;
+  }
+}
+
+:root.dark .ainots-icon-btn:hover,
+.dark .ainots-icon-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ececf1;
+}
+
+:root.light .ainots-icon-btn:hover,
+.light .ainots-icon-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
+}
+
+/* Label text inside active pill */
+.ainots-pill-label {
+  white-space: nowrap;
+}
+
+/* Separator line */
+.ainots-separator {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ainots-separator {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+:root.dark .ainots-separator,
+.dark .ainots-separator {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+:root.light .ainots-separator,
+.light .ainots-separator {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle/Collapse Button (Right side) */
+.ainots-toggle-btn {
+  margin-left: auto;
+  color: #8e8ea0;
+}
+
+.ainots-bottom-bar.collapsed .ainots-toggle-btn {
+  margin-left: 0;
+}
+
+/* SVG styling */
+.ainots-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2px;
+}

@@ -18,15 +18,24 @@ class DebugLogger {
     if (this.initialized) return;
 
     try {
-      chrome.storage.local.get(['DEBUG', 'DEBUG_LEVEL'], (result: { [key: string]: any }) => {
-        this.config.enabled = result.DEBUG === true || result.DEBUG === 'true';
-        this.config.logLevel = (result.DEBUG_LEVEL as DebugConfig['logLevel']) || 'all';
-        this.initialized = true;
+      if (chrome.runtime?.id) {
+        chrome.storage.local.get(['DEBUG', 'DEBUG_LEVEL'], (result: { [key: string]: any }) => {
+          if (chrome.runtime.lastError) {
+            // Context likely invalid or storage error, just ignore
+            return;
+          }
+          this.config.enabled = result.DEBUG === true || result.DEBUG === 'true';
+          this.config.logLevel = (result.DEBUG_LEVEL as DebugConfig['logLevel']) || 'all';
+          this.initialized = true;
 
-        if (this.config.enabled) {
-          this.log('🔧 Debug mode enabled', 'info');
-        }
-      });
+          if (this.config.enabled) {
+            this.log('🔧 Debug mode enabled', 'info');
+          }
+        });
+      } else {
+        // Context invalid, safely fallback
+        this.initialized = true;
+      }
     } catch (error) {
       // If chrome.storage is not available (e.g., in non-extension context), enable by default
       this.config.enabled = true;
@@ -116,16 +125,20 @@ debug.init();
 
 // Helper to enable debug mode
 export const enableDebug = () => {
-  chrome.storage.local.set({ DEBUG: true, DEBUG_LEVEL: 'all' }, () => {
-    console.log('🔧 Debug mode enabled. Refresh the extension to see logs.');
-  });
+  if (chrome.runtime?.id) {
+    chrome.storage.local.set({ DEBUG: true, DEBUG_LEVEL: 'all' }, () => {
+      console.log('🔧 Debug mode enabled. Refresh the extension to see logs.');
+    });
+  }
 };
 
 // Helper to disable debug mode
 export const disableDebug = () => {
-  chrome.storage.local.set({ DEBUG: false }, () => {
-    console.log('🔧 Debug mode disabled.');
-  });
+  if (chrome.runtime?.id) {
+    chrome.storage.local.set({ DEBUG: false }, () => {
+      console.log('🔧 Debug mode disabled.');
+    });
+  }
 };
 
 

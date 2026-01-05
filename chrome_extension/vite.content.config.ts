@@ -5,16 +5,16 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
-    emptyOutDir: false,
-    cssCodeSplit: false,
+    emptyOutDir: false, // Don't delete popup build
     rollupOptions: {
-      input: resolve(__dirname, 'src/content.tsx'),
+      input: {
+        content: resolve(__dirname, 'src/content.tsx'),
+      },
       output: {
         format: 'iife',
         inlineDynamicImports: true,
         entryFileNames: 'content.js',
       },
     },
-  },
+  }
 })

@@ -26,14 +26,18 @@ const ExtensionDashboard = () => {
     loadUserInfo();
     loadStats();
 
+    if (!chrome.runtime?.id) return;
+
     // Check debug status
     chrome.storage.local.get(['DEBUG'], (result: { [key: string]: any }) => {
+      if (chrome.runtime.lastError) return;
       setDebugEnabled(result.DEBUG === true || result.DEBUG === 'true');
       console.log('🔵 [ExtensionDashboard] Debug status:', result.DEBUG);
     });
 
     // Load bottom bar visibility state
     chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
+      if (chrome.runtime.lastError) return;
       const visible = result.bottomBarVisible !== false; // Default to true
       setBottomBarVisible(visible);
       console.log('🔵 [ExtensionDashboard] Bottom bar visibility loaded:', visible);
@@ -91,7 +95,15 @@ const ExtensionDashboard = () => {
 
   const getBaseUrl = async (): Promise<string> => {
     return new Promise((resolve) => {
+      if (!chrome.runtime?.id) {
+        resolve('http://ai-nots.test/');
+        return;
+      }
       chrome.storage.local.get(['apiBaseUrl'], (result: { [key: string]: any }) => {
+        if (chrome.runtime.lastError) {
+          resolve('http://ai-nots.test/');
+          return;
+        }
         resolve(result.apiBaseUrl || 'http://ai-nots.test/');
       });
     });
@@ -100,7 +112,7 @@ const ExtensionDashboard = () => {
   const handleToggleBottomBar = () => {
     try {
 
-      
+
 
     } catch (error) {
       console.error('❌ [ExtensionDashboard] Error toggling bottom bar:', error);
@@ -112,13 +124,13 @@ const ExtensionDashboard = () => {
     try {
       console.log('🔵 [ExtensionDashboard] Logout initiated');
       debug.action('Logout initiated', 'ExtensionDashboard');
-      
+
       const { authService } = await import('../services/authService');
       await authService.logout();
 
       console.log('🔵 [ExtensionDashboard] Logout successful, reloading...');
       debug.info('Logout successful', 'ExtensionDashboard');
-      
+
       // Reload the extension popup
       window.location.reload();
     } catch (error) {
@@ -191,7 +203,7 @@ const ExtensionDashboard = () => {
         >
           Open Dashboard
         </button>
-        
+
         {/* Bottom Bar Toggle Button */}
         <button
           type="button"
@@ -201,7 +213,7 @@ const ExtensionDashboard = () => {
         >
           {bottomBarVisible ? '▼ Hide Bottom Bar' : '▲ Show Bottom Bar'}
         </button>
-        
+
         {/* Logout Button */}
         <button
           type="button"
@@ -241,10 +253,10 @@ const ExtensionDashboard = () => {
             {debugEnabled ? '🔧 Debug: ON' : '🔧 Debug: OFF'}
           </button>
           <button
-           onClick={handleToggleBottomBar}
+            onClick={handleToggleBottomBar}
             className={`extension-dashboard-button ${bottomBarVisible ? 'bottom-bar-visible' : 'bottom-bar-hidden'}`}
           >
-           Show bottom bar
+            Show bottom bar
           </button>
           <p className="extension-dashboard-debug-hint">
             {debugEnabled

@@ -89,6 +89,11 @@ const ChatGPTDetector = () => {
 
     // Set up MutationObserver to watch for DOM changes
     observerRef.current = new MutationObserver(() => {
+      if (!chrome.runtime?.id) {
+        // Context invalidated, silence observer
+        observerRef.current?.disconnect();
+        return;
+      }
       debug.info('DOM mutation detected, checking for input', 'ChatGPTDetector');
       updateDetectedInput();
     });
@@ -102,7 +107,14 @@ const ChatGPTDetector = () => {
     });
 
     // Also check periodically in case MutationObserver misses something
-    checkIntervalRef.current = window.setInterval(updateDetectedInput, 1000);
+    checkIntervalRef.current = window.setInterval(() => {
+      if (!chrome.runtime?.id) {
+        // Context invalidated, clear interval
+        if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
+        return;
+      }
+      updateDetectedInput();
+    }, 1000);
 
     return () => {
       if (observerRef.current) {

@@ -39,7 +39,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'index.html'),
-        // content: resolve(__dirname, 'src/content.tsx'),
+        content: resolve(__dirname, 'src/content.tsx'),
       },
       output: {
         format: 'iife', // 👈 IMPORTANT

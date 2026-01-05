@@ -1,293 +1,216 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
 import { debug } from '../utils/debug';
 import './ChatGPTBottomBar.css';
 
-// Function to insert text into ChatGPT prompt input
-// ChatGPT uses contenteditable div, so we need to use execCommand
+// SVG Icons (Lucide style)
+const Icons = {
+  Sparkles: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+  ),
+  LayoutTemplate: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="7" x="3" y="3" rx="1" /><rect width="9" height="7" x="3" y="14" rx="1" /><rect width="5" height="7" x="16" y="14" rx="1" /></svg>
+  ),
+  Users: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+  ),
+  ChevronRight: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+  ),
+  ChevronLeft: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+  )
+};
+
+interface ToolbarUIProps {
+  onInsertText: (text: string) => void;
+  isVisible: boolean;
+}
+
+const ToolbarUI = ({ onInsertText, isVisible }: ToolbarUIProps) => {
+  const [activeTool, setActiveTool] = useState<string>('generate');
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  if (!isVisible) return null;
+
+  const tools = [
+    { id: 'generate', label: 'Generate', icon: Icons.Sparkles, action: () => console.log('Generate clicked') },
+    { id: 'templates', label: 'Templates', icon: Icons.LayoutTemplate, action: () => console.log('Templates clicked') },
+    { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
+  ];
+
+  return (
+    <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'}`}>
+      {isExpanded ? (
+        <>
+          {tools.map((tool) => {
+            const isActive = activeTool === tool.id;
+            const Icon = tool.icon;
+
+            if (isActive) {
+              return (
+                <button
+                  key={tool.id}
+                  className="ainots-tool-pill"
+                  onClick={() => {
+                    tool.action();
+                    // Keep active, maybe toggle panel?
+                  }}
+                >
+                  <Icon />
+                  <span className="ainots-pill-label">{tool.label}</span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={tool.id}
+                className="ainots-icon-btn"
+                onClick={() => setActiveTool(tool.id)}
+                title={tool.label}
+              >
+                <Icon />
+              </button>
+            );
+          })}
+
+          <div className="ainots-separator" />
+        </>
+      ) : (
+        // Collapsed state - show nothing or maybe a mini toggle? 
+        // Design says "Only essential icon(s) visible". 
+        // For now let's just show the expand toggle as the "essential" way back
+        null
+      )}
+
+      <button
+        className="ainots-icon-btn ainots-toggle-btn"
+        onClick={() => setIsExpanded(!isExpanded)}
+        title={isExpanded ? "Collapse" : "Expand"}
+      >
+        {isExpanded ? <Icons.ChevronLeft /> : <Icons.ChevronRight />}
+      </button>
+    </div>
+  );
+};
+
+// ... insertTextIntoChatGPT function remains the same ...
 function insertTextIntoChatGPT(input: HTMLElement, text: string) {
-  console.log('🔵 [ChatGPTBottomBar] Inserting text into ChatGPT:', text);
-
-  try {
-    input.focus();
-
-    // For contenteditable divs, use execCommand (works with React)
-    if (input.getAttribute('contenteditable') === 'true') {
-      // Use execCommand for contenteditable elements
-      const success = document.execCommand('insertText', false, text);
-      if (!success) {
-        // Fallback: set textContent and trigger input event
-        console.warn('⚠️ [ChatGPTBottomBar] execCommand failed, using fallback');
-        input.textContent = (input.textContent || '') + text;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    } else if (input instanceof HTMLTextAreaElement) {
-      // Legacy support for textarea
-      input.value = text;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      // Fallback for other input types
-      input.textContent = (input.textContent || '') + text;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-
-    debug.action('Inserted text into ChatGPT', 'ChatGPTBottomBar', { textLength: text.length });
-  } catch (error) {
-    console.error('❌ [ChatGPTBottomBar] Failed to insert text:', error);
-    debug.error('Failed to insert text', 'ChatGPTBottomBar', error);
+  if (!input) return;
+  input.focus();
+  if (input.getAttribute('contenteditable') === 'true') {
+    document.execCommand('insertText', false, text);
+  } else if (input instanceof HTMLTextAreaElement) {
+    input.value = text;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  } else {
+    input.textContent = (input.textContent || '') + text;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
 
 const ChatGPTBottomBar = () => {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const [promptInput, setPromptInput] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
-  const toolbarRef = useRef<HTMLDivElement | null>(null);
-  const observerRef = useRef<MutationObserver | null>(null);
-  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    console.log('🔵 [ChatGPTBottomBar] Component mounted');
-    debug.render('ChatGPTBottomBar');
-
-    // Load visibility state
-    chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
-      const visible = result.bottomBarVisible !== false; // Default to true
-      setIsVisible(visible);
-      console.log('🔵 [ChatGPTBottomBar] Loaded visibility state:', visible);
-    });
-
-    // Listen for visibility changes from popup
-    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      if (changes.bottomBarVisible) {
-        const visible = changes.bottomBarVisible.newValue !== false;
-        setIsVisible(visible);
-        console.log('🔵 [ChatGPTBottomBar] Visibility changed from storage:', visible);
-      }
-    };
-    chrome.storage.onChanged.addListener(handleStorageChange);
-
-    // Function to attach toolbar below prompt input
-    const attachToolbar = (foundInput: HTMLElement) => {
-      console.log('🔵 [ChatGPTBottomBar] Attaching toolbar below prompt input', {
-        tagName: foundInput.tagName,
-        contenteditable: foundInput.getAttribute('contenteditable'),
-      });
-
-      // Check if toolbar already exists
-      const existingToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-      if (existingToolbar) {
-        console.log('🔵 [ChatGPTBottomBar] Toolbar already exists, updating visibility');
-        // Update visibility of existing toolbar
-        chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
-          const visible = result.bottomBarVisible !== false;
-          existingToolbar.style.display = visible ? 'flex' : 'none';
-          console.log('🔵 [ChatGPTBottomBar] Updated existing toolbar visibility:', visible);
-        });
-        return;
-      }
-
-      // Find the parent container - ChatGPT uses form or a wrapper div
-      // Use closest('form') first, then fallback to parent
-      let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
-
-      if (!parent) {
-        // Look for a container div
-        parent = foundInput.parentElement;
-        let depth = 0;
-        const maxDepth = 10;
-
-        while (parent && depth < maxDepth) {
-          const rect = parent.getBoundingClientRect();
-          // Look for a container with reasonable width (ChatGPT's main container)
-          if (rect.width > 200) {
-            break;
-          }
-          parent = parent.parentElement;
-          depth++;
-        }
-      }
-
-      // Final fallback: use immediate parent
-      if (!parent) {
-        parent = foundInput.parentElement;
-        console.log('🔵 [ChatGPTBottomBar] Using immediate parent as fallback');
-      }
-
-      if (!parent) {
-        console.warn('⚠️ [ChatGPTBottomBar] Could not find suitable parent for toolbar');
-        return;
-      }
-
-      console.log('🔵 [ChatGPTBottomBar] Found parent container:', {
-        tagName: parent.tagName,
-        id: parent.id,
-        className: parent.className?.substring(0, 50), // Limit log size
-      });
-
-      // Get current visibility state from storage
-      chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
-        const visible = result.bottomBarVisible !== false; // Default to true
-        console.log('🔵 [ChatGPTBottomBar] Creating toolbar with visibility:', visible);
-
-        // Create toolbar
-        const toolbar = document.createElement('div');
-        toolbar.id = 'ai-nots-chatgpt-toolbar';
-        toolbar.className = 'ai-nots-chatgpt-toolbar';
-        toolbar.style.display = visible ? 'flex' : 'none';
-
-        toolbar.innerHTML = `
-          <div class="ai-nots-toolbar-content">
-            <input 
-              type="text" 
-              class="ai-nots-toolbar-input" 
-              placeholder="Ask anything…" 
-              id="ai-nots-toolbar-input"
-            />
-            <div class="ai-nots-toolbar-buttons">
-              <button class="ai-nots-toolbar-btn" id="ai-nots-generate-prompt">Generate Prompt</button>
-              <button class="ai-nots-toolbar-btn" id="ai-nots-templates">Templates</button>
-              <button class="ai-nots-toolbar-btn" id="ai-nots-personas">Personas</button>
-            </div>
-          </div>
-        `;
-
-        // Insert toolbar - append to the container (form or parent div)
-        try {
-          parent.appendChild(toolbar);
-          console.log('🔵 [ChatGPTBottomBar] Toolbar appended to container');
-        } catch (e) {
-          console.error('❌ [ChatGPTBottomBar] Failed to append toolbar:', e);
+    // Load visibility
+    if (chrome.runtime?.id) {
+      chrome.storage.local.get(['bottomBarVisible'], (result) => {
+        if (chrome.runtime.lastError) {
+          console.warn('⚠️ [ChatGPTBottomBar] Storage error:', chrome.runtime.lastError);
           return;
         }
-
-        toolbarRef.current = toolbar;
-        setIsVisible(visible);
-
-        // Attach event handlers
-        const toolbarInput = toolbar.querySelector('#ai-nots-toolbar-input') as HTMLInputElement;
-        const generateBtn = toolbar.querySelector('#ai-nots-generate-prompt') as HTMLButtonElement;
-        const templatesBtn = toolbar.querySelector('#ai-nots-templates') as HTMLButtonElement;
-        const personasBtn = toolbar.querySelector('#ai-nots-personas') as HTMLButtonElement;
-
-        if (toolbarInput) {
-          toolbarInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && toolbarInput.value.trim()) {
-              insertTextIntoChatGPT(foundInput, toolbarInput.value);
-              toolbarInput.value = '';
-            }
-          });
-        }
-
-        if (generateBtn) {
-          generateBtn.addEventListener('click', () => {
-            if (toolbarInput?.value.trim()) {
-              insertTextIntoChatGPT(foundInput, toolbarInput.value);
-              toolbarInput.value = '';
-            }
-          });
-        }
-
-        if (templatesBtn) {
-          templatesBtn.addEventListener('click', () => {
-            console.log('🔵 [ChatGPTBottomBar] Templates clicked');
-            debug.action('Templates clicked', 'ChatGPTBottomBar');
-          });
-        }
-
-        if (personasBtn) {
-          personasBtn.addEventListener('click', () => {
-            console.log('🔵 [ChatGPTBottomBar] Personas clicked');
-            debug.action('Personas clicked', 'ChatGPTBottomBar');
-          });
-        }
-
-        console.log('🔵 [ChatGPTBottomBar] Toolbar attached successfully, visible:', visible);
+        setIsVisible(result.bottomBarVisible !== false);
       });
-    };
-
-    // Wait for prompt input and attach toolbar
-    const cleanup = waitForPromptInput(attachToolbar);
-    cleanupRef.current = cleanup || null;
-
-    // Watch for toolbar removal (ChatGPT re-renders)
-    observerRef.current = new MutationObserver(() => {
-      const toolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-
-      // Find current prompt input (contenteditable div)
-      const findCurrentInput = (): HTMLElement | null => {
-        return document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
-          document.querySelector('div[contenteditable="true"]') as HTMLElement ||
-          document.querySelector('textarea') as HTMLElement;
-      };
-
-      const currentInput = findCurrentInput();
-
-      if (!toolbar && currentInput) {
-        console.log('🔵 [ChatGPTBottomBar] Toolbar removed, re-attaching...');
-        // Re-attach toolbar
-        attachToolbar(currentInput);
-      } else if (toolbar && currentInput && !toolbar.isConnected) {
-        // Toolbar exists but is disconnected from DOM
-        console.log('🔵 [ChatGPTBottomBar] Toolbar disconnected, re-attaching...');
-        attachToolbar(currentInput);
-      }
-    });
-
-    observerRef.current.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => {
-      console.log('🔵 [ChatGPTBottomBar] Cleaning up');
-      if (cleanupRef.current) {
-        cleanupRef.current();
-      }
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-      chrome.storage.onChanged.removeListener(handleStorageChange);
-    };
-  }, []);
-
-  // Update toolbar visibility when state changes
-  useEffect(() => {
-    const toolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-    if (toolbar) {
-      toolbar.style.display = isVisible ? 'flex' : 'none';
-      console.log('🔵 [ChatGPTBottomBar] Toolbar visibility updated via state:', isVisible, {
-        currentDisplay: toolbar.style.display,
-        computedDisplay: window.getComputedStyle(toolbar).display,
-      });
-    } else {
-      console.log('🔵 [ChatGPTBottomBar] Toolbar not found when updating visibility');
     }
-  }, [isVisible]);
 
-  // Also listen for direct storage changes and update toolbar
-  useEffect(() => {
-    const checkAndUpdateToolbar = () => {
-      const toolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-      if (toolbar) {
-        chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
-          const visible = result.bottomBarVisible !== false;
-          toolbar.style.display = visible ? 'flex' : 'none';
-          console.log('🔵 [ChatGPTBottomBar] Toolbar visibility synced from storage:', visible);
-        });
+    // Listen for storage changes
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      // Double check context validity in callback
+      if (!chrome.runtime?.id) return;
+
+      if (changes.bottomBarVisible) {
+        setIsVisible(changes.bottomBarVisible.newValue !== false);
       }
     };
 
-    // Check periodically to ensure toolbar visibility is correct
-    const interval = setInterval(checkAndUpdateToolbar, 1000);
+    if (chrome.runtime?.id) {
+      try {
+        chrome.storage.onChanged.addListener(handleStorageChange);
+      } catch (e) {
+        console.warn('⚠️ [ChatGPTBottomBar] Failed to add storage listener:', e);
+      }
+    }
+
+    const attachContainer = (foundInput: HTMLElement) => {
+      // Check context at start of action
+      if (!chrome.runtime?.id) {
+        console.warn('⚠️ [ChatGPTBottomBar] Extension context invalidated, stopping attach.');
+        return;
+      }
+
+      // Locate parent
+      let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
+      if (!parent) parent = foundInput.parentElement;
+
+      if (!parent) return;
+
+      // Create or reuse container
+      let toolbarRoot = document.getElementById('ai-nots-toolbar-portal');
+      if (!toolbarRoot) {
+        toolbarRoot = document.createElement('div');
+        toolbarRoot.id = 'ai-nots-toolbar-portal';
+        toolbarRoot.className = 'ainots-bottom-bar-root';
+        parent.appendChild(toolbarRoot);
+      } else if (toolbarRoot.parentElement !== parent) {
+        parent.appendChild(toolbarRoot); // Re-attach if parent changed
+      }
+
+      setContainer(toolbarRoot);
+      setPromptInput(foundInput);
+    };
+
+    const cleanup = waitForPromptInput(attachContainer);
+
+    // Observer for re-attachment
+    const observer = new MutationObserver(() => {
+      const input = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+        document.querySelector('textarea') as HTMLElement;
+      const root = document.getElementById('ai-nots-toolbar-portal');
+
+      if (input && (!root || !root.isConnected)) {
+        attachContainer(input);
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      clearInterval(interval);
+      cleanup && cleanup();
+      observer.disconnect();
+      if (chrome.runtime?.id) {
+        try {
+          chrome.storage.onChanged.removeListener(handleStorageChange);
+        } catch (e) {
+          // Ignore errors during cleanup of invalid context
+        }
+      }
     };
   }, []);
 
-  // This component doesn't render anything - it injects DOM directly
-  return null;
+  if (!container || !promptInput) return null;
+
+  return createPortal(
+    <ToolbarUI
+      isVisible={isVisible}
+      onInsertText={(text) => insertTextIntoChatGPT(promptInput, text)}
+    />,
+    container
+  );
 };
 
 export default ChatGPTBottomBar;
-

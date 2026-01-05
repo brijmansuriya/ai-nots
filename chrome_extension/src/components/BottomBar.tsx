@@ -13,8 +13,11 @@ const BottomBar = () => {
             bodyExists: !!document.body,
         });
 
+        if (!chrome.runtime?.id) return;
+
         // Load visibility state from storage
         chrome.storage.local.get(['bottomBarVisible'], (result: { [key: string]: any }) => {
+            if (chrome.runtime.lastError) return;
             const visible = result.bottomBarVisible !== false; // Default to true
             setIsVisible(visible);
             console.log('🔵 [BottomBar] Loaded visibility state:', visible);
@@ -23,6 +26,7 @@ const BottomBar = () => {
 
         // Listen for storage changes (when toggled from popup)
         const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (!chrome.runtime?.id) return;
             if (changes.bottomBarVisible) {
                 const visible = changes.bottomBarVisible.newValue !== false;
                 setIsVisible(visible);
@@ -34,14 +38,19 @@ const BottomBar = () => {
         chrome.storage.onChanged.addListener(handleStorageChange);
 
         return () => {
-            chrome.storage.onChanged.removeListener(handleStorageChange);
+            if (chrome.runtime?.id) {
+                chrome.storage.onChanged.removeListener(handleStorageChange);
+            }
         };
     }, []);
 
     const toggleVisibility = () => {
+        if (!chrome.runtime?.id) return;
+
         const newVisibility = !isVisible;
         setIsVisible(newVisibility);
         chrome.storage.local.set({ bottomBarVisible: newVisibility }, () => {
+            if (chrome.runtime.lastError) return;
             console.log('🔵 [BottomBar] Toggled visibility:', newVisibility);
             debug.action('Toggled bottom bar visibility', 'BottomBar', { visible: newVisibility });
         });
