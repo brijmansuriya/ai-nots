@@ -1,7 +1,6 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
-import { debug } from '../utils/debug';
 import './ChatGPTBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -28,7 +27,7 @@ interface ToolbarUIProps {
   isVisible: boolean;
 }
 
-const ToolbarUI = ({ onInsertText, isVisible }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
 

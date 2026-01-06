@@ -39,13 +39,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content.tsx'),
       },
       output: {
         format: 'iife', // 👈 IMPORTANT
         inlineDynamicImports: true, // 👈 VERY IMPORTANT
-        entryFileNames: (chunk) =>
-          chunk.name === 'content' ? 'content.js' : 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
       },
     },
   }

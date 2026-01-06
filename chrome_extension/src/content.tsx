@@ -1,14 +1,10 @@
 // Import CSS as inline strings
 import contentStyles from './content.css?inline';
-import bottomBarStyles from './components/BottomBar.css?inline';
-import chatGptDetectorStyles from './components/ChatGPTDetector.css?inline';
 import chatGptBottomBarStyles from './components/ChatGPTBottomBar.css?inline';
 import extensionDashboardStyles from './components/ExtensionDashboard.css?inline';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import BottomBar from './components/BottomBar';
-import ChatGPTDetector from './components/ChatGPTDetector';
 import ChatGPTBottomBar from './components/ChatGPTBottomBar';
 import { debug } from './utils/debug';
 
@@ -21,8 +17,6 @@ const injectStyles = () => {
     style.id = styleId;
     style.textContent = `
         ${contentStyles}
-        ${bottomBarStyles}
-        ${chatGptDetectorStyles}
         ${chatGptBottomBarStyles}
         ${extensionDashboardStyles}
     `;
@@ -53,23 +47,19 @@ const isChatGPTPage = (): boolean => {
 const renderComponent = (container: HTMLElement) => {
     const isChatGPT = isChatGPTPage();
 
-    // For ChatGPT pages, render both ChatGPTDetector (for save button) and ChatGPTBottomBar (for bottom bar)
-    // For other pages, render BottomBar
+    // For ChatGPT pages, render only ChatGPTBottomBar (the Generate toolbar)
+    // For other pages, render nothing
     let ComponentToRender;
     let componentName;
 
     if (isChatGPT) {
-        // Render both components for ChatGPT
-        componentName = 'ChatGPTComponents';
-        ComponentToRender = () => (
-            <>
-                <ChatGPTDetector />
-                <ChatGPTBottomBar />
-            </>
-        );
+        // Render only ChatGPTBottomBar for ChatGPT pages
+        componentName = 'ChatGPTBottomBar';
+        ComponentToRender = ChatGPTBottomBar;
     } else {
-        ComponentToRender = BottomBar;
-        componentName = 'BottomBar';
+        // Don't render anything for non-ChatGPT pages
+        componentName = 'None';
+        ComponentToRender = () => null;
     }
 
     debug.render(componentName, { isChatGPT, hostname: window.location.hostname });
@@ -236,7 +226,7 @@ if (chrome.runtime?.id) {
                             console.log('🔵 [Content Script] ChatGPT toolbar visibility updated directly');
                         }
 
-                        // Re-render the component to reflect the change (for non-ChatGPT pages)
+                        // Re-render the component to reflect the change
                         const container = document.getElementById('ai-notes-bottom-bar-root');
                         if (container) {
                             renderComponent(container);
