@@ -37,6 +37,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Ensure admin guard is used
+        Auth::shouldUse('admin');
+
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 

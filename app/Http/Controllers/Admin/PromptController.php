@@ -32,7 +32,15 @@ class PromptController extends Controller
      */
     public function create()
     {
-        return Inertia::render('admin/prompts/create');
+        $tags = \App\Models\Tag::all();
+        $platforms = \App\Models\Platform::all();
+        $categories = \App\Models\Category::all();
+
+        return Inertia::render('admin/prompts/create', [
+            'tags' => $tags,
+            'platforms' => $platforms,
+            'categories' => $categories,
+        ]);
     }
 
     /**
@@ -164,7 +172,17 @@ class PromptController extends Controller
         $promptData              = $prompt->toArray();
         $promptData['image_url'] = $prompt->image_url;
 
-        return Inertia::render('admin/prompts/edit', ['prompt' => $promptData]);
+        // Load all tags, platforms, and categories for the form
+        $tags = \App\Models\Tag::all();
+        $platforms = \App\Models\Platform::all();
+        $categories = \App\Models\Category::all();
+
+        return Inertia::render('admin/prompts/edit', [
+            'prompt' => $promptData,
+            'tags' => $tags,
+            'platforms' => $platforms,
+            'categories' => $categories,
+        ]);
     }
 
     /**

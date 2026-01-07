@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useForm, router } from '@inertiajs/react';
-import axios from 'axios';
+import { useForm, router, usePage } from '@inertiajs/react';
 import Select from 'react-select';
 import AdminLayout from '@/layouts/admin-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -28,12 +27,15 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function CreatePrompt() {
+    const { tags: availableTagsProp, platforms: platformsProp, categories: categoriesProp } = usePage().props as any;
     const [tags, setTags] = useState<string[]>([]);
-    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+    const [availableTags, setAvailableTags] = useState<Tag[]>(availableTagsProp || []);
     const [manualVars, setManualVars] = useState<string[]>([]);
     const [tagInput, setTagInput] = useState('');
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+    const [platforms, setPlatforms] = useState<Platform[]>(
+        (platformsProp || []).map((p: Platform) => ({ ...p, selected: false }))
+    );
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>(categoriesProp || []);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,38 +51,20 @@ export default function CreatePrompt() {
         status: '0' as string,
     });
 
-    // Load API data
+    // Initialize from props if available
     useEffect(() => {
-        const loadTags = async () => {
-            try {
-                const res = await axios.get(route('tags'));
-                setAvailableTags(res.data.tags);
-            } catch (error) {
-                console.error('Failed to load tags:', error);
-            }
-        };
-
-        const loadPlatforms = async () => {
-            try {
-                const res = await axios.get(route('platform'));
-                const all = res.data.platforms as Platform[];
-                setPlatforms(all.map(p => ({ ...p, selected: false })));
-            } catch (error) {
-                console.error('Failed to load platforms:', error);
-            }
-        };
-
-        const loadCategories = async () => {
-            try {
-                const res = await axios.get(route('categories'));
-                setCategories(res.data.categories);
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            }
-        };
-
-        Promise.all([loadTags(), loadPlatforms(), loadCategories()]);
-    }, []);
+        if (availableTagsProp && availableTagsProp.length > 0) {
+            setAvailableTags(availableTagsProp);
+        }
+        
+        if (platformsProp && platformsProp.length > 0) {
+            setPlatforms(platformsProp.map((p: Platform) => ({ ...p, selected: false })));
+        }
+        
+        if (categoriesProp && categoriesProp.length > 0) {
+            setCategories(categoriesProp);
+        }
+    }, [availableTagsProp, platformsProp, categoriesProp]);
 
     const extractDynamicVariables = (promptText: string): string[] => {
         const matches = [...promptText.matchAll(/\[([^\]]+)\]/g)];
@@ -114,7 +98,7 @@ export default function CreatePrompt() {
     };
 
     const handlePlatformToggle = (id: string) => {
-        const updated = platforms.map((p) =>
+        const updated = (platforms || []).map((p) =>
             p.id.toString() === id ? { ...p, selected: !p.selected } : p
         );
         setPlatforms(updated);
@@ -171,7 +155,7 @@ export default function CreatePrompt() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const selectedPlatforms = platforms.filter((p) => p.selected).map((p) => p.id.toString());
+        const selectedPlatforms = (platforms || []).filter((p) => p.selected).map((p) => p.id.toString());
 
         setData('tags', tags);
         setData('platform', selectedPlatforms);
@@ -190,7 +174,7 @@ export default function CreatePrompt() {
         });
     };
 
-    const categoryOptions = categories.map((category) => ({
+    const categoryOptions = (categories || []).map((category) => ({
         value: String(category.id),
         label: category.name,
     }));
@@ -392,7 +376,7 @@ export default function CreatePrompt() {
                     <Label>Platforms <span className="text-red-500">*</span></Label>
                     <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {platforms.map((platform) => (
+                            {(platforms || []).map((platform) => (
                                 <button
                                     key={platform.id}
                                     type="button"
@@ -412,7 +396,7 @@ export default function CreatePrompt() {
                 </div>
 
                 <div>
-                    <Label>Status</Label>
+                    <Label className="mb-2 block text-foreground">Status</Label>
                     <div className="flex items-center gap-6">
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -422,8 +406,9 @@ export default function CreatePrompt() {
                                 checked={data.status === '0'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Pending</span>
+                            <span className="text-foreground">Pending</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -433,8 +418,9 @@ export default function CreatePrompt() {
                                 checked={data.status === '1'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Active</span>
+                            <span className="text-foreground">Active</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -444,8 +430,9 @@ export default function CreatePrompt() {
                                 checked={data.status === '2'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Rejected</span>
+                            <span className="text-foreground">Rejected</span>
                         </label>
                     </div>
                     <InputError message={errors.status} className="mt-2" />

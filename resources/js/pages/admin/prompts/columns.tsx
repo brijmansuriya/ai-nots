@@ -14,24 +14,32 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: "id",
     header: "ID",
+    cell: ({ row }) => {
+      const value = row.original?.id ?? row.getValue("id");
+      return <span className="text-foreground">{value ?? 'N/A'}</span>;
+    },
   },
   {
     accessorKey: "title",
     header: "Title",
+    cell: ({ row }) => {
+      const value = row.original?.title ?? row.getValue("title");
+      return <span className="text-foreground">{value ?? 'N/A'}</span>;
+    },
   },
   {
     accessorKey: "category.name",
     header: "Category",
     cell: ({ row }) => {
-      const category = row.original.category;
-      return category ? category.name : 'N/A';
+      const category = row.original?.category;
+      return <span className="text-foreground">{category ? category.name : 'N/A'}</span>;
     },
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status") as string;
+      const status = (row.original.status ?? row.getValue("status")) as string;
       const statusMap: Record<string, { label: string; className: string }> = {
         '0': { label: 'Pending', className: 'bg-yellow-100 text-yellow-800' },
         '1': { label: 'Active', className: 'bg-green-100 text-green-800' },
@@ -48,8 +56,15 @@ export const columns: ColumnDef<any>[] = [
   {
     accessorKey: "created_at",
     header: "Created At",
-    cell: ({ row }) =>
-      new Date(row.getValue("created_at")).toLocaleDateString(),
+    cell: ({ row }) => {
+      const createdAt = (row.original?.created_at ?? row.getValue("created_at")) as string;
+      if (!createdAt) return <span className="text-foreground">N/A</span>;
+      try {
+        return <span className="text-foreground">{new Date(createdAt).toLocaleDateString()}</span>;
+      } catch {
+        return <span className="text-foreground">{createdAt}</span>;
+      }
+    },
   },
   {
     id: "actions",

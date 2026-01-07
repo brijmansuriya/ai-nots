@@ -27,7 +27,7 @@ class TagSeeder extends Seeder
             $admin = Admin::create([
                 'name'     => 'System Admin',
                 'email'    => 'admin@system.com',
-                'password' => bcrypt('password'),
+                'password' => 'password', // The 'hashed' cast in Admin model will automatically hash this
             ]);
         }
 

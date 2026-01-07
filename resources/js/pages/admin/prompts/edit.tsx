@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useForm, router, usePage } from '@inertiajs/react';
-import axios from 'axios';
 import Select from 'react-select';
 import AdminLayout from '@/layouts/admin-layout';
 import { type BreadcrumbItem } from '@/types';
@@ -27,15 +26,23 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function EditPrompt() {
-    const { prompt } = usePage().props as any;
+    const { prompt, tags: availableTagsProp, platforms: platformsProp, categories: categoriesProp } = usePage().props as any;
     const [tags, setTags] = useState<string[]>(prompt.tags?.map((t: any) => t.name) || []);
-    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+    const [availableTags, setAvailableTags] = useState<Tag[]>(availableTagsProp || []);
     const [manualVars, setManualVars] = useState<string[]>(prompt.variables?.map((v: any) => v.name) || []);
     const [tagInput, setTagInput] = useState('');
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [imagePreview, setImagePreview] = useState<string | null>(prompt.image_url || null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Initialize platforms and categories from props
+    const selectedPlatformIds = prompt.platforms?.map((p: any) => p.id.toString()) || [];
+    const [platforms, setPlatforms] = useState<Platform[]>(
+        (platformsProp || []).map((p: Platform) => ({
+            ...p,
+            selected: selectedPlatformIds.includes(p.id.toString()),
+        }))
+    );
+    const [categories, setCategories] = useState<{ id: string; name: string }[]>(categoriesProp || []);
 
     const { data, setData, post, processing, errors, clearErrors } = useForm({
         title: prompt.title || '',
@@ -50,39 +57,24 @@ export default function EditPrompt() {
         status: String(prompt.status || '0'),
     });
 
-    // Load API data
+    // Initialize from props if available, otherwise try API (fallback)
     useEffect(() => {
-        const loadTags = async () => {
-            try {
-                const res = await axios.get(route('tags'));
-                setAvailableTags(res.data.tags);
-            } catch (error) {
-                console.error('Failed to load tags:', error);
-            }
-        };
-
-        const loadPlatforms = async () => {
-            try {
-                const res = await axios.get(route('platform'));
-                const all = res.data.platforms as Platform[];
-                const selectedIds = prompt.platforms?.map((p: any) => p.id.toString()) || [];
-                setPlatforms(all.map(p => ({ ...p, selected: selectedIds.includes(p.id.toString()) })));
-            } catch (error) {
-                console.error('Failed to load platforms:', error);
-            }
-        };
-
-        const loadCategories = async () => {
-            try {
-                const res = await axios.get(route('categories'));
-                setCategories(res.data.categories);
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            }
-        };
-
-        Promise.all([loadTags(), loadPlatforms(), loadCategories()]);
-    }, []);
+        if (availableTagsProp && availableTagsProp.length > 0) {
+            setAvailableTags(availableTagsProp);
+        }
+        
+        if (platformsProp && platformsProp.length > 0) {
+            const selectedIds = prompt.platforms?.map((p: any) => p.id.toString()) || [];
+            setPlatforms(platformsProp.map((p: Platform) => ({
+                ...p,
+                selected: selectedIds.includes(p.id.toString()),
+            })));
+        }
+        
+        if (categoriesProp && categoriesProp.length > 0) {
+            setCategories(categoriesProp);
+        }
+    }, [availableTagsProp, platformsProp, categoriesProp, prompt.platforms]);
 
     const extractDynamicVariables = (promptText: string): string[] => {
         const matches = [...promptText.matchAll(/\[([^\]]+)\]/g)];
@@ -116,7 +108,7 @@ export default function EditPrompt() {
     };
 
     const handlePlatformToggle = (id: string) => {
-        const updated = platforms.map((p) =>
+        const updated = (platforms || []).map((p) =>
             p.id.toString() === id ? { ...p, selected: !p.selected } : p
         );
         setPlatforms(updated);
@@ -175,7 +167,7 @@ export default function EditPrompt() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        const selectedPlatforms = platforms.filter((p) => p.selected).map((p) => p.id.toString());
+        const selectedPlatforms = (platforms || []).filter((p) => p.selected).map((p) => p.id.toString());
 
         setData('tags', tags);
         setData('platform', selectedPlatforms);
@@ -194,7 +186,7 @@ export default function EditPrompt() {
         });
     };
 
-    const categoryOptions = categories.map((category) => ({
+    const categoryOptions = (categories || []).map((category) => ({
         value: String(category.id),
         label: category.name,
     }));
@@ -253,7 +245,7 @@ export default function EditPrompt() {
         <AdminLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Template" />
             <div className="flex items-center justify-between mb-4 px-4 pt-4">
-                <h1 className="text-2xl font-bold">Edit Template</h1>
+                <h1 className="text-2xl font-bold text-foreground">Edit Template</h1>
             </div>
 
             <form onSubmit={handleSubmit} className="px-4 py-4 space-y-6">
@@ -397,7 +389,7 @@ export default function EditPrompt() {
                     <Label>Platforms <span className="text-red-500">*</span></Label>
                     <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                            {platforms.map((platform) => (
+                            {(platforms || []).map((platform) => (
                                 <button
                                     key={platform.id}
                                     type="button"
@@ -417,7 +409,7 @@ export default function EditPrompt() {
                 </div>
 
                 <div>
-                    <Label>Status</Label>
+                    <Label className="mb-2 block text-foreground">Status</Label>
                     <div className="flex items-center gap-6">
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -427,8 +419,9 @@ export default function EditPrompt() {
                                 checked={data.status === '0'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Pending</span>
+                            <span className="text-foreground">Pending</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -438,8 +431,9 @@ export default function EditPrompt() {
                                 checked={data.status === '1'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Active</span>
+                            <span className="text-foreground">Active</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer">
                             <input
@@ -449,8 +443,9 @@ export default function EditPrompt() {
                                 checked={data.status === '2'}
                                 onChange={(e) => setData('status', e.target.value)}
                                 disabled={processing}
+                                className="text-foreground"
                             />
-                            <span>Rejected</span>
+                            <span className="text-foreground">Rejected</span>
                         </label>
                     </div>
                     <InputError message={errors.status} className="mt-2" />
