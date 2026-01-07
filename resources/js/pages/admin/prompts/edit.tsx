@@ -250,7 +250,7 @@ export default function EditPrompt() {
 
             <form onSubmit={handleSubmit} className="px-4 py-4 space-y-6">
                 <div>
-                    <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="title" className="text-foreground">Title <span className="text-red-500">*</span></Label>
                     <input
                         id="title"
                         type="text"
@@ -269,7 +269,7 @@ export default function EditPrompt() {
                 </div>
 
                 <div>
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description" className="text-foreground">Description</Label>
                     <textarea
                         id="description"
                         value={data.description}
@@ -288,7 +288,7 @@ export default function EditPrompt() {
                 </div>
 
                 <div>
-                    <Label htmlFor="image-input">Image</Label>
+                    <Label htmlFor="image-input" className="text-foreground">Image</Label>
                     <div className="space-y-3">
                         {imagePreview ? (
                             <div className="relative">
@@ -327,7 +327,7 @@ export default function EditPrompt() {
                 </div>
 
                 <div>
-                    <Label htmlFor="prompt-textarea">AI Prompt <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="prompt-textarea" className="text-foreground">AI Prompt <span className="text-red-500">*</span></Label>
                     <textarea
                         id="prompt-textarea"
                         value={data.prompt}
@@ -349,7 +349,7 @@ export default function EditPrompt() {
                 />
 
                 <div>
-                    <Label htmlFor="category_id">Category <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="category_id" className="text-foreground">Category <span className="text-red-500">*</span></Label>
                     <Select
                         id="category_id"
                         options={categoryOptions}
@@ -386,7 +386,7 @@ export default function EditPrompt() {
                 />
 
                 <div>
-                    <Label>Platforms <span className="text-red-500">*</span></Label>
+                    <Label className="text-foreground">Platforms <span className="text-red-500">*</span></Label>
                     <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4">
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {(platforms || []).map((platform) => (
@@ -470,7 +470,7 @@ export default function EditPrompt() {
 function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setData, error, clearErrors }: any) {
     return (
         <div>
-            <Label htmlFor="tags-input">Tags <span className="text-red-500">*</span></Label>
+            <Label htmlFor="tags-input" className="text-foreground">Tags <span className="text-red-500">*</span></Label>
             <div className="relative">
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-800 bg-white dark:bg-gray-950 p-3 min-h-[48px]">
                     {tags.map((tag: string, i: number) => (
@@ -515,7 +515,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
                             }
                         }}
                         placeholder="Type and press Enter"
-                        className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-[150px] text-sm"
+                        className="flex-1 bg-transparent text-foreground placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-[150px] text-sm"
                     />
                 </div>
                 {availableTags.length > 0 && (
@@ -536,7 +536,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
                                             }
                                         }
                                     }}
-                                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer rounded text-sm"
+                                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer rounded text-sm text-foreground"
                                 >
                                     {tag.name}
                                 </li>
@@ -552,7 +552,7 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
 function DynamicVariableInput({ manualVars, setManualVars, data, setData, insertVariableIntoPrompt }: any) {
     return (
         <div>
-            <Label htmlFor="dynamic-variables-input">Dynamic Variables</Label>
+            <Label htmlFor="dynamic-variables-input" className="text-foreground">Dynamic Variables</Label>
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 min-h-[48px]">
                 {manualVars.map((v: string, i: number) => (
                     <div
