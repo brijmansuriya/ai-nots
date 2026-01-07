@@ -3,8 +3,8 @@ import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
 import InputError from '@/components/input-error';
+import { PasswordInput } from '@/components/password-input';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function ConfirmPassword() {
@@ -36,9 +36,8 @@ export default function ConfirmPassword() {
         <form className="space-y-5" onSubmit={submit}>
           <div className="space-y-2">
             <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               required
               autoFocus
               autoComplete="current-password"

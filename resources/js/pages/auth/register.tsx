@@ -4,6 +4,7 @@ import { FormEventHandler } from 'react';
 import { FcGoogle } from 'react-icons/fc'; // Import Google icon
 
 import InputError from '@/components/input-error';
+import { PasswordInput } from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,9 +82,8 @@ export default function Register() {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               required
               autoComplete="new-password"
               placeholder="Password"
@@ -97,9 +97,8 @@ export default function Register() {
 
           <div className="space-y-2">
             <Label htmlFor="password_confirmation" className="text-gray-700 dark:text-gray-300">Confirm password</Label>
-            <Input
+            <PasswordInput
               id="password_confirmation"
-              type="password"
               required
               autoComplete="new-password"
               placeholder="Confirm password"

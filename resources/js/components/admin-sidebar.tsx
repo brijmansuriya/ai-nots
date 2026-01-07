@@ -1,10 +1,8 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, FileText } from 'lucide-react';
+import { FileText, LayoutGrid, LogOut } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -67,10 +65,18 @@ export function AdminSidebar() {
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            {/* <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                { <NavUser /> }
-            </SidebarFooter> */}
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100">
+                            <Link method="post" href={route('admin.logout')} as="button">
+                                <LogOut className="h-5 w-5" />
+                                <span>Log out</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
         </Sidebar>
     );
 }

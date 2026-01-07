@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import InputError from '@/components/input-error';
+import { PasswordInput } from '@/components/password-input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Prompt, Folder } from '@/types';
@@ -853,9 +854,8 @@ export default function Dashboard({ auth }: any) {
                             <Label htmlFor="current_password" className="text-sm font-medium text-foreground mb-2 block">
                               Current Password
                             </Label>
-                            <Input
+                            <PasswordInput
                               id="current_password"
-                              type="password"
                               value={passwordData.current_password}
                               onChange={(e) => setPasswordData('current_password', e.target.value)}
                               placeholder="Enter your current password"
@@ -868,9 +868,8 @@ export default function Dashboard({ auth }: any) {
                             <Label htmlFor="password" className="text-sm font-medium text-foreground mb-2 block">
                               New Password
                             </Label>
-                            <Input
+                            <PasswordInput
                               id="password"
-                              type="password"
                               value={passwordData.password}
                               onChange={(e) => setPasswordData('password', e.target.value)}
                               placeholder="Enter your new password"
@@ -886,9 +885,8 @@ export default function Dashboard({ auth }: any) {
                             <Label htmlFor="password_confirmation" className="text-sm font-medium text-foreground mb-2 block">
                               Confirm New Password
                             </Label>
-                            <Input
+                            <PasswordInput
                               id="password_confirmation"
-                              type="password"
                               value={passwordData.password_confirmation}
                               onChange={(e) => setPasswordData('password_confirmation', e.target.value)}
                               placeholder="Confirm your new password"
