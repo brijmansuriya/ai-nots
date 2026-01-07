@@ -211,7 +211,7 @@ export default function Features() {
 
     return (
         <WebLayout title="Features - AI Nots">
-            <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black transition-colors min-h-screen">
+            <div className="bg-background min-h-screen">
                 {/* Hero Section */}
                 <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

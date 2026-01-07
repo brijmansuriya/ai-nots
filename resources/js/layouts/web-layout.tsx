@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 export default function WebLayout({ children, title, ...props }: { children: React.ReactNode; title: string }) {
     return (
         <ThemeProvider>
-            <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors" {...props}>
+            <div className="min-h-screen bg-background transition-colors" {...props}>
                 {/* Meta Head Title */}
                 <Head title={title} />
 
@@ -15,7 +15,7 @@ export default function WebLayout({ children, title, ...props }: { children: Rea
                 <Header />
 
                 {/* Main Content */}
-                <main className="bg-white dark:bg-gray-950">
+                <main className="bg-background">
                     {children}
                 </main>
 

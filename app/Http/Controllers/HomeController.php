@@ -18,14 +18,53 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
+        // Get statistics for the home page
+        $totalPrompts = PromptNote::active()->count();
+        $totalCategories = Category::count();
+        $totalTags = Tag::count();
+        $totalPlatforms = Platform::where('status', 'active')->count();
+
+        // Get popular/top prompts (most saved/liked)
+        $popularPrompts = PromptNote::with(['tags', 'platforms', 'media'])
+            ->active()
+            ->orderByRaw('(COALESCE(save_count, 0) + COALESCE(likes_count, 0) + COALESCE(copy_count, 0)) DESC')
+            ->limit(6)
+            ->get();
+
+        // Get recent prompts
+        $recentPrompts = PromptNote::with(['tags', 'platforms', 'media'])
+            ->active()
+            ->latest()
+            ->limit(6)
+            ->get();
+
+        // Get popular categories (categories with most active prompts)
+        $popularCategories = Category::withCount(['promptNotes' => function ($query) {
+                $query->where('status', '1')
+                    ->whereNull('deleted_at');
+            }])
+            ->orderBy('prompt_notes_count', 'desc')
+            ->limit(6)
+            ->get();
+
         return Inertia::render('home', [
             'search' => $request->input('search', ''),
+            'statistics' => [
+                'total_prompts' => $totalPrompts,
+                'total_categories' => $totalCategories,
+                'total_tags' => $totalTags,
+                'total_platforms' => $totalPlatforms,
+            ],
+            'popular_prompts' => $popularPrompts,
+            'recent_prompts' => $recentPrompts,
+            'popular_categories' => $popularCategories,
         ]);
     }
 
     public function home(Request $request)
     {
         $search = $request->input('search', '');
+        $categoryId = $request->input('category_id');
         $user   = $request->user();
 
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
@@ -38,6 +77,9 @@ class HomeController extends Controller
                         ->orWhereHas('tags', fn($tq) => $tq->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('platforms', fn($pq) => $pq->where('name', 'like', "%{$search}%"));
                 });
+            })
+            ->when($categoryId, function ($query, $categoryId) {
+                $query->where('category_id', $categoryId);
             })
             ->latest()
             ->paginate(10);

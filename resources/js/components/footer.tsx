@@ -25,19 +25,19 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="relative w-full bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 shadow-sm z-10 text-gray-700 dark:text-gray-300 transition-colors">
+    <footer className="relative w-full bg-background border-t border-border shadow-sm z-10 text-foreground transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Mobile Menu Toggle */}
         <div className="flex justify-between items-center md:hidden mb-6">
-          <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            AI NOTS
+          <div className="text-xl sm:text-2xl font-bold text-foreground">
+            AI Notes
           </div>
           <button
             onClick={toggleMenu}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300"
+            className="p-2 rounded-lg hover:bg-accent transition-all duration-300"
             aria-label="Toggle menu"
           >
-            {menuOpen ? <X size={24} className="text-gray-700 dark:text-gray-300" /> : <Menu size={24} className="text-gray-700 dark:text-gray-300" />}
+            {menuOpen ? <X size={24} className="text-foreground" /> : <Menu size={24} className="text-foreground" />}
           </button>
         </div>
 
@@ -51,7 +51,7 @@ export default function Footer() {
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:translate-x-1 transition-all duration-300"
+                className="text-sm sm:text-base font-medium text-foreground hover:text-foreground/80 hover:translate-x-1 transition-all duration-300"
                 onClick={() => setMenuOpen(false)}
               >
                 {link.name}
@@ -64,10 +64,10 @@ export default function Footer() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300"
+                  className="p-2 rounded-lg hover:bg-accent transition-all duration-300"
                   aria-label={link.name}
                 >
-                  <link.icon size={20} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" />
+                  <link.icon size={20} className="text-foreground hover:text-foreground/80" />
                 </a>
               ))}
             </div>
@@ -78,23 +78,23 @@ export default function Footer() {
         <div className="hidden md:grid md:grid-cols-3 gap-8">
           {/* Brand & Description */}
           <div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
-              AI NOTS
+            <div className="text-xl sm:text-2xl font-bold text-foreground mb-4">
+              AI Notes
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
+            <p className="text-muted-foreground text-sm">
               Empowering developers with free tools and templates for secure web solutions, including forgot password email templates and more.
             </p>
           </div>
 
           {/* Navigation Links */}
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Links</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Quick Links</h3>
             <nav className="flex flex-col gap-3">
               {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:translate-x-1 transition-all duration-300"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground hover:translate-x-1 transition-all duration-300"
                 >
                   {link.name}
                 </Link>
@@ -104,7 +104,7 @@ export default function Footer() {
 
           {/* Social Media & Contact */}
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-4">Connect With Us</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Connect With Us</h3>
             <div className="flex gap-4 mb-4">
               {socialLinks.map((link) => (
                 <a
@@ -112,22 +112,22 @@ export default function Footer() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300"
+                  className="p-2 rounded-lg hover:bg-accent transition-all duration-300"
                   aria-label={link.name}
                 >
-                  <link.icon size={20} className="text-gray-600 hover:text-gray-900" />
+                  <link.icon size={20} className="text-muted-foreground hover:text-foreground" />
                 </a>
               ))}
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Email: <a href="mailto:support@web-beast.com" className="hover:text-gray-900 dark:hover:text-white text-gray-900 dark:text-white font-medium">support@web-beast.com</a>
+            <p className="text-muted-foreground text-sm">
+              Email: <a href="mailto:support@web-beast.com" className="hover:text-foreground text-foreground font-medium">support@web-beast.com</a>
             </p>
           </div>
         </div>
 
         {/* Bottom Section */}
-        <div className="mt-8 sm:mt-12 border-t border-gray-200 dark:border-gray-800 pt-6 text-center">
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-8 sm:mt-12 border-t border-border pt-6 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             © {new Date().getFullYear()} Web Beast. All rights reserved.
           </p>
           {/* <p className="text-xs sm:text-sm text-white/70 mt-2">
