@@ -44,6 +44,7 @@ class PromptNote extends Model implements HasMedia
      */
     protected $appends = [
         'image_url',
+        'is_template',
     ];
 
     /**
@@ -97,6 +98,28 @@ class PromptNote extends Model implements HasMedia
     {
         $statusValue = $status instanceof PromptStatus ? $status->value : $status;
         return $query->where('status', $statusValue);
+    }
+
+    /**
+     * Scope a query to only include templates (admin-created prompts).
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopeTemplates(Builder $query): Builder
+    {
+        return $query->where('promptable_type', 'admin');
+    }
+
+    /**
+     * Scope a query to only include personal prompts (user-created prompts).
+     *
+     * @param Builder $query
+     * @return Builder
+     */
+    public function scopePersonal(Builder $query): Builder
+    {
+        return $query->where('promptable_type', 'user');
     }
 
     /**
@@ -283,6 +306,36 @@ class PromptNote extends Model implements HasMedia
     public function isRejected(): bool
     {
         return $this->status === PromptStatus::REJECTED->value;
+    }
+
+    /**
+     * Check if prompt is a template (created by admin).
+     *
+     * @return bool
+     */
+    public function isTemplate(): bool
+    {
+        return $this->promptable_type === 'admin';
+    }
+
+    /**
+     * Check if prompt is personal (created by user).
+     *
+     * @return bool
+     */
+    public function isPersonal(): bool
+    {
+        return $this->promptable_type === 'user';
+    }
+
+    /**
+     * Get the is_template attribute (computed from promptable_type).
+     *
+     * @return bool
+     */
+    public function getIsTemplateAttribute(): bool
+    {
+        return $this->isTemplate();
     }
 
     /**

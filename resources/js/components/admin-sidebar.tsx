@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, FileText } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -22,6 +22,16 @@ const mainNavItems: NavItem[] = [
         title: 'Categories',
         href: route('admin.categories.index'),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Platforms',
+        href: route('admin.platforms.index'),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Templates',
+        href: route('admin.prompts.index'),
+        icon: FileText,
     }
 ];
 

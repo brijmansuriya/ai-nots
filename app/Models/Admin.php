@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\MorphMany as MorphManyRelation;
 
 class Admin extends Authenticatable
 {
@@ -55,6 +56,12 @@ class Admin extends Authenticatable
     {
         return $this->morphMany(Tag::class, 'created_by');
     }
-    
-    
+
+    /**
+     * Get all prompts created by this admin (templates).
+     */
+    public function promptable(): MorphManyRelation
+    {
+        return $this->morphMany(\App\Models\PromptNote::class, 'promptable');
+    }
 }

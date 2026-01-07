@@ -136,6 +136,8 @@ export interface Prompt {
     // User-specific flags (only for authenticated users)
     is_saved?: boolean;
     is_liked?: boolean;
+    // Template flag (computed from promptable_type)
+    is_template?: boolean;
 }
 
 export interface EditPromptProps {

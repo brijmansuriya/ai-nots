@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\Auth\VerifyEmailController;
 use App\Http\Controllers\Admin\CategorieController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\PlatformController;
+use App\Http\Controllers\Admin\PromptController;
 use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,4 +59,5 @@ Route::middleware('auth.admin')->prefix('admin')->name('admin.')->group(function
     Route::resource('tags', TagController::class);
     Route::resource('categories', CategorieController::class);
     Route::resource('platforms', PlatformController::class);
+    Route::resource('prompts', PromptController::class);
 });
