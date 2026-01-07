@@ -468,6 +468,11 @@ export default function EditPrompt() {
 }
 
 function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setData, error, clearErrors }: any) {
+    // Filter available tags that match the input and aren't already selected
+    const filteredTags = availableTags.filter(
+        (tag: Tag) => tag.name.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(tag.name)
+    );
+
     return (
         <div>
             <Label htmlFor="tags-input" className="text-foreground">Tags <span className="text-red-500">*</span></Label>
@@ -518,29 +523,27 @@ function TagSelector({ tags, tagInput, setTagInput, availableTags, setTags, setD
                         className="flex-1 bg-transparent text-foreground placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-[150px] text-sm"
                     />
                 </div>
-                {availableTags.length > 0 && (
+                {filteredTags.length > 0 && (
                     <ul className="mt-2 max-h-40 overflow-y-auto border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-950 p-2">
-                        {availableTags
-                            .filter((tag: Tag) => tag.name.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(tag.name))
-                            .map((tag: Tag) => (
-                                <li
-                                    key={tag.id}
-                                    onClick={() => {
-                                        if (!tags.includes(tag.name)) {
-                                            const updated = [...tags, tag.name];
-                                            setTags(updated);
-                                            setData('tags', updated);
-                                            setTagInput('');
-                                            if (error) {
-                                                clearErrors('tags');
-                                            }
+                        {filteredTags.map((tag: Tag) => (
+                            <li
+                                key={tag.id}
+                                onClick={() => {
+                                    if (!tags.includes(tag.name)) {
+                                        const updated = [...tags, tag.name];
+                                        setTags(updated);
+                                        setData('tags', updated);
+                                        setTagInput('');
+                                        if (error) {
+                                            clearErrors('tags');
                                         }
-                                    }}
-                                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer rounded text-sm text-foreground"
-                                >
-                                    {tag.name}
-                                </li>
-                            ))}
+                                    }
+                                }}
+                                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer rounded text-sm text-foreground"
+                            >
+                                {tag.name}
+                            </li>
+                        ))}
                     </ul>
                 )}
             </div>

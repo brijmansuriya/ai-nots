@@ -18,7 +18,7 @@ interface EditPlatformProps {
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin/dashboard',
     },
     {
         title: 'Platforms',
@@ -41,13 +41,13 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
         <AdminLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Platform" />
             <div className="flex items-center justify-between mb-4 px-4 pt-4">
-                <h1 className="text-lg font-semibold">Edit Platform</h1>
+                <h1 className="text-lg font-semibold text-foreground">Edit Platform</h1>
             </div>
 
             <form onSubmit={submit} className="px-4 py-4 space-y-4">
                 {/* Name */}
                 <div className="grid gap-2">
-                    <Label htmlFor="name">Platform Name</Label>
+                    <Label htmlFor="name" className="text-foreground">Platform Name</Label>
                     <Input
                         id="name"
                         type="text"
@@ -61,9 +61,9 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
 
                 {/* Status */}
                 <div className="grid gap-2">
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="status" className="text-foreground">Status</Label>
                     <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="radio"
                                 name="status"
@@ -71,11 +71,11 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                                 checked={data.status === 'active'}
                                 onChange={() => setData('status', 'active')}
                                 disabled={processing}
-                                className="form-radio"
+                                className="form-radio text-foreground"
                             />
-                            <span>Active</span>
+                            <span className="text-foreground">Active</span>
                         </label>
-                        <label className="flex items-center space-x-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="radio"
                                 name="status"
@@ -83,11 +83,11 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                                 checked={data.status === 'pending'}
                                 onChange={() => setData('status', 'pending')}
                                 disabled={processing}
-                                className="form-radio"
+                                className="form-radio text-foreground"
                             />
-                            <span>Pending</span>
+                            <span className="text-foreground">Pending</span>
                         </label>
-                        <label className="flex items-center space-x-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="radio"
                                 name="status"
@@ -95,9 +95,9 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                                 checked={data.status === 'deactive'}
                                 onChange={() => setData('status', 'deactive')}
                                 disabled={processing}
-                                className="form-radio"
+                                className="form-radio text-foreground"
                             />
-                            <span>Inactive</span>
+                            <span className="text-foreground">Inactive</span>
                         </label>
                     </div>
                     <InputError message={errors.status} className="mt-2" />
@@ -111,7 +111,7 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => router.visit(route('admin.platforms.index'))}
+                        onClick={() => router.visit('/admin/platforms')}
                         disabled={processing}
                     >
                         Cancel

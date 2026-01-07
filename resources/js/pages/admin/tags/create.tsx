@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: '/admin/dashboard',
     },
     {
         title: 'Tags',
@@ -38,13 +38,13 @@ export default function CreateTag() {
         <AdminLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Tag" />
             <div className="flex items-center justify-between mb-4 px-4 pt-4">
-                <h1 className="text-lg font-semibold">Create New Tag</h1>
+                <h1 className="text-lg font-semibold text-foreground">Create New Tag</h1>
             </div>
 
             <form onSubmit={submit} className="px-4 py-4 space-y-4">
                 {/* Tag Name */}
                 <div className="grid gap-2">
-                    <Label htmlFor="name">Tag Name</Label>
+                    <Label htmlFor="name" className="text-foreground">Tag Name</Label>
                     <Input
                         id="name"
                         type="text"
@@ -61,7 +61,7 @@ export default function CreateTag() {
 
                 {/* Slug */}
                 <div className="grid gap-2">
-                    <Label htmlFor="slug">Slug</Label>
+                    <Label htmlFor="slug" className="text-foreground">Slug</Label>
                     <Input
                         id="slug"
                         type="text"
@@ -75,7 +75,7 @@ export default function CreateTag() {
 
                 {/* Description */}
                 <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description" className="text-foreground">Description</Label>
                    
 
                     <Textarea placeholder="Type your message here." 
@@ -90,9 +90,9 @@ export default function CreateTag() {
 
                 {/* Status */}
                 <div className="grid gap-2">
-                    <Label htmlFor="status">Status</Label>
+                    <Label htmlFor="status" className="text-foreground">Status</Label>
                     <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="radio"
                                 name="status"
@@ -100,11 +100,11 @@ export default function CreateTag() {
                                 checked={data.status === 'active'}
                                 onChange={() => setData('status', 'active')}
                                 disabled={processing}
-                                className="form-radio"
+                                className="form-radio text-foreground"
                             />
-                            <span>Active</span>
+                            <span className="text-foreground">Active</span>
                         </label>
-                        <label className="flex items-center space-x-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
                                 type="radio"
                                 name="status"
@@ -112,9 +112,9 @@ export default function CreateTag() {
                                 checked={data.status == 'deactive'}
                                 onChange={() => setData('status', 'deactive')}
                                 disabled={processing}
-                                className="form-radio"
+                                className="form-radio text-foreground"
                             />
-                            <span>Inactive</span>
+                            <span className="text-foreground">Inactive</span>
                         </label>
                     </div>
                     <InputError message={errors.status} className="mt-2" />
