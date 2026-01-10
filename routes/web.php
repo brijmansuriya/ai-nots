@@ -16,7 +16,7 @@ Route::get('/features', function () {
     return Inertia::render('features');
 })->name('features');
 
-Route::middleware(['auth.user'])->group(function () {
+Route::middleware(['auth:web'])->group(function () {
     Route::prefix('prompt')->group(function () {
         Route::get('create', function () {
             return Inertia::render('add-prompt');

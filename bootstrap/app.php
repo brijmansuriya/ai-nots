@@ -1,9 +1,6 @@
 <?php
 
-use App\Http\Middleware\AuthAdmin;
-use App\Http\Middleware\AuthUser;
-use App\Http\Middleware\GuestAdmin;
-use App\Http\Middleware\GuestUser;
+use App\Http\Middleware\EnsureGuest;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -31,7 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         // Global Middleware Here
-        // Note: GuestUser should not be global as it interferes with public routes
 
         $middleware->web(append: [
             HandleAppearance::class,
@@ -41,10 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         //alias middleware
         $middleware->alias([
-            'auth.admin'  => AuthAdmin::class,
-            'auth.user'   => AuthUser::class,
-            'guest.admin' => GuestAdmin::class,
-            'guest.user'  => GuestUser::class,
+            'guest' => EnsureGuest::class,
         ]);
 
     })

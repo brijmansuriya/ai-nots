@@ -28,10 +28,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        // Logout user if logged in (prevent simultaneous login)
-        if (Auth::guard('web')->check()) {
-            Auth::guard('web')->logout();
-        }
+        // Allow both admin and user to be logged in simultaneously
+        // No logout of web guard
 
         $request->authenticate();
 
