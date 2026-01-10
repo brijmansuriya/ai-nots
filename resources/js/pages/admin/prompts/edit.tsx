@@ -44,7 +44,7 @@ export default function EditPrompt() {
     );
     const [categories, setCategories] = useState<{ id: string; name: string }[]>(categoriesProp || []);
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm({
+    const { data, setData, put, processing, errors, clearErrors } = useForm({
         title: prompt.title || '',
         prompt: prompt.prompt || '',
         description: prompt.description || '',
@@ -177,7 +177,7 @@ export default function EditPrompt() {
         setData('category_id', data.category_id ? String(data.category_id) : '');
         setData('status', data.status || '0');
 
-        post(route('admin.prompts.update', prompt.id), {
+        put(route('admin.prompts.update', prompt.id), {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {

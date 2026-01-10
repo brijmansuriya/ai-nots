@@ -59,5 +59,7 @@ Route::middleware('auth:admin')->prefix('admin')->name('admin.')->group(function
     Route::resource('tags', TagController::class);
     Route::resource('categories', CategorieController::class);
     Route::resource('platforms', PlatformController::class);
-    Route::resource('prompts', PromptController::class);
+    Route::resource('prompts', PromptController::class)->except(['update']);
+    // Allow POST with method spoofing for file uploads
+    Route::match(['put', 'patch', 'post'], 'prompts/{prompt}', [PromptController::class, 'update'])->name('prompts.update');
 });
