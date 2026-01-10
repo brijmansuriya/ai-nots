@@ -29,14 +29,17 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         // Logout admin if logged in (prevent simultaneous login)
-        if (Auth::guard('web')->check()) {
-            Auth::guard('web')->logout();
+        if (Auth::guard('admin')->check()) {
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
         }
 
         $request->authenticate();
 
         $request->session()->regenerate();
 
+        Auth::shouldUse('web');
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

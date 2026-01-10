@@ -15,15 +15,15 @@ class GuestAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // If admin is already logged in, redirect to admin dashboard
-        if ($request->is('admin/*') && Auth::guard('admin')->check()) {
-            return redirect()->route('admin.dashboard');
+        // Only handle admin guest routes (login, register, etc.)
+        // This middleware should only be applied to admin guest routes
+        if (!$request->is('admin/*')) {
+            return $next($request);
         }
 
-        // If regular user is logged in, redirect to user dashboard
-        // (Logout will happen when they actually try to login as admin)
-        if ($request->is('/*') && Auth::guard('web')->check()) {
-            return redirect()->route('dashboard');
+        // If admin is already logged in, redirect to admin dashboard
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('admin.dashboard');
         }
 
         return $next($request);

@@ -17,6 +17,9 @@ class GuestUser
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Only handle user guest routes (login, register, etc.)
+        // This middleware should only be applied to user guest routes, not public routes like home
+        
         // If admin is logged in and trying to access user guest pages, redirect to admin dashboard
         if (Auth::guard('admin')->check()) {
             return redirect()->route('admin.dashboard');
