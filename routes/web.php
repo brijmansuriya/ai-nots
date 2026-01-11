@@ -16,6 +16,9 @@ Route::get('/features', function () {
     return Inertia::render('features');
 })->name('features');
 
+// Public short URL route for sharing prompts
+Route::get('p/{slug}', [PromptController::class, 'showBySlug'])->name('prompt.share');
+
 Route::middleware(['auth:web'])->group(function () {
     Route::prefix('prompt')->group(function () {
         Route::get('create', function () {

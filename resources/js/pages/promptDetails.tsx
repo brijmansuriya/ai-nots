@@ -7,13 +7,16 @@ import {
     TwitterShareButton,
     FacebookShareButton,
     LinkedinShareButton,
+    TelegramShareButton,
     WhatsappIcon,
     TwitterIcon,
     FacebookIcon,
-    LinkedinIcon
+    LinkedinIcon,
+    TelegramIcon
 } from 'react-share';
 import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon, Download, ChevronDown } from 'lucide-react';
 import { CopyButton } from '@/components/ui/copy-button';
+import { CopyLinkButton } from '@/components/ui/copy-link-button';
 import { SaveButton } from '@/components/ui/save-button';
 import { LikeButton } from '@/components/ui/like-button';
 import { MetricsDisplay } from '@/components/ui/metrics-display';
@@ -34,13 +37,15 @@ interface PromptDetailsProps {
     prompt: Prompt;
     recentPrompts?: Prompt[];
     index?: number;
+    shareUrl?: string;
+    ogImageUrl?: string;
 }
 
-export default function PromptDetails({ prompt, recentPrompts = [], index = 0 }: PromptDetailsProps) {
+export default function PromptDetails({ prompt, recentPrompts = [], index = 0, shareUrl: propShareUrl, ogImageUrl }: PromptDetailsProps) {
     const [imageModalOpen, setImageModalOpen] = React.useState(false);
     const { auth } = usePage().props;
     const user = auth?.user;
-    const shareUrl = window.location.href;
+    const shareUrl = propShareUrl || window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
     const isDark = document.documentElement.classList.contains('dark');
     const iconColor = isDark ? '#ffffff' : '#000000';
@@ -136,8 +141,18 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
         URL.revokeObjectURL(url);
     };
 
+    // Build meta description
+    const metaDescription = prompt.description 
+        ? `${prompt.description.substring(0, 160)}...` 
+        : `Check out this AI prompt: ${prompt.title}`;
+
     return (
-        <WebLayout title={prompt.title}>
+        <WebLayout 
+            title={`${prompt.title} | AI Notes`}
+            description={metaDescription}
+            ogImage={ogImageUrl || (prompt as any).image_url}
+            ogUrl={shareUrl}
+        >
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-black dark:via-gray-950 dark:to-black transition-colors">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                     {/* Back Button */}
@@ -161,9 +176,12 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                             <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-lg">
                                                 #{prompt.id}
                                             </span>
-                                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                                                {prompt.title}
-                                            </h1>
+                                            <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
+                                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                                                    {prompt.title}
+                                                </h1>
+                                                <CopyLinkButton url={shareUrl} variant="outline" size="sm" />
+                                            </div>
                                         </div>
 
                                         {prompt.description && (
@@ -217,6 +235,12 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                                     <LinkedinIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </LinkedinShareButton>
+
+                                            <TelegramShareButton url={shareUrl} title={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                    <TelegramIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
+                                                </div>
+                                            </TelegramShareButton>
                                         </div>
                                     </div>
                                 </div>

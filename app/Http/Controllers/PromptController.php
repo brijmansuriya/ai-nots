@@ -8,6 +8,7 @@ use App\Models\PromptNote;
 use App\Models\PromptVersion;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use \App\Models\Tag;
 
@@ -180,9 +181,88 @@ class PromptController extends Controller
         $promptData['views_count']      = $prompt->views_count ?? 0;
         $promptData['popularity_score'] = $prompt->popularity_score ?? 0.00;
 
+        // Build share URL
+        $shareUrl = $prompt->slug 
+            ? route('prompt.share', ['slug' => $prompt->slug], absolute: true)
+            : route('prompt.show', ['id' => $prompt->id], absolute: true);
+
         return Inertia::render('promptDetails', [
             'prompt'        => $promptData,
             'recentPrompts' => $recentPrompts,
+            'shareUrl'      => $shareUrl,
+        ]);
+    }
+
+    /**
+     * Show prompt by slug (short URL for sharing).
+     */
+    public function showBySlug(string $slug, Request $request)
+    {
+        $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media', 'category'])
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        // Get user from correct guard (web or admin)
+        $webUser = Auth::guard('web')->user();
+        $adminUser = Auth::guard('admin')->user();
+        
+        // Check if user can view this prompt
+        // Allow if: prompt is active OR user is the owner (from either guard)
+        $isOwner = false;
+        if ($prompt->promptable_type === 'user' && $webUser && $prompt->promptable_id === $webUser->id) {
+            $isOwner = true;
+        } elseif ($prompt->promptable_type === 'admin' && $adminUser && $prompt->promptable_id === $adminUser->id) {
+            $isOwner = true;
+        }
+        
+        $canView = $prompt->isActive() || $isOwner;
+
+        if (! $canView) {
+            abort(404, 'Prompt not found or not available.');
+        }
+
+        // Determine which user to use for tracking (prefer web user, then admin)
+        $user = $webUser ?? $adminUser;
+
+        // Track view (use user ID if authenticated, otherwise use IP only)
+        $prompt->incrementView(
+            $user?->id,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        // Refresh to get updated metrics
+        $prompt->refresh();
+
+        // Get recent prompts (excluding current one, only active prompts)
+        $recentPrompts = PromptNote::with(['tags', 'media'])
+            ->where('id', '!=', $prompt->id)
+            ->active()
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Prepare prompt data with metrics
+        $promptData                     = $prompt->toArray();
+        $promptData['save_count']       = $prompt->save_count ?? 0;
+        $promptData['copy_count']       = $prompt->copy_count ?? 0;
+        $promptData['likes_count']      = $prompt->likes_count ?? 0;
+        $promptData['views_count']      = $prompt->views_count ?? 0;
+        $promptData['popularity_score'] = $prompt->popularity_score ?? 0.00;
+
+        // Build share URL
+        $shareUrl = route('prompt.share', ['slug' => $prompt->slug], absolute: true);
+        
+        // Get OG image URL
+        $ogImageUrl = $prompt->image_url 
+            ? url($prompt->image_url) 
+            : asset('images/og-default.png'); // Fallback image
+
+        return Inertia::render('promptDetails', [
+            'prompt'        => $promptData,
+            'recentPrompts' => $recentPrompts,
+            'shareUrl'      => $shareUrl,
+            'ogImageUrl'    => $ogImageUrl,
         ]);
     }
 

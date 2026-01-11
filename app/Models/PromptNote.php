@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -21,6 +22,7 @@ class PromptNote extends Model implements HasMedia
 
     protected $fillable = [
         'title',
+        'slug',
         'prompt',
         'description',
         'promptable_id',
@@ -445,5 +447,49 @@ class PromptNote extends Model implements HasMedia
             $this->increment('views_count');
             $this->calculatePopularityScore();
         }
+    }
+
+    /**
+     * Generate a unique slug from the title.
+     *
+     * @param string $title
+     * @param int|null $excludeId
+     * @return string
+     */
+    public static function generateSlug(string $title, ?int $excludeId = null): string
+    {
+        $slug = Str::slug($title);
+        $baseSlug = $slug;
+        $counter = 1;
+
+        while (static::where('slug', $slug)
+            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Boot method to auto-generate slug when creating/updating.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($prompt) {
+            if (empty($prompt->slug) && !empty($prompt->title)) {
+                $prompt->slug = static::generateSlug($prompt->title);
+            }
+        });
+
+        static::updating(function ($prompt) {
+            // Only regenerate slug if title changed and slug is empty
+            if ($prompt->isDirty('title') && empty($prompt->slug)) {
+                $prompt->slug = static::generateSlug($prompt->title, $prompt->id);
+            }
+        });
     }
 }
