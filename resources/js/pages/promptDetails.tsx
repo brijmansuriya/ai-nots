@@ -142,12 +142,12 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
     };
 
     // Build meta description
-    const metaDescription = prompt.description 
-        ? `${prompt.description.substring(0, 160)}...` 
+    const metaDescription = prompt.description
+        ? `${prompt.description.substring(0, 160)}...`
         : `Check out this AI prompt: ${prompt.title}`;
 
     return (
-        <WebLayout 
+        <WebLayout
             title={`${prompt.title} | AI Notes`}
             description={metaDescription}
             ogImage={ogImageUrl || (prompt as any).image_url}
@@ -321,7 +321,7 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                         <div className="flex items-center gap-2">
                                             <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                             <span className="text-gray-700 dark:text-gray-300 text-sm">
-                                                {prompt.promptable_id ? `User ID: ${prompt.promptable_id}` : 'Unknown'}
+                                                {prompt.promptable?.username || prompt.promptable?.name || `User ID: ${prompt.promptable_id}`}
                                             </span>
                                         </div>
                                     </div>

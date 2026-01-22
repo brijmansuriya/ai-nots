@@ -130,6 +130,22 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
         </div>
       )}
 
+      {/* User Info Header (for user prompts only) */}
+      {prompt.promptable_type === 'user' && prompt.promptable && (
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+          <img
+            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(prompt.promptable.name)}&background=random&color=fff&size=24&rounded=true`}
+            alt={prompt.promptable.name}
+            className="w-6 h-6 rounded-full"
+          />
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-foreground leading-none">
+              {prompt.promptable.username || prompt.promptable.name}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Header - Title and Actions */}
       <div className="flex items-start justify-between mb-3 flex-shrink-0">
         <div

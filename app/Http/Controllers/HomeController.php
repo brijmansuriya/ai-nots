@@ -25,24 +25,26 @@ class HomeController extends Controller
         $totalPlatforms = Platform::where('status', 'active')->count();
 
         // Get popular/top prompts (most saved/liked)
-        $popularPrompts = PromptNote::with(['tags', 'platforms', 'media'])
+        $popularPrompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active()
             ->orderByRaw('(COALESCE(save_count, 0) + COALESCE(likes_count, 0) + COALESCE(copy_count, 0)) DESC')
             ->limit(6)
             ->get();
 
         // Get recent prompts
-        $recentPrompts = PromptNote::with(['tags', 'platforms', 'media'])
+        $recentPrompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active()
             ->latest()
             ->limit(6)
             ->get();
 
         // Get popular categories (categories with most active prompts)
-        $popularCategories = Category::withCount(['promptNotes' => function ($query) {
+        $popularCategories = Category::withCount([
+            'promptNotes' => function ($query) {
                 $query->where('status', '1')
                     ->whereNull('deleted_at');
-            }])
+            }
+        ])
             ->orderBy('prompt_notes_count', 'desc')
             ->limit(6)
             ->get();
@@ -65,9 +67,9 @@ class HomeController extends Controller
     {
         $search = $request->input('search', '');
         $categoryId = $request->input('category_id');
-        $user   = $request->user();
+        $user = $request->user();
 
-        $prompts = PromptNote::with(['tags', 'platforms', 'media'])
+        $prompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active() // Only show active/approved prompts
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -85,15 +87,15 @@ class HomeController extends Controller
             ->paginate(10);
 
         return response()->json([
-            'data'         => $prompts->items(), // Return the items array directly
+            'data' => $prompts->items(), // Return the items array directly
             'current_page' => $prompts->currentPage(),
-            'last_page'    => $prompts->lastPage(),
+            'last_page' => $prompts->lastPage(),
         ]);
     }
 
     public function dashboard(Request $request)
     {
-        $user    = $request->user(); // Get the logged-in user
+        $user = $request->user(); // Get the logged-in user
         $prompts = PromptNote::with(['tags', 'platforms', 'media'])
             ->withTrashed()                                    // Include soft-deleted prompts for user's own prompts
             ->where('promptable_id', $user->id)                // Filter by user ID
@@ -107,8 +109,8 @@ class HomeController extends Controller
 
     public function getUserPrompts(Request $request)
     {
-        $user     = $request->user();              // Get the logged-in user
-        $search   = $request->input('search', ''); // Get the search query
+        $user = $request->user();              // Get the logged-in user
+        $search = $request->input('search', ''); // Get the search query
         $folderId = $request->input('folder_id');  // Get folder filter
 
         $prompts = PromptNote::with(['tags', 'platforms', 'media', 'folder'])
@@ -134,9 +136,9 @@ class HomeController extends Controller
             ->paginate(10); // Laravel automatically reads 'page' from request query string
 
         return response()->json([
-            'data'         => $prompts->items(), // Return the items array directly
+            'data' => $prompts->items(), // Return the items array directly
             'current_page' => $prompts->currentPage(),
-            'last_page'    => $prompts->lastPage(),
+            'last_page' => $prompts->lastPage(),
         ]);
     }
 
@@ -147,7 +149,7 @@ class HomeController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -190,20 +192,20 @@ class HomeController extends Controller
             ->get(['id', 'title', 'created_at'])
             ->map(function ($prompt) {
                 return [
-                    'id'         => $prompt->id,
-                    'title'      => $prompt->title,
+                    'id' => $prompt->id,
+                    'title' => $prompt->title,
                     'created_at' => $prompt->created_at->diffForHumans(),
-                    'date'       => $prompt->created_at->format('Y-m-d H:i'),
+                    'date' => $prompt->created_at->format('Y-m-d H:i'),
                 ];
             });
 
         return response()->json([
-            'total_prompts'      => $totalPrompts,
-            'total_folders'      => $totalFolders,
-            'saved_prompts'      => $savedPrompts,
-            'prompts_this_week'  => $promptsThisWeek,
+            'total_prompts' => $totalPrompts,
+            'total_folders' => $totalFolders,
+            'saved_prompts' => $savedPrompts,
+            'prompts_this_week' => $promptsThisWeek,
             'prompts_this_month' => $promptsThisMonth,
-            'recent_activity'    => $recentActivity,
+            'recent_activity' => $recentActivity,
         ]);
     }
 
@@ -237,9 +239,9 @@ class HomeController extends Controller
     public function metaAll()
     {
         return response()->json([
-            'tags'       => Tag::all(),
+            'tags' => Tag::all(),
             'categories' => Category::all(),
-            'platforms'  => Platform::all(),
+            'platforms' => Platform::all(),
         ]);
     }
 
@@ -250,12 +252,12 @@ class HomeController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $format = $request->input('format', 'json');
-        $scope  = $request->input('scope', 'all');
+        $scope = $request->input('scope', 'all');
 
         // Get prompts based on scope
         $prompts = collect();
@@ -294,35 +296,35 @@ class HomeController extends Controller
     {
         $promptsData = $prompts->map(function ($prompt) {
             return [
-                'title'             => $prompt->title,
-                'prompt'            => $prompt->prompt,
-                'description'       => $prompt->description,
-                'category_name'     => $prompt->category?->name,
-                'folder_name'       => $prompt->folder?->name,
-                'tags'              => $prompt->tags->pluck('name')->toArray(),
-                'platforms'         => $prompt->platforms->pluck('name')->toArray(),
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+                'category_name' => $prompt->category?->name,
+                'folder_name' => $prompt->folder?->name,
+                'tags' => $prompt->tags->pluck('name')->toArray(),
+                'platforms' => $prompt->platforms->pluck('name')->toArray(),
                 'dynamic_variables' => $prompt->variables->pluck('name')->toArray(),
-                'is_public'         => $prompt->is_public,
-                'status'            => $prompt->status,
-                'created_at'        => $prompt->created_at?->toISOString(),
+                'is_public' => $prompt->is_public,
+                'status' => $prompt->status,
+                'created_at' => $prompt->created_at?->toISOString(),
             ];
         });
 
         $foldersData = $folders->map(function ($folder) {
             return [
-                'name'        => $folder->name,
+                'name' => $folder->name,
                 'parent_name' => $folder->parent?->name,
-                'color'       => $folder->color,
-                'emoji'       => $folder->emoji,
-                'position'    => $folder->position,
+                'color' => $folder->color,
+                'emoji' => $folder->emoji,
+                'position' => $folder->position,
             ];
         });
 
         $exportData = [
-            'version'     => '1.0',
+            'version' => '1.0',
             'exported_at' => now()->toISOString(),
-            'prompts'     => $promptsData,
-            'folders'     => $foldersData,
+            'prompts' => $promptsData,
+            'folders' => $foldersData,
         ];
 
         return response()->json($exportData)
@@ -348,7 +350,7 @@ class HomeController extends Controller
             'Created At',
         ];
 
-        $csv   = [];
+        $csv = [];
         $csv[] = '"' . implode('","', $headers) . '"';
 
         foreach ($prompts as $prompt) {
@@ -379,7 +381,7 @@ class HomeController extends Controller
      */
     private function exportAsMarkdown($prompts, $folders)
     {
-        $md   = [];
+        $md = [];
         $md[] = '# AI Notes Export';
         $md[] = '';
         $md[] = '**Exported:** ' . now()->format('Y-m-d H:i:s');
@@ -395,7 +397,7 @@ class HomeController extends Controller
             $md[] = '';
             foreach ($folders as $folder) {
                 $parent = $folder->parent ? " (in: {$folder->parent->name})" : '';
-                $md[]   = "- **{$folder->name}**{$parent}";
+                $md[] = "- **{$folder->name}**{$parent}";
             }
             $md[] = '';
             $md[] = '---';
@@ -430,7 +432,7 @@ class HomeController extends Controller
 
             if ($prompt->platforms->count() > 0) {
                 $platforms = $prompt->platforms->pluck('name')->implode(', ');
-                $md[]      = '**Platforms:** ' . $platforms;
+                $md[] = '**Platforms:** ' . $platforms;
             }
 
             if ($prompt->variables->count() > 0) {
@@ -465,7 +467,7 @@ class HomeController extends Controller
 
         // Sheet 1: Prompts
         if ($prompts->count() > 0) {
-            $csv[]   = '=== PROMPTS ===';
+            $csv[] = '=== PROMPTS ===';
             $headers = [
                 'Title',
                 'Prompt',
@@ -499,10 +501,10 @@ class HomeController extends Controller
 
         // Sheet 2: Folders
         if ($folders->count() > 0) {
-            $csv[]   = '';
-            $csv[]   = '=== FOLDERS ===';
+            $csv[] = '';
+            $csv[] = '=== FOLDERS ===';
             $headers = ['Name', 'Parent', 'Color', 'Emoji', 'Position'];
-            $csv[]   = '"' . implode('","', $headers) . '"';
+            $csv[] = '"' . implode('","', $headers) . '"';
 
             foreach ($folders as $folder) {
                 $row = [
@@ -549,29 +551,29 @@ class HomeController extends Controller
     private function exportJsonTemplate()
     {
         $template = [
-            'version'     => '1.0',
+            'version' => '1.0',
             'exported_at' => now()->toISOString(),
-            'prompts'     => [
+            'prompts' => [
                 [
-                    'title'             => 'Example Prompt Title',
-                    'prompt'            => 'This is an example prompt with [variable] support',
-                    'description'       => 'Optional description of the prompt',
-                    'category_name'     => 'Example Category',
-                    'folder_name'       => 'Example Folder',
-                    'tags'              => ['tag1', 'tag2'],
-                    'platforms'         => ['ChatGPT', 'Claude'],
+                    'title' => 'Example Prompt Title',
+                    'prompt' => 'This is an example prompt with [variable] support',
+                    'description' => 'Optional description of the prompt',
+                    'category_name' => 'Example Category',
+                    'folder_name' => 'Example Folder',
+                    'tags' => ['tag1', 'tag2'],
+                    'platforms' => ['ChatGPT', 'Claude'],
                     'dynamic_variables' => ['variable'],
-                    'is_public'         => 0,
-                    'status'            => 1,
+                    'is_public' => 0,
+                    'status' => 1,
                 ],
             ],
-            'folders'     => [
+            'folders' => [
                 [
-                    'name'        => 'Example Folder',
+                    'name' => 'Example Folder',
                     'parent_name' => null,
-                    'color'       => '#3B82F6',
-                    'emoji'       => '📁',
-                    'position'    => 0,
+                    'color' => '#3B82F6',
+                    'emoji' => '📁',
+                    'position' => 0,
                 ],
             ],
         ];
@@ -612,7 +614,7 @@ class HomeController extends Controller
             now()->toISOString(),
         ];
 
-        $csv   = [];
+        $csv = [];
         $csv[] = '"' . implode('","', $headers) . '"';
         $csv[] = '"' . implode('","', array_map([$this, 'escapeCsvField'], $example)) . '"';
 
@@ -653,21 +655,21 @@ class HomeController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $request->validate([
-            'file'   => 'required|file|mimes:json,csv,txt,xlsx,xls|max:10240', // 10MB max
+            'file' => 'required|file|mimes:json,csv,txt,xlsx,xls|max:10240', // 10MB max
             'format' => 'nullable|in:json,csv,excel',
         ]);
 
         try {
-            $file   = $request->file('file');
+            $file = $request->file('file');
             $format = $request->input('format');
 
             // Auto-detect format if not provided
-            if (! $format) {
+            if (!$format) {
                 $extension = strtolower($file->getClientOriginalExtension());
                 if (in_array($extension, ['xlsx', 'xls'])) {
                     $format = 'excel';
@@ -683,11 +685,11 @@ class HomeController extends Controller
                 // For Excel, read as text (Excel can be opened as CSV)
                 // For true Excel parsing, would need PhpSpreadsheet library
                 $fileContent = file_get_contents($file->getRealPath());
-                $data        = $this->parseCsvImport($fileContent);
+                $data = $this->parseCsvImport($fileContent);
             } else {
                 // JSON format
                 $fileContent = file_get_contents($file->getRealPath());
-                $data        = json_decode($fileContent, true);
+                $data = json_decode($fileContent, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     return response()->json([
                         'error' => 'Invalid JSON file: ' . json_last_error_msg(),
@@ -696,14 +698,14 @@ class HomeController extends Controller
             }
 
             // CSV format doesn't require folders, but JSON should have at least prompts or folders
-            if ($format === 'json' && ! isset($data['prompts']) && ! isset($data['folders'])) {
+            if ($format === 'json' && !isset($data['prompts']) && !isset($data['folders'])) {
                 return response()->json([
                     'error' => 'Invalid export format. Missing prompts or folders data.',
                 ], 400);
             }
 
             // CSV format requires prompts
-            if ($format === 'csv' && (! isset($data['prompts']) || empty($data['prompts']))) {
+            if ($format === 'csv' && (!isset($data['prompts']) || empty($data['prompts']))) {
                 return response()->json([
                     'error' => 'Invalid CSV format. No prompts found.',
                 ], 400);
@@ -711,16 +713,16 @@ class HomeController extends Controller
 
             $promptsImported = 0;
             $foldersImported = 0;
-            $errors          = [];
+            $errors = [];
 
             DB::beginTransaction();
 
             try {
-                                 // Import folders first (they might be referenced by prompts)
+                // Import folders first (they might be referenced by prompts)
                 $folderMap = []; // Maps old folder names to new folder IDs
                 if (isset($data['folders']) && is_array($data['folders'])) {
                     // Build folder hierarchy
-                    $rootFolders  = [];
+                    $rootFolders = [];
                     $childFolders = [];
 
                     foreach ($data['folders'] as $folderData) {
@@ -735,12 +737,12 @@ class HomeController extends Controller
                     foreach ($rootFolders as $folderData) {
                         try {
                             $folder = Folder::create([
-                                'user_id'   => $user->id,
+                                'user_id' => $user->id,
                                 'parent_id' => null,
-                                'name'      => $folderData['name'],
-                                'color'     => $folderData['color'] ?? null,
-                                'emoji'     => $folderData['emoji'] ?? null,
-                                'position'  => $folderData['position'] ?? 0,
+                                'name' => $folderData['name'],
+                                'color' => $folderData['color'] ?? null,
+                                'emoji' => $folderData['emoji'] ?? null,
+                                'position' => $folderData['position'] ?? 0,
                             ]);
                             $folderMap[$folderData['name']] = $folder->id;
                             $foldersImported++;
@@ -750,21 +752,21 @@ class HomeController extends Controller
                     }
 
                     // Import child folders (simple approach - may need recursion for deep nesting)
-                    $maxDepth     = 10;
+                    $maxDepth = 10;
                     $currentDepth = 0;
-                    while (! empty($childFolders) && $currentDepth < $maxDepth) {
+                    while (!empty($childFolders) && $currentDepth < $maxDepth) {
                         $remaining = [];
                         foreach ($childFolders as $folderData) {
                             $parentName = $folderData['parent_name'];
                             if (isset($folderMap[$parentName])) {
                                 try {
                                     $folder = Folder::create([
-                                        'user_id'   => $user->id,
+                                        'user_id' => $user->id,
                                         'parent_id' => $folderMap[$parentName],
-                                        'name'      => $folderData['name'],
-                                        'color'     => $folderData['color'] ?? null,
-                                        'emoji'     => $folderData['emoji'] ?? null,
-                                        'position'  => $folderData['position'] ?? 0,
+                                        'name' => $folderData['name'],
+                                        'color' => $folderData['color'] ?? null,
+                                        'emoji' => $folderData['emoji'] ?? null,
+                                        'position' => $folderData['position'] ?? 0,
                                     ]);
                                     $folderMap[$folderData['name']] = $folder->id;
                                     $foldersImported++;
@@ -779,7 +781,7 @@ class HomeController extends Controller
                         $currentDepth++;
                     }
 
-                    if (! empty($childFolders)) {
+                    if (!empty($childFolders)) {
                         $errors[] = 'Some folders could not be imported due to missing parent folders.';
                     }
                 }
@@ -790,12 +792,12 @@ class HomeController extends Controller
                         try {
                             // Get or create category
                             $categoryId = null;
-                            if (! empty($promptData['category_name'])) {
+                            if (!empty($promptData['category_name'])) {
                                 $category = Category::firstOrCreate(
                                     ['name' => $promptData['category_name']],
                                     [
-                                        'name'   => $promptData['category_name'],
-                                        'slug'   => Str::slug($promptData['category_name']),
+                                        'name' => $promptData['category_name'],
+                                        'slug' => Str::slug($promptData['category_name']),
                                         'status' => Category::STATUS_ACTIVE,
                                     ]
                                 );
@@ -804,42 +806,42 @@ class HomeController extends Controller
 
                             // Get folder ID if folder name is provided
                             $folderId = null;
-                            if (! empty($promptData['folder_name']) && isset($folderMap[$promptData['folder_name']])) {
+                            if (!empty($promptData['folder_name']) && isset($folderMap[$promptData['folder_name']])) {
                                 $folderId = $folderMap[$promptData['folder_name']];
                             }
 
                             // Create prompt
                             $prompt = PromptNote::create([
-                                'title'           => $promptData['title'] ?? 'Untitled Prompt',
-                                'prompt'          => $promptData['prompt'] ?? '',
-                                'description'     => $promptData['description'] ?? null,
-                                'category_id'     => $categoryId,
-                                'folder_id'       => $folderId,
-                                'promptable_id'   => $user->id,
+                                'title' => $promptData['title'] ?? 'Untitled Prompt',
+                                'prompt' => $promptData['prompt'] ?? '',
+                                'description' => $promptData['description'] ?? null,
+                                'category_id' => $categoryId,
+                                'folder_id' => $folderId,
+                                'promptable_id' => $user->id,
                                 'promptable_type' => $user->getMorphClass(),
-                                'is_public'       => $promptData['is_public'] ?? 0,
-                                'status'          => $promptData['status'] ?? 0,
+                                'is_public' => $promptData['is_public'] ?? 0,
+                                'status' => $promptData['status'] ?? 0,
                             ]);
 
                             // Attach tags
-                            if (! empty($promptData['tags']) && is_array($promptData['tags'])) {
+                            if (!empty($promptData['tags']) && is_array($promptData['tags'])) {
                                 $tagIds = [];
                                 foreach ($promptData['tags'] as $tagName) {
                                     $tag = Tag::whereRaw('LOWER(name) = ?', [strtolower($tagName)])->first();
-                                    if (! $tag) {
-                                        $slug         = Str::slug($tagName);
+                                    if (!$tag) {
+                                        $slug = Str::slug($tagName);
                                         $originalSlug = $slug;
-                                        $counter      = 1;
+                                        $counter = 1;
                                         while (Tag::where('slug', $slug)->exists()) {
                                             $slug = "{$originalSlug}-{$counter}";
                                             $counter++;
                                         }
                                         $tag = Tag::create([
-                                            'name'            => $tagName,
-                                            'slug'            => $slug,
+                                            'name' => $tagName,
+                                            'slug' => $slug,
                                             'created_by_type' => $user->getMorphClass(),
-                                            'created_by_id'   => $user->id,
-                                            'status'          => Tag::STATUS_ACTIVE,
+                                            'created_by_id' => $user->id,
+                                            'status' => Tag::STATUS_ACTIVE,
                                         ]);
                                     }
                                     $tagIds[] = $tag->id;
@@ -848,7 +850,7 @@ class HomeController extends Controller
                             }
 
                             // Attach platforms
-                            if (! empty($promptData['platforms']) && is_array($promptData['platforms'])) {
+                            if (!empty($promptData['platforms']) && is_array($promptData['platforms'])) {
                                 $platformIds = [];
                                 foreach ($promptData['platforms'] as $platformName) {
                                     $platform = Platform::whereRaw('LOWER(name) = ?', [strtolower($platformName)])->first();
@@ -860,7 +862,7 @@ class HomeController extends Controller
                             }
 
                             // Create dynamic variables
-                            if (! empty($promptData['dynamic_variables']) && is_array($promptData['dynamic_variables'])) {
+                            if (!empty($promptData['dynamic_variables']) && is_array($promptData['dynamic_variables'])) {
                                 $variables = array_map(function ($variable) {
                                     return ['name' => $variable];
                                 }, $promptData['dynamic_variables']);
@@ -878,10 +880,10 @@ class HomeController extends Controller
 
                 return response()->json([
                     'message' => 'Import completed successfully',
-                    'data'    => [
+                    'data' => [
                         'prompts_imported' => $promptsImported,
                         'folders_imported' => $foldersImported,
-                        'errors'           => $errors,
+                        'errors' => $errors,
                     ],
                 ]);
             } catch (\Exception $e) {
@@ -910,25 +912,25 @@ class HomeController extends Controller
 
         // Parse header
         $headerLine = array_shift($lines);
-        $headers    = str_getcsv($headerLine);
-        $headers    = array_map('trim', $headers);
+        $headers = str_getcsv($headerLine);
+        $headers = array_map('trim', $headers);
 
         // Map headers to our format
         $headerMap = [
-            'title'             => 'title',
-            'prompt'            => 'prompt',
-            'description'       => 'description',
-            'category'          => 'category_name',
-            'folder'            => 'folder_name',
-            'tags'              => 'tags',
-            'platforms'         => 'platforms',
+            'title' => 'title',
+            'prompt' => 'prompt',
+            'description' => 'description',
+            'category' => 'category_name',
+            'folder' => 'folder_name',
+            'tags' => 'tags',
+            'platforms' => 'platforms',
             'dynamic variables' => 'dynamic_variables',
-            'status'            => 'status',
+            'status' => 'status',
         ];
 
         $normalizedHeaders = [];
         foreach ($headers as $header) {
-            $normalized          = strtolower(trim($header));
+            $normalized = strtolower(trim($header));
             $normalizedHeaders[] = $headerMap[$normalized] ?? $normalized;
         }
 
@@ -936,7 +938,7 @@ class HomeController extends Controller
         $prompts = [];
         foreach ($lines as $line) {
             $values = str_getcsv($line);
-            $row    = [];
+            $row = [];
 
             foreach ($normalizedHeaders as $index => $header) {
                 $value = isset($values[$index]) ? trim($values[$index], '"') : '';
@@ -949,16 +951,16 @@ class HomeController extends Controller
                 }
             }
 
-            if (! empty($row['title']) || ! empty($row['prompt'])) {
+            if (!empty($row['title']) || !empty($row['prompt'])) {
                 $prompts[] = $row;
             }
         }
 
         return [
-            'version'     => '1.0',
+            'version' => '1.0',
             'exported_at' => now()->toISOString(),
-            'prompts'     => $prompts,
-            'folders'     => [], // CSV doesn't support folders
+            'prompts' => $prompts,
+            'folders' => [], // CSV doesn't support folders
         ];
     }
 
@@ -969,13 +971,13 @@ class HomeController extends Controller
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password'         => ['required', Password::defaults(), 'confirmed'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
         $user->update([

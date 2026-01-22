@@ -117,7 +117,14 @@ export interface Prompt {
     prompt: string;
     description?: string | null;
     promptable_id: number;
-    promptable_type: 'admin' | 'user' | 'guest';
+    promptable_type: string;
+    promptable?: {
+        id: number;
+        name: string;
+        username: string;
+        email: string;
+        avatar?: string;
+    } | null;
     is_public: 0 | 1 | 2;
     status: 0 | 1 | 2;
     category_id: number;
@@ -139,6 +146,8 @@ export interface Prompt {
     is_liked?: boolean;
     // Template flag (computed from promptable_type)
     is_template?: boolean;
+    created_at: string;
+    updated_at?: string | null;
 }
 
 export interface EditPromptProps {
