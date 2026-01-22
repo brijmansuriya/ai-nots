@@ -79,6 +79,7 @@ export default function Dashboard({ auth }: any) {
 
   const { data, setData, patch, processing, errors } = useForm({
     name: auth.user.name || '',
+    username: auth.user.username || '',
     email: auth.user.email || '',
   });
 
@@ -773,6 +774,7 @@ export default function Dashboard({ auth }: any) {
                           <p className="text-sm text-muted-foreground mb-2">
                             {auth.user.email || 'No email set'}
                           </p>
+
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>Member since</span>
                             <span>{auth.user.created_at ? new Date(auth.user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span>
@@ -795,6 +797,21 @@ export default function Dashboard({ auth }: any) {
                                 className="bg-background border-border text-foreground placeholder:text-muted-foreground"
                               />
                               <InputError message={errors.name} className="mt-1" />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="username" className="text-sm font-medium text-foreground mb-2 block">
+                                Username
+                              </Label>
+                              <Input
+                                id="username"
+                                type="text"
+                                value={data.username || ''}
+                                onChange={(e) => setData('username', e.target.value)}
+                                placeholder="Enter your username"
+                                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                              />
+                              <InputError message={errors.username} className="mt-1" />
                             </div>
 
                             <div>
