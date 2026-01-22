@@ -32,9 +32,10 @@ interface NoteCardProps {
   prompt: Prompt;
   index: number;
   onDeleted?: (id: number) => void;
+  isDraggable?: boolean;
 }
 
-function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
+function NoteCard({ prompt, index, onDeleted, isDraggable = false }: NoteCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { auth } = usePage().props;
   const user = auth?.user;
@@ -110,18 +111,18 @@ function NoteCard({ prompt, index, onDeleted }: NoteCardProps) {
 
   return (
     <div
-      draggable={isOwner}
+      draggable={isOwner && isDraggable}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       className={cn(
         "note-card bg-card rounded-xl border border-border p-4 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 hover:-translate-y-1 relative group flex flex-col h-full",
-        isOwner && "cursor-grab active:cursor-grabbing",
+        isOwner && isDraggable && "cursor-grab active:cursor-grabbing",
         isDragging && "opacity-60 scale-95 z-50"
       )}
       style={{ '--index': index } as React.CSSProperties}
-      title={isOwner ? "Drag to move to a folder" : undefined}
+      title={isOwner && isDraggable ? "Drag to move to a folder" : undefined}
     >
-      {isOwner && !isDragging && (
+      {isOwner && isDraggable && !isDragging && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
           <div className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
             <Move className="w-3 h-3" />

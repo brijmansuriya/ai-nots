@@ -691,6 +691,7 @@ export default function Dashboard({ auth }: any) {
                                   onDeleted={(id) =>
                                     setPrompts((prev) => prev.filter((p) => p.id !== id))
                                   }
+                                  isDraggable={true}
                                 />
                               ))
                             ) : (
