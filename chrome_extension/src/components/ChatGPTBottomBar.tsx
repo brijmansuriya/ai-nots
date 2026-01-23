@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
+import TemplatesPopup from './TemplatesPopup';
 import './ChatGPTBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -25,9 +26,10 @@ const Icons = {
 interface ToolbarUIProps {
   onInsertText: (text: string) => void;
   isVisible: boolean;
+  onOpenTemplates: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -35,7 +37,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible }: ToolbarUIProps) =
 
   const tools = [
     { id: 'generate', label: 'Generate', icon: Icons.Sparkles, action: () => console.log('Generate clicked') },
-    { id: 'templates', label: 'Templates', icon: Icons.LayoutTemplate, action: () => console.log('Templates clicked') },
+    { id: 'templates', label: 'Templates', icon: Icons.LayoutTemplate, action: onOpenTemplates },
     { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
   ];
 
@@ -114,6 +116,7 @@ const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [promptInput, setPromptInput] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   useEffect(() => {
     // Load visibility
@@ -204,10 +207,23 @@ const ChatGPTBottomBar = () => {
   if (!container || !promptInput) return null;
 
   return createPortal(
-    <ToolbarUI
-      isVisible={isVisible}
-      onInsertText={(text) => insertTextIntoChatGPT(promptInput, text)}
-    />,
+    <>
+      <ToolbarUI
+        isVisible={isVisible}
+        onInsertText={(text) => insertTextIntoChatGPT(promptInput, text)}
+        onOpenTemplates={() => setShowTemplates(true)}
+      />
+      {showTemplates && (
+        <TemplatesPopup
+          onSelect={(text) => {
+            insertTextIntoChatGPT(promptInput, text);
+            // Optional: Close popup after select? User didn't specify, but usually yes.
+            setShowTemplates(false);
+          }}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
+    </>,
     container
   );
 };

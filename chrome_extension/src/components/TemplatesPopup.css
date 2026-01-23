@@ -1,0 +1,120 @@
+.templates-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.templates-popup {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.templates-popup-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.templates-popup-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.templates-popup-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.templates-popup-close:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.templates-popup-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.templates-list {
+    display: grid;
+    gap: 12px;
+}
+
+.template-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+    text-align: left;
+}
+
+.template-item:hover {
+    border-color: #3b82f6;
+    background-color: #f0f9ff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.template-item-title {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.template-item-desc {
+    font-size: 14px;
+    color: #6b7280;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.templates-popup-empty {
+    text-align: center;
+    padding: 40px 0;
+    color: #6b7280;
+}

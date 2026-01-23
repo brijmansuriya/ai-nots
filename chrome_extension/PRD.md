@@ -1,76 +1,432 @@
-# AI Notes Chrome Extension - Product Requirement Document (PRD)
+AI Notes – Chrome Extension
+Full Product Requirement Document (PRD)
+1. Product Overview
 
-## 1. Product Overview
-The **AI Notes Chrome Extension** is a productivity tool designed to bridge the gap between ChatGPT and the AI Notes platform. It enables users to seamlessly save their ChatGPT prompts directly to their AI Notes account without leaving the ChatGPT interface. Additionally, it offers a "bottom bar" on other websites (configurable) to provide quick access to AI tools.
+Chrome extension for saving, managing, and reusing AI prompts
 
-## 2. Technical Stack
-- **Framework**: React 18
-- **Build Tool**: Vite (with `@crxjs/vite-plugin` for Chrome Extension hot-reloading)
-- **Language**: TypeScript
-- **Styling**: Vanilla CSS (and potentially Tailwind if configured, currently mostly Vanilla)
-- **State Management**: React Hooks (Context API likely used for Auth)
-- **Authentication**: OAuth (Google) and Standard Email/Password
+Deep integration with ChatGPT (primary)
 
-## 3. Key Features
-1.  **Authentication**:
-    - **Google OAuth**: One-click login.
-    - **Email/Password**: Traditional login support.
-    - **Session Sync**: Automatically detects active sessions from the web application (`http://ai-nots.test/` or production URL) to log the user in without manual credential entry.
-2.  **ChatGPT Integration**:
-    - **Injection**: Automatically injects a "Save Prompt" button or toolbar into the ChatGPT interface (`chatgpt.com`).
-    - **Prompt Capture**: Reads the user's input from the chat box.
-    - **Saving**: Sends the captured prompt to the AI Notes backend.
-3.  **Extension Popup**:
-    - **Dashboard**: View recent activity or status.
-    - **Configuration**: Set API Base URL for development/production switching.
+Optional universal bottom bar for other websites
 
-## 4. Project Structure
-The codebase follows a modular React structure adapted for a Chrome Extension.
+Direct sync with AI Notes platform
 
-### Root Directory
-- **`manifest.json`** (`public/manifest.json`): The entry point configuration. Defines permissions (`activeTab`, `storage`), host permissions, and content scripts.
-- **`vite.config.ts`**: Configuration for Vite, handling the build process.
-- **`vite.content.config.ts`**: Specific configuration for building the content script.
-- **`package.json`**: Dependencies and scripts (`dev`, `build`).
+Focus on speed, usability, and minimal disruption
 
-### Source Directory (`src/`)
-The core logic resides here.
+2. Product Goals
 
-#### `src/components/` (UI Components)
-- **`AuthSetup.tsx`**: Handles the initial user onboarding and login options (OAuth/Email).
-- **`ExtensionDashboard.tsx`**: The main view inside the extension popup once logged in.
-- **`ChatGPTBottomBar.tsx`**: The floating bar injected into the ChatGPT interface.
-- **`ChatGPTDetector.tsx`**: Logic to detect when the user is on ChatGPT and where to inject UI elements.
-- **`SavePromptModal.tsx`**: A modal dialog for confirming/editing the prompt before saving.
-- **`BottomBar.tsx`**: A generic bottom bar component for non-ChatGPT pages.
+Eliminate prompt retyping
 
-#### `src/services/` (Data & Networking)
-- **`api.ts`**: Centralized HTTP client (likely `fetch` or `axios` wrapper) to communicate with the AI Notes backend.
-- **`authService.ts`**: Manages authentication state (login, logout, token storage) and session synchronization logic.
+Improve prompt quality and reuse
 
-#### `src/utils/` (Helpers)
-- **`debug.ts`**: Utilities for logging and debugging in the extension environment.
-- **`waitForPromptInput.ts`**: helper function to reliably detect DOM elements (like the ChatGPT textarea) which might load asynchronously.
+Centralize prompt management
 
-#### `src/config/`
-- **`env.ts`**: Environment configuration (API URLs, etc).
+Increase daily AI productivity
 
-#### Entry Points
-- **`content.tsx`**: The main content script that runs on web pages. It initializes the `ChatGPTDetector` and handles the injection of the React app into the DOM.
-- **`main.tsx`**: The entry point for the Extension Popup (`index.html`).
-- **`App.tsx`**: The root React component for the Popup.
+Drive engagement with AI Notes platform
 
-## 5. Data Flow
-1.  **Initialization**: `content.tsx` loads on pages. If it matches ChatGPT, it spins up `ChatGPTDetector`.
-2.  **Interaction**: User types a prompt. The extension detects the input.
-3.  **Action**: User clicks "Save".
-4.  **Processing**:
-    - `SavePromptModal` opens using data from the DOM.
-    - User confirms.
-    - `api.ts` sends a POST request to the backend.
-5.  **Feedback**: User gets a success notification.
+3. Target Users
 
-## 6. Setup & Build
-- **Install**: `npm install`
-- **Dev**: `npm run dev` (Hot reload)
-- **Build**: `npm run build` (Outputs to `dist/`)
+Professionals using AI daily
+
+Developers and engineers
+
+Content creators
+
+Students and researchers
+
+AI power users
+
+4. Supported Platforms
+
+Chrome Browser (latest versions)
+
+ChatGPT web interface
+
+Other AI tools (future-ready)
+
+5. Core Functional Modules
+5.1 Authentication Module
+
+Login (Email & Password)
+
+Registration
+
+Logout
+
+Session persistence
+
+Token-based authentication
+
+Secure local storage
+
+API base URL configuration
+
+5.2 ChatGPT Integration Module
+
+Detect ChatGPT pages
+
+Inject UI elements safely
+
+Read prompt input from DOM
+
+Handle ChatGPT UI changes gracefully
+
+No interference with native ChatGPT UX
+
+5.3 Prompt Capture & Save Module
+
+Capture current prompt text
+
+Editable before saving
+
+Optional title & description
+
+Save to AI Notes backend
+
+Success / error feedback
+
+Offline-safe retry handling (future)
+
+5.4 Extension Popup Module
+
+Login / Register UI
+
+User status display
+
+Quick actions dashboard
+
+Settings access
+
+Logout control
+
+5.5 Bottom Bar Module (Core UX Feature)
+5.5.1 Bottom Bar Overview
+
+Persistent bottom bar UI
+
+Configurable enable/disable
+
+Appears on supported pages
+
+Minimal, non-intrusive design
+
+5.5.2 Bottom Bar Actions
+1. Templates
+
+Opens Templates Popup
+
+Quick apply templates to input
+
+2. Personal Prompts
+
+Opens Personal Prompts Popup
+
+User-created prompts only
+
+3. Improve Prompt
+
+AI-powered prompt enhancement
+
+4. Clear
+
+Clears current input safely
+
+5. Feedback
+
+Collect user feedback
+
+5.6 Templates Module
+5.6.1 Templates Popup
+
+Modal or side panel
+
+Responsive & fast
+
+User-friendly layout
+
+5.6.2 Template Listing
+
+Title
+
+Short description
+
+Platform compatibility
+
+Tags & categories
+
+5.6.3 Template Filtering
+
+Category
+
+Platform
+
+Prompt type
+
+Tags
+
+Search by keyword
+
+Multi-filter support
+
+Clear all filters option
+
+5.6.4 Template Actions
+
+Preview
+
+Apply to input
+
+Copy
+
+Favorite
+
+5.7 Personal Prompts Module
+5.7.1 Personal Prompt Popup
+
+Same UX as Templates
+
+Consistent layout
+
+5.7.2 Personal Prompt Listing
+
+User-created prompts
+
+Title + preview
+
+Last used date
+
+Usage count
+
+5.7.3 Personal Prompt Filtering
+
+Folder
+
+Tags
+
+Platform
+
+Status
+
+Keyword search
+
+Sort options:
+
+Recent
+
+Alphabetical
+
+Most used
+
+5.7.4 Personal Prompt Actions
+
+Apply
+
+Edit
+
+Duplicate
+
+Delete (confirmation)
+
+5.8 Improve Prompt Module
+5.8.1 Input Handling
+
+Read current input automatically
+
+Manual paste fallback
+
+5.8.2 Improvement Options
+
+Improve clarity
+
+Improve structure
+
+Improve tone
+
+Improve output quality
+
+5.8.3 Output Actions
+
+Replace current prompt
+
+Copy improved prompt
+
+Save as new prompt
+
+5.9 Clear Prompt Module
+
+Clears only active input field
+
+Confirmation modal
+
+Temporary undo option
+
+No data deletion
+
+5.10 Feedback Module
+5.10.1 Feedback Types
+
+Bug report
+
+Feature request
+
+UX feedback
+
+General feedback
+
+5.10.2 Feedback Submission
+
+Text input
+
+Optional metadata (page, action)
+
+Submit confirmation
+
+Backend sync
+
+6. Settings & Configuration
+
+Enable / disable bottom bar
+
+API base URL
+
+Feature toggles
+
+Debug mode (internal)
+
+7. Data Storage
+
+Auth token
+
+User session data
+
+Settings & reminders
+
+Cached templates/prompts
+
+8. Permissions Required
+
+storage
+
+activeTab
+
+scripting
+
+Host permissions (ChatGPT domains)
+
+9. User Flows
+9.1 Login Flow
+
+Open extension
+
+Login / Register
+
+Session stored
+
+Dashboard visible
+
+9.2 Save Prompt Flow
+
+Type prompt
+
+Click Save
+
+Edit / confirm
+
+Save to backend
+
+Success feedback
+
+9.3 Template Use Flow
+
+Open bottom bar
+
+Select Templates
+
+Filter & search
+
+Apply template
+
+9.4 Improve Prompt Flow
+
+Click Improve Prompt
+
+Choose improvement type
+
+Apply or copy result
+
+9.5 Feedback Flow
+
+Click Feedback
+
+Submit feedback
+
+Confirmation shown
+
+10. Non-Functional Requirements
+
+Fast load (<200ms UI)
+
+No page blocking
+
+Minimal DOM footprint
+
+Secure token handling
+
+Graceful error handling
+
+11. Analytics & Metrics
+
+Prompt saves
+
+Template usage
+
+Improve prompt usage
+
+Daily active users
+
+Retention rate
+
+12. Risks & Mitigation
+
+ChatGPT UI changes → resilient selectors
+
+API downtime → retry + messaging
+
+Token expiry → re-auth flow
+
+13. Release Plan
+Phase 1 – MVP
+
+Authentication
+
+ChatGPT prompt save
+
+Popup UI
+
+Phase 2 – Productivity
+
+Bottom bar
+
+Templates
+
+Personal prompts
+
+Phase 3 – Intelligence
+
+Improve prompt
+
+Feedback loop
+
+Advanced filters
+
+14. Future Enhancements
+
+Personas
+
+Prompt versioning
+
+Multi-AI platform support
+
+Team/shared prompts
+
+Offline mode

@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\Extension\CategoryController;
 use App\Http\Controllers\Api\Extension\PlatformController;
 use App\Http\Controllers\Api\Extension\PromptController;
 use App\Http\Controllers\Api\Extension\TagController;
+use App\Http\Controllers\Api\Extension\TemplateController;
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -33,6 +35,7 @@ Route::prefix('auth')->group(function () {
 Route::get('categories', [CategoryController::class, 'index']);
 Route::get('tags', [TagController::class, 'index']);
 Route::get('platforms', [PlatformController::class, 'index']);
+Route::get('templates', [TemplateController::class, 'index']);
 
 // Protected endpoints (require API token auth)
 Route::middleware(['auth:sanctum'])->group(function () {

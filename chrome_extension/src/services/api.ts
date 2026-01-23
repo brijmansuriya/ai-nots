@@ -170,6 +170,26 @@ class ApiService {
     });
   }
 
+  async getTemplates(): Promise<any[]> {
+    try {
+      const response = await this.request<any>('/api/extension/templates');
+      console.log('Templates response:', response);
+
+      // Handle Laravel Resource response { data: [...], ... }
+      if (response && Array.isArray(response.data)) {
+        console.log('......................');
+        console.log('Templates data:', response.data);
+        return response.data;
+      }
+
+      console.log('Templates response:', response);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('Failed to fetch templates:', error);
+      return [];
+    }
+  }
+
   setConfig(config: ApiConfig): void {
     this.baseUrl = config.baseUrl;
     this.token = config.token || '';
