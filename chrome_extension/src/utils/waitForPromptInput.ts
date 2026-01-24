@@ -7,22 +7,31 @@ export function waitForPromptInput(callback: (input: HTMLElement) => void): (() 
 
   // ChatGPT uses contenteditable div, not textarea
   const findPromptInput = (): HTMLElement | null => {
-    // Primary selector: contenteditable div with role="textbox"
-    const input = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement;
+    // 1. Specific ChatGPT Selector (Contenteditable) - Most reliable
+    const chatgptInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement;
+    if (chatgptInput && chatgptInput.offsetParent !== null) {
+      return chatgptInput;
+    }
+
+    // 2. Primary fallback: any visible contenteditable div with role="textbox"
+    const input = Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
     if (input) {
       return input;
     }
 
-    // Fallback: any contenteditable div
-    const fallback = document.querySelector('div[contenteditable="true"]') as HTMLElement;
+    // 3. Fallback: any visible contenteditable div
+    const fallback = Array.from(document.querySelectorAll('div[contenteditable="true"]'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
     if (fallback) {
       return fallback;
     }
 
-    // Legacy fallback: textarea (for older ChatGPT versions or other sites)
-    const textarea = document.querySelector('textarea[data-id="root"]') as HTMLTextAreaElement ||
-      document.querySelector('textarea') as HTMLTextAreaElement;
-    return textarea;
+    // 4. Visible Textarea fallback
+    const textarea = Array.from(document.querySelectorAll('textarea'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLTextAreaElement;
+
+    return textarea || null;
   };
 
   // Try to find immediately first

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
 import TemplatesPopup from './TemplatesPopup';
@@ -98,25 +98,70 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates }: 
 };
 
 // ... insertTextIntoChatGPT function remains the same ...
-function insertTextIntoChatGPT(input: HTMLElement, text: string) {
-  if (!input) return;
-  input.focus();
-  if (input.getAttribute('contenteditable') === 'true') {
-    document.execCommand('insertText', false, text);
-  } else if (input instanceof HTMLTextAreaElement) {
-    input.value = text;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  } else {
-    input.textContent = (input.textContent || '') + text;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
+function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
+  // Always attempt to find the latest VISIBLE input if current is stale
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
+    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+    Array.from(document.querySelectorAll('textarea'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+  );
+
+  if (!currentInput) {
+    console.error('❌ [ChatGPTBottomBar] Could not find any valid prompt input.');
+    return;
+  }
+
+  console.log('Inserting text into:', currentInput);
+
+  // Robust focus
+  currentInput.focus();
+
+  try {
+    const isContentEditable = currentInput.getAttribute('contenteditable') === 'true';
+
+    if (isContentEditable) {
+      // Clear current content first to "set" the value
+      document.execCommand('selectAll', false);
+      document.execCommand('delete', false);
+
+      // Insert new text
+      const success = document.execCommand('insertText', false, text);
+
+      if (!success) {
+        console.warn('⚠️ [ChatGPTBottomBar] execCommand failed, falling back to innerText.');
+        currentInput.innerText = text;
+      }
+    } else if (currentInput instanceof HTMLTextAreaElement || 'value' in currentInput) {
+      (currentInput as any).value = text;
+    }
+
+    // Always trigger input event to notify React/ProseMirror
+    const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+    currentInput.dispatchEvent(inputEvent);
+
+    // Some sites need a 'change' event too
+    const changeEvent = new Event('change', { bubbles: true });
+    currentInput.dispatchEvent(changeEvent);
+
+  } catch (err) {
+    console.error('❌ [ChatGPTBottomBar] Insertion error:', err);
+    // Absolute final fallback
+    if (currentInput.getAttribute('contenteditable') === 'true') {
+      currentInput.innerText = text;
+    } else if ('value' in currentInput) {
+      (currentInput as any).value = text;
+    }
+    currentInput.dispatchEvent(new Event('input', { bubbles: true }));
   }
 }
 
 const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
-  const [promptInput, setPromptInput] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const inputRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     // Load visibility
@@ -173,19 +218,22 @@ const ChatGPTBottomBar = () => {
       }
 
       setContainer(toolbarRoot);
-      setPromptInput(foundInput);
+      inputRef.current = foundInput;
     };
 
     const cleanup = waitForPromptInput(attachContainer);
 
-    // Observer for re-attachment
     const observer = new MutationObserver(() => {
-      const input = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+      const currentInput = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
         document.querySelector('textarea') as HTMLElement;
       const root = document.getElementById('ai-nots-toolbar-portal');
 
-      if (input && (!root || !root.isConnected)) {
-        attachContainer(input);
+      if (currentInput) {
+        inputRef.current = currentInput;
+      }
+
+      if (currentInput && (!root || !root.isConnected)) {
+        attachContainer(currentInput);
       }
     });
 
@@ -204,27 +252,29 @@ const ChatGPTBottomBar = () => {
     };
   }, []);
 
-  if (!container || !promptInput) return null;
+  if (!container) return null;
 
-  return createPortal(
+  return (
     <>
-      <ToolbarUI
-        isVisible={isVisible}
-        onInsertText={(text) => insertTextIntoChatGPT(promptInput, text)}
-        onOpenTemplates={() => setShowTemplates(true)}
-      />
-      {showTemplates && (
+      {createPortal(
+        <ToolbarUI
+          isVisible={isVisible}
+          onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
+          onOpenTemplates={() => setShowTemplates(true)}
+        />,
+        container
+      )}
+      {showTemplates && createPortal(
         <TemplatesPopup
           onSelect={(text) => {
-            insertTextIntoChatGPT(promptInput, text);
-            // Optional: Close popup after select? User didn't specify, but usually yes.
+            insertTextIntoChatGPT(inputRef.current, text);
             setShowTemplates(false);
           }}
           onClose={() => setShowTemplates(false)}
-        />
+        />,
+        document.body
       )}
-    </>,
-    container
+    </>
   );
 };
 
