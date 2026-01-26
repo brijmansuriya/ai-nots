@@ -272,3 +272,94 @@
 .login-prompt-btn:hover {
     background-color: #0d8a6a;
 }
+
+/* Creation Form Styles */
+.create-template-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ececf1;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    background-color: #40414f;
+    border: 1px solid #565869;
+    border-radius: 8px;
+    padding: 12px;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    border-color: #10a37f;
+    box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.cancel-btn {
+    background-color: transparent;
+    border: 1px solid #565869;
+    color: #ececf1;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.cancel-btn:hover {
+    background-color: #40414f;
+}
+
+.save-btn {
+    background-color: #10a37f;
+    border: none;
+    color: #ffffff;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.save-btn:hover {
+    background-color: #1a7f64;
+}
+
+.save-btn:disabled {
+    background-color: #565869;
+    cursor: not-allowed;
+    opacity: 0.7;
+}

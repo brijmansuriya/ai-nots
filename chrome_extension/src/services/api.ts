@@ -170,6 +170,27 @@ class ApiService {
     });
   }
 
+  async createTemplate(data: SavePromptData): Promise<any> {
+    // Ensure platform array has at least one item (default to ChatGPT)
+    const platform = data.platform.length > 0 ? data.platform : ['ChatGPT'];
+
+    const payload = {
+      title: data.title,
+      prompt: data.prompt,
+      description: data.description || '',
+      category_id: data.category_id,
+      tags: data.tags,
+      platform: platform,
+      dynamic_variables: data.dynamic_variables || [],
+      status: data.status || '1',
+    };
+
+    return this.request('/api/extension/templates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async getTemplates(): Promise<any[]> {
     try {
       const response = await this.request<any>('/api/extension/templates');

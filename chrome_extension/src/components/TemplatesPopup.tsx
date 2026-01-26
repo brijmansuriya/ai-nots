@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
+import type { Category } from '../services/api';
 import './TemplatesPopup.css';
 
 interface Template {
@@ -18,10 +19,22 @@ interface TemplatesPopupProps {
 const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [prompts, setPrompts] = useState<Template[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [activeTab, setActiveTab] = useState<'templates' | 'prompts'>('templates');
+    const [isCreating, setIsCreating] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    // Form State
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        prompt: '',
+        category_id: '',
+        tags: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
 
     const loadData = async () => {
         try {
@@ -29,9 +42,10 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             const user = await apiService.getCurrentUser();
             setIsAuthenticated(!!user);
 
-            const [templatesData, promptsData] = await Promise.all([
+            const [templatesData, promptsData, categoriesData] = await Promise.all([
                 apiService.getTemplates(),
-                user ? apiService.getPrompts() : Promise.resolve([])
+                user ? apiService.getPrompts() : Promise.resolve([]),
+                apiService.getCategories()
             ]);
 
             console.log('Templates data:', templatesData);
@@ -48,6 +62,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             }
 
             setPrompts(promptsData);
+            setCategories(categoriesData);
         } catch (err) {
             setError('Failed to load data');
             console.error(err);
@@ -60,43 +75,170 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         loadData();
     }, []);
 
+    const handleCreate = () => {
+        if (!isAuthenticated) {
+            window.open(apiService.getLoginUrl(), '_blank');
+            return;
+        }
+
+        setIsCreating(true);
+        setFormData({
+            title: '',
+            description: '',
+            prompt: '',
+            category_id: categories.length > 0 ? String(categories[0].id) : '',
+            tags: ''
+        });
+    };
+
+    const handleCancelCreate = () => {
+        setIsCreating(false);
+        setError(null);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError(null);
+
+        try {
+            const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+            const payload = {
+                title: formData.title,
+                description: formData.description,
+                prompt: formData.prompt,
+                category_id: Number(formData.category_id),
+                tags: tagsArray,
+                platform: ['ChatGPT'], // Default
+                status: '1'
+            };
+
+            if (activeTab === 'templates') {
+                await apiService.createTemplate(payload);
+            } else {
+                await apiService.savePrompt(payload);
+            }
+
+            // Success
+            setIsCreating(false);
+            loadData(); // Reload list
+        } catch (err: any) {
+            setError(err.message || 'Failed to create');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     const currentData = activeTab === 'templates' ? templates : prompts;
 
     return (
         <div className="templates-popup-overlay" onClick={onClose}>
             <div className="templates-popup" onClick={(e) => e.stopPropagation()}>
                 <button type="button" className="templates-popup-close-top" onClick={onClose}>×</button>
+
                 <div className="templates-popup-header">
                     <div className="header-left">
-                        <div className="templates-tabs">
-                            <h2
-                                className={activeTab === 'templates' ? 'active' : ''}
-                                onClick={() => setActiveTab('templates')}
-                            >
-                                Templates
-                            </h2>
-                            <h2
-                                className={activeTab === 'prompts' ? 'active' : ''}
-                                onClick={() => setActiveTab('prompts')}
-                            >
-                                Prompts
-                            </h2>
-                        </div>
-                        <span className="refresh-status" onClick={loadData}>
-                            <svg className="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>
-                            {loading ? 'Refreshing...' : 'Refresh'}
-                        </span>
+                        {isCreating ? (
+                            <div className="templates-tabs">
+                                <h2>New {activeTab === 'templates' ? 'Template' : 'Prompt'}</h2>
+                            </div>
+                        ) : (
+                            <div className="templates-tabs">
+                                <h2
+                                    className={activeTab === 'templates' ? 'active' : ''}
+                                    onClick={() => setActiveTab('templates')}
+                                >
+                                    Templates
+                                </h2>
+                                <h2
+                                    className={activeTab === 'prompts' ? 'active' : ''}
+                                    onClick={() => setActiveTab('prompts')}
+                                >
+                                    Prompts
+                                </h2>
+                            </div>
+                        )}
+
+                        {!isCreating && (
+                            <span className="refresh-status" onClick={loadData}>
+                                <svg className="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>
+                                {loading ? 'Refreshing...' : 'Refresh'}
+                            </span>
+                        )}
                     </div>
-                    <button type="button" className="new-template-btn">
-                        <span className="plus-icon">+</span> New {activeTab === 'templates' ? 'Template' : 'Prompt'}
-                    </button>
+
+                    {!isCreating && (
+                        <button type="button" className="new-template-btn" onClick={handleCreate}>
+                            <span className="plus-icon">+</span> New {activeTab === 'templates' ? 'Template' : 'Prompt'}
+                        </button>
+                    )}
                 </div>
 
                 <div className="templates-popup-content">
-                    {loading ? (
-                        <div style={{ padding: '20px', textAlign: 'center' }}>Loading templates...</div>
+                    {loading && !isCreating ? (
+                        <div className="loading-container">Loading...</div>
                     ) : error ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>
+                        <div className="error-container">{error}</div>
+                    ) : isCreating ? (
+                        <form className="create-template-form" onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Title</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g., Code Reviewer"
+                                    value={formData.title}
+                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Description</label>
+                                <input
+                                    type="text"
+                                    placeholder="Short description..."
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Prompt Content</label>
+                                <textarea
+                                    required
+                                    placeholder="Enter the prompt text here..."
+                                    value={formData.prompt}
+                                    onChange={e => setFormData({ ...formData, prompt: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Category</label>
+                                <select
+                                    value={formData.category_id}
+                                    onChange={e => setFormData({ ...formData, category_id: e.target.value })}
+                                >
+                                    <option value="">Select Category</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Tags (comma separated)</label>
+                                <input
+                                    type="text"
+                                    placeholder="coding, review, bugfix"
+                                    value={formData.tags}
+                                    onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="cancel-btn" onClick={handleCancelCreate} disabled={submitting}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="save-btn" disabled={submitting}>
+                                    {submitting ? 'Saving...' : 'Save ' + (activeTab === 'templates' ? 'Template' : 'Prompt')}
+                                </button>
+                            </div>
+                        </form>
                     ) : activeTab === 'prompts' && !isAuthenticated ? (
                         <div className="templates-popup-empty">
                             <p>Login required to see your personal prompts</p>
@@ -130,7 +272,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                         >
                                             Insert
                                         </button>
-                                        <button type="button" className="template-menu-btn">···</button>
+                                        {/* <button type="button" className="template-menu-btn">···</button> */}
                                     </div>
                                 </div>
                             ))}

@@ -41,4 +41,5 @@ Route::get('templates', [TemplateController::class, 'index']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('prompts', [PromptController::class, 'index']);
     Route::post('prompts', [PromptController::class, 'store']);
+    Route::post('templates', [TemplateController::class, 'store']);
 });
