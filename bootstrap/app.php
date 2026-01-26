@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         // Global Middleware Here
-
+    
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

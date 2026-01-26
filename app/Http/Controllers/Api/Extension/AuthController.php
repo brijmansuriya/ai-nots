@@ -21,8 +21,8 @@ class AuthController extends Controller
         $validated = $request->validated();
 
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
@@ -30,8 +30,8 @@ class AuthController extends Controller
         $token = $user->createToken('extension-token', ['extension:access'])->plainTextToken;
 
         return response()->json([
-            'user'    => new UserResource($user),
-            'token'   => $token,
+            'user' => new UserResource($user),
+            'token' => $token,
             'message' => 'Registration successful',
         ], 201);
     }
@@ -43,7 +43,7 @@ class AuthController extends Controller
     {
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -56,8 +56,8 @@ class AuthController extends Controller
         $token = $user->createToken('extension-token', ['extension:access'])->plainTextToken;
 
         return response()->json([
-            'user'    => new UserResource($user),
-            'token'   => $token,
+            'user' => new UserResource($user),
+            'token' => $token,
             'message' => 'Login successful',
         ]);
     }

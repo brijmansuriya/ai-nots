@@ -39,5 +39,6 @@ Route::get('templates', [TemplateController::class, 'index']);
 
 // Protected endpoints (require API token auth)
 Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('prompts', [PromptController::class, 'index']);
     Route::post('prompts', [PromptController::class, 'store']);
 });

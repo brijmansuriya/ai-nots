@@ -36,7 +36,12 @@ class PromptNote extends Model implements HasMedia
         'likes_count',
         'views_count',
         'popularity_score',
+        'is_template',
         // 'dynamic_variables',
+    ];
+
+    protected $casts = [
+        'is_template' => 'boolean',
     ];
 
     /**
@@ -46,14 +51,13 @@ class PromptNote extends Model implements HasMedia
      */
     protected $appends = [
         'image_url',
-        'is_template',
     ];
 
     /**
      * Status constants for backward compatibility
      */
-    public const STATUS_PENDING  = '0';
-    public const STATUS_ACTIVE   = '1';
+    public const STATUS_PENDING = '0';
+    public const STATUS_ACTIVE = '1';
     public const STATUS_REJECTED = '2';
 
     /**
@@ -96,7 +100,7 @@ class PromptNote extends Model implements HasMedia
      * @param string|PromptStatus $status
      * @return Builder
      */
-    public function scopeStatus(Builder $query, string | PromptStatus $status): Builder
+    public function scopeStatus(Builder $query, string|PromptStatus $status): Builder
     {
         $statusValue = $status instanceof PromptStatus ? $status->value : $status;
         return $query->where('status', $statusValue);
@@ -110,7 +114,7 @@ class PromptNote extends Model implements HasMedia
      */
     public function scopeTemplates(Builder $query): Builder
     {
-        return $query->where('promptable_type', 'admin');
+        return $query->where('is_template', true);
     }
 
     /**
@@ -155,7 +159,7 @@ class PromptNote extends Model implements HasMedia
     {
         $media = $this->getFirstMedia('prompt_images');
 
-        if (! $media) {
+        if (!$media) {
             return null;
         }
 
@@ -172,7 +176,7 @@ class PromptNote extends Model implements HasMedia
     {
         $media = $this->getFirstMedia('prompt_images');
 
-        if (! $media) {
+        if (!$media) {
             return null;
         }
 
@@ -200,7 +204,7 @@ class PromptNote extends Model implements HasMedia
     {
         $media = $this->getFirstMedia('prompt_images');
 
-        if (! $media) {
+        if (!$media) {
             return null;
         }
 
@@ -317,7 +321,7 @@ class PromptNote extends Model implements HasMedia
      */
     public function isTemplate(): bool
     {
-        return $this->promptable_type === 'admin';
+        return (bool) $this->is_template;
     }
 
     /**
@@ -330,15 +334,7 @@ class PromptNote extends Model implements HasMedia
         return $this->promptable_type === 'user';
     }
 
-    /**
-     * Get the is_template attribute (computed from promptable_type).
-     *
-     * @return bool
-     */
-    public function getIsTemplateAttribute(): bool
-    {
-        return $this->isTemplate();
-    }
+
 
     /**
      * Check if the current user has saved this prompt.
@@ -349,7 +345,7 @@ class PromptNote extends Model implements HasMedia
     {
         try {
             $user = Auth::user();
-            if (! $user) {
+            if (!$user) {
                 return false;
             }
 
@@ -376,7 +372,7 @@ class PromptNote extends Model implements HasMedia
     {
         try {
             $user = Auth::user();
-            if (! $user) {
+            if (!$user) {
                 return false;
             }
 
@@ -403,9 +399,9 @@ class PromptNote extends Model implements HasMedia
     public function calculatePopularityScore(): float
     {
         $score = ($this->save_count * 2)
-             + ($this->copy_count * 1)
-             + ($this->likes_count * 3)
-             + ($this->views_count * 0.1);
+            + ($this->copy_count * 1)
+            + ($this->likes_count * 3)
+            + ($this->views_count * 0.1);
 
         $this->popularity_score = round($score, 2);
         $this->saveQuietly(); // Save without triggering events
@@ -436,9 +432,9 @@ class PromptNote extends Model implements HasMedia
             ->where('created_at', '>=', now()->subHour()) // Within last hour
             ->exists();
 
-        if (! $viewExists) {
+        if (!$viewExists) {
             $this->views()->create([
-                'user_id'    => $userId,
+                'user_id' => $userId,
                 'ip_address' => $ipAddress,
                 'user_agent' => $userAgent,
                 'created_at' => now(),
@@ -462,9 +458,11 @@ class PromptNote extends Model implements HasMedia
         $baseSlug = $slug;
         $counter = 1;
 
-        while (static::where('slug', $slug)
-            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
-            ->exists()) {
+        while (
+            static::where('slug', $slug)
+                ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+                ->exists()
+        ) {
             $slug = $baseSlug . '-' . $counter;
             $counter++;
         }

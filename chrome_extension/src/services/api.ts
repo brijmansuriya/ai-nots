@@ -190,6 +190,44 @@ class ApiService {
     }
   }
 
+  async getPrompts(): Promise<any[]> {
+    try {
+      const response = await this.request<any>('/api/extension/prompts');
+      console.log('Prompts response:', response);
+
+      if (response && Array.isArray(response.data)) {
+        return response.data;
+      }
+
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      console.warn('Failed to fetch prompts:', error);
+      return [];
+    }
+  }
+
+  async getCurrentUser(): Promise<any> {
+    try {
+      const response = await this.request<any>('/api/extension/auth/me');
+      return response;
+    } catch (error) {
+      console.warn('Failed to fetch user:', error);
+      return null;
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.request('/api/extension/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.warn('Failed to logout:', error);
+    }
+  }
+
+  getLoginUrl(): string {
+    return `${this.baseUrl.replace(/\/$/, '')}/login`;
+  }
+
   setConfig(config: ApiConfig): void {
     this.baseUrl = config.baseUrl;
     this.token = config.token || '';

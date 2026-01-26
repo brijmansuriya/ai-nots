@@ -75,11 +75,27 @@
     gap: 12px;
 }
 
-.templates-popup-header h2 {
+.templates-tabs {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.templates-tabs h2 {
     margin: 0;
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
+    color: #8e8ea0;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.templates-tabs h2.active {
     color: #ffffff;
+}
+
+.templates-tabs h2:not(.active):hover {
+    color: #acacbe;
 }
 
 .refresh-status {
@@ -235,4 +251,24 @@
     padding: 60px 0;
     color: #8e8ea0;
     font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.login-prompt-btn {
+    background-color: #10a37f;
+    color: #ffffff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.login-prompt-btn:hover {
+    background-color: #0d8a6a;
 }

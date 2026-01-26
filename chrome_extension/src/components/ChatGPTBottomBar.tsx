@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
+import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
 import './ChatGPTBottomBar.css';
 
@@ -20,6 +21,21 @@ const Icons = {
   ),
   ChevronLeft: () => (
     <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+  ),
+  ChevronDown: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+  ),
+  FileText: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" /><path d="M14 2v4a2 2 0 0 0 2 2h4" /></svg>
+  ),
+  MagicWand: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4V2" /><path d="M15 16v-2" /><path d="M8 9h2" /><path d="M20 9h2" /><path d="M17.8 11.8 19 13" /><path d="M15 9h0" /><path d="M17.8 6.2 19 5" /><path d="m3 21 9-9" /><path d="M12.2 6.2 11 5" /></svg>
+  ),
+  Trash2: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
+  ),
+  MessageSquare: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
   )
 };
 
@@ -27,72 +43,108 @@ interface ToolbarUIProps {
   onInsertText: (text: string) => void;
   isVisible: boolean;
   onOpenTemplates: () => void;
+  user: any;
+  onLogout: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   if (!isVisible) return null;
 
   const tools = [
-    { id: 'generate', label: 'Generate', icon: Icons.Sparkles, action: () => console.log('Generate clicked') },
-    { id: 'templates', label: 'Templates', icon: Icons.LayoutTemplate, action: onOpenTemplates },
+    { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
     { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
+    { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
+    { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: () => console.log('Clear clicked') },
+    { id: 'chat', label: 'Chat', icon: Icons.MessageSquare, action: () => console.log('Chat clicked') },
   ];
+
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 1);
+  };
 
   return (
     <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'}`}>
-      {isExpanded ? (
-        <>
-          {tools.map((tool) => {
-            const isActive = activeTool === tool.id;
-            const Icon = tool.icon;
+      <div className="ainots-left-section">
+        {isExpanded ? (
+          <>
+            {tools.map((tool) => {
+              const isActive = activeTool === tool.id;
+              const Icon = tool.icon;
 
-            if (isActive) {
               return (
                 <button
                   key={tool.id}
-                  className="ainots-tool-pill"
+                  className={`ainots-toolbar-button ${isActive ? 'active' : ''}`}
                   onClick={() => {
+                    setActiveTool(tool.id);
                     tool.action();
-                    // Keep active, maybe toggle panel?
                   }}
+                  title={isActive ? '' : tool.label}
                 >
                   <Icon />
-                  <span className="ainots-pill-label">{tool.label}</span>
+                  <span className="ainots-button-label">{tool.label}</span>
                 </button>
               );
-            }
+            })}
 
-            return (
-              <button
-                key={tool.id}
-                className="ainots-icon-btn"
-                onClick={() => setActiveTool(tool.id)}
-                title={tool.label}
-              >
-                <Icon />
-              </button>
-            );
-          })}
+            <div className="ainots-separator" />
+          </>
+        ) : null}
 
-          <div className="ainots-separator" />
-        </>
-      ) : (
-        // Collapsed state - show nothing or maybe a mini toggle? 
-        // Design says "Only essential icon(s) visible". 
-        // For now let's just show the expand toggle as the "essential" way back
-        null
-      )}
+        <button
+          className="ainots-icon-btn ainots-toggle-btn"
+          onClick={() => setIsExpanded(!isExpanded)}
+          title={isExpanded ? "Collapse" : "Expand"}
+        >
+          {isExpanded ? <Icons.ChevronLeft /> : <Icons.ChevronRight />}
+        </button>
+      </div>
 
-      <button
-        className="ainots-icon-btn ainots-toggle-btn"
-        onClick={() => setIsExpanded(!isExpanded)}
-        title={isExpanded ? "Collapse" : "Expand"}
-      >
-        {isExpanded ? <Icons.ChevronLeft /> : <Icons.ChevronRight />}
-      </button>
+      <div className="ainots-right-section">
+        {user ? (
+          <div className="ainots-user-section">
+            <div
+              className="ainots-user-trigger"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              <div className="ainots-user-avatar" title={user.name}>
+                {user.profile_photo_url ? (
+                  <img src={user.profile_photo_url} alt={user.name} />
+                ) : (
+                  <span>{getInitials(user.name)}</span>
+                )}
+              </div>
+              <Icons.ChevronDown />
+            </div>
+            {showUserMenu && (
+              <div className="ainots-user-menu">
+                <div className="ainots-user-menu-header">
+                  <strong>{user.name}</strong>
+                  <p>{user.email}</p>
+                </div>
+                <div className="ainots-user-menu-divider" />
+                <button className="ainots-user-menu-item" onClick={onLogout}>
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            className="ainots-login-btn"
+            onClick={() => window.open(apiService.getLoginUrl(), '_blank')}
+            title="Login to AI Notes"
+          >
+            <Icons.Users />
+            <span>Login</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -161,7 +213,17 @@ const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
+
+  const fetchUser = async () => {
+    try {
+      const userData = await apiService.getCurrentUser();
+      setUser(userData);
+    } catch (err) {
+      console.warn('Failed to fetch user in bottom bar');
+    }
+  };
 
   useEffect(() => {
     // Load visibility
@@ -221,6 +283,7 @@ const ChatGPTBottomBar = () => {
       inputRef.current = foundInput;
     };
 
+    fetchUser();
     const cleanup = waitForPromptInput(attachContainer);
 
     const observer = new MutationObserver(() => {
@@ -261,6 +324,11 @@ const ChatGPTBottomBar = () => {
           isVisible={isVisible}
           onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
           onOpenTemplates={() => setShowTemplates(true)}
+          user={user}
+          onLogout={async () => {
+            await apiService.logout();
+            setUser(null);
+          }}
         />,
         container
       )}

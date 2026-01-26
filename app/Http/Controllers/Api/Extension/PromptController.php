@@ -11,10 +11,41 @@ use App\Models\PromptNote;
 use App\Models\Tag;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PromptController extends Controller
 {
+    /**
+     * Get list of user prompts (non-templates)
+     */
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+
+        $query = PromptNote::where('is_template', false)
+            ->where('promptable_id', $user->id)
+            ->where('promptable_type', $user->getMorphClass())
+            ->active()
+            ->with(['category', 'tags', 'platforms']);
+
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = $request->input('per_page', 20);
+        $prompts = $query->paginate($perPage);
+
+        return PromptResource::collection($prompts)->additional([
+            'status' => true,
+            'message' => 'Prompts fetched successfully',
+        ]);
+    }
+
     /**
      * Store a new prompt from extension
      */
@@ -25,54 +56,51 @@ class PromptController extends Controller
 
         // Prepare prompt data
         $promptData = [
-            'title'           => $validated['title'],
-            'prompt'          => $validated['prompt'],
-            'description'     => $validated['description'] ?? null,
-            'category_id'     => $validated['category_id'],
+            'title' => $validated['title'],
+            'prompt' => $validated['prompt'],
+            'description' => $validated['description'] ?? null,
+            'category_id' => $validated['category_id'],
             'promptable_type' => $user->getMorphClass(),
-            'promptable_id'   => $user->id,
-            'status'          => $validated['status'] ?? PromptStatus::PENDING->value,
+            'promptable_id' => $user->id,
+            'status' => $validated['status'] ?? PromptStatus::PENDING->value,
+            'is_template' => false,
         ];
 
         $promptNote = PromptNote::create($promptData);
 
-        // Handle tags - support both existing tags (by name) and create new ones
-        $tags   = $validated['tags'];
+        // Handle tags
+        $tags = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
-            // Check if tag exists by name (case-insensitive)
             $existingTag = Tag::whereRaw('LOWER(name) = ?', [strtolower($tag)])->first();
 
             if ($existingTag) {
                 $tagIds[] = $existingTag->id;
             } else {
-                // Create new tag if it doesn't exist
-                $slug         = Str::slug($tag);
+                $slug = Str::slug($tag);
                 $originalSlug = $slug;
-                $counter      = 1;
+                $counter = 1;
 
-                // Check if the slug already exists and append a number if it does
                 while (Tag::where('slug', $slug)->exists()) {
                     $slug = "{$originalSlug}-{$counter}";
                     $counter++;
                 }
 
                 $createdTag = Tag::create([
-                    'name'            => $tag,
-                    'slug'            => $slug,
+                    'name' => $tag,
+                    'slug' => $slug,
                     'created_by_type' => $user->getMorphClass(),
-                    'created_by_id'   => $user->id,
-                    'status'          => 'active',
+                    'created_by_id' => $user->id,
+                    'status' => 'active',
                 ]);
                 $tagIds[] = $createdTag->id;
             }
         }
 
-        // Attach tags (remove duplicates)
         $promptNote->tags()->sync(array_unique($tagIds));
 
-        // Handle platforms - find by name
+        // Handle platforms
         $platformIds = [];
         foreach ($validated['platform'] as $platformName) {
             $platform = Platform::whereRaw('LOWER(name) = ?', [strtolower($platformName)])->first();
@@ -91,11 +119,11 @@ class PromptController extends Controller
             $promptNote->variables()->createMany($variables);
         }
 
-        // Handle image upload if provided
+        // Handle image upload
         if ($request->hasFile('image')) {
             try {
                 $imageService = new ImageService();
-                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576);
+                $webpPath = $imageService->convertToWebP($request->file('image'), 90, 1048576);
 
                 $fullPath = storage_path('app/public/' . $webpPath);
                 $promptNote->addMedia($fullPath)
@@ -112,4 +140,3 @@ class PromptController extends Controller
             ->setStatusCode(201);
     }
 }
-
