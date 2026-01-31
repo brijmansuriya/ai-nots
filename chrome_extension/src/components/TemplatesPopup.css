@@ -10,12 +10,12 @@
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     pointer-events: auto;
 }
 
 .templates-popup {
-    background-color: #202123;
+    background-color: var(--background);
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     width: 90%;
@@ -25,9 +25,10 @@
     flex-direction: column;
     overflow: hidden;
     animation: popupSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 1px solid #444654;
+    border: 1px solid var(--border);
     position: relative;
     padding: 0;
+    color: var(--foreground);
 }
 
 @keyframes popupSlideIn {
@@ -48,7 +49,7 @@
     right: 20px;
     background: none;
     border: none;
-    color: #acacbe;
+    color: var(--muted-foreground);
     font-size: 24px;
     cursor: pointer;
     line-height: 1;
@@ -59,7 +60,7 @@
 }
 
 .templates-popup-close-top:hover {
-    color: #ffffff;
+    color: var(--foreground);
 }
 
 .templates-popup-header {
@@ -72,7 +73,8 @@
 .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 32px;
+    /* Increased from 12px for better separation */
 }
 
 .templates-tabs {
@@ -85,25 +87,27 @@
     margin: 0;
     font-size: 28px;
     font-weight: 700;
-    color: #8e8ea0;
+    color: var(--muted-foreground);
     cursor: pointer;
     transition: color 0.2s;
 }
 
 .templates-tabs h2.active {
-    color: #ffffff;
+    color: var(--foreground);
 }
 
 .templates-tabs h2:not(.active):hover {
-    color: #acacbe;
+    color: var(--foreground);
+    opacity: 0.7;
 }
 
 .refresh-status {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #8e8ea0;
+    color: var(--muted-foreground);
     font-size: 14px;
+    cursor: pointer;
 }
 
 .refresh-icon {
@@ -123,8 +127,8 @@
 }
 
 .new-template-btn {
-    background-color: #ffffff;
-    color: #000000;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
     border: none;
     padding: 10px 20px;
     border-radius: 100px;
@@ -134,11 +138,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: background-color 0.2s;
+    transition: opacity 0.2s;
 }
 
 .new-template-btn:hover {
-    background-color: #ececec;
+    opacity: 0.9;
 }
 
 .templates-popup-content {
@@ -154,8 +158,9 @@
 }
 
 .template-item {
-    background-color: #2a2b32;
-    border: 1px solid transparent;
+    background-color: var(--card);
+    /* or var(--secondary) based on preference */
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 20px 24px;
     display: flex;
@@ -166,8 +171,8 @@
 }
 
 .template-item:hover {
-    border-color: #444654;
-    background-color: #343541;
+    border-color: var(--ring);
+    background-color: var(--accent);
 }
 
 .template-item-info {
@@ -177,7 +182,7 @@
 
 .template-item-title {
     font-weight: 600;
-    color: #ffffff;
+    color: var(--foreground);
     font-size: 16px;
     display: block;
     margin-bottom: 4px;
@@ -185,7 +190,7 @@
 
 .template-item-desc {
     font-size: 13px;
-    color: #8e8ea0;
+    color: var(--muted-foreground);
     margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -202,9 +207,9 @@
 }
 
 .insert-template-btn {
-    background-color: #ececf1;
-    color: #000000;
-    border: none;
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    border: 1px solid var(--border);
     padding: 8px 18px;
     border-radius: 8px;
     font-weight: 600;
@@ -215,13 +220,13 @@
 }
 
 .insert-template-btn:hover {
-    background-color: #d1d1d6;
+    background-color: var(--border);
 }
 
 .template-menu-btn {
     background: none;
     border: none;
-    color: #acacbe;
+    color: var(--muted-foreground);
     font-size: 20px;
     cursor: pointer;
     padding: 4px;
@@ -230,26 +235,26 @@
 }
 
 .template-menu-btn:hover {
-    color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--foreground);
+    background-color: var(--accent);
 }
 
 .loading-container {
     padding: 40px;
     text-align: center;
-    color: #acacbe;
+    color: var(--muted-foreground);
 }
 
 .error-container {
     padding: 40px;
     text-align: center;
-    color: #ef4444;
+    color: var(--destructive);
 }
 
 .templates-popup-empty {
     text-align: center;
     padding: 60px 0;
-    color: #8e8ea0;
+    color: var(--muted-foreground);
     font-size: 16px;
     display: flex;
     flex-direction: column;
@@ -259,6 +264,7 @@
 
 .login-prompt-btn {
     background-color: #10a37f;
+    /* Open AI Green - might want variable? */
     color: #ffffff;
     border: none;
     padding: 10px 24px;
@@ -290,17 +296,17 @@
 .form-group label {
     font-size: 14px;
     font-weight: 500;
-    color: #ececf1;
+    color: var(--foreground);
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
-    background-color: #40414f;
-    border: 1px solid #565869;
+    background-color: var(--input);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 12px;
-    color: #ffffff;
+    color: var(--foreground);
     font-family: inherit;
     font-size: 14px;
     outline: none;
@@ -310,8 +316,8 @@
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
-    border-color: #10a37f;
-    box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.2);
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--ring);
 }
 
 .form-group textarea {
@@ -328,8 +334,8 @@
 
 .cancel-btn {
     background-color: transparent;
-    border: 1px solid #565869;
-    color: #ececf1;
+    border: 1px solid var(--border);
+    color: var(--foreground);
     padding: 8px 16px;
     border-radius: 6px;
     cursor: pointer;
@@ -339,27 +345,28 @@
 }
 
 .cancel-btn:hover {
-    background-color: #40414f;
+    background-color: var(--accent);
 }
 
 .save-btn {
-    background-color: #10a37f;
+    background-color: var(--primary);
     border: none;
-    color: #ffffff;
+    color: var(--primary-foreground);
     padding: 8px 20px;
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    transition: background-color 0.2s;
+    transition: opacity 0.2s;
 }
 
 .save-btn:hover {
-    background-color: #1a7f64;
+    opacity: 0.9;
 }
 
 .save-btn:disabled {
-    background-color: #565869;
+    background-color: var(--muted);
+    color: var(--muted-foreground);
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 1;
 }

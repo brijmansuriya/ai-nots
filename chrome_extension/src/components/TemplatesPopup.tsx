@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import type { Category } from '../services/api';
+import { ThemeToggle } from './ThemeToggle';
 import './TemplatesPopup.css';
 
 interface Template {
@@ -14,14 +15,15 @@ interface Template {
 interface TemplatesPopupProps {
     onSelect: (text: string) => void;
     onClose: () => void;
+    initialView?: 'list' | 'create';
 }
 
-const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
+const TemplatesPopup = ({ onSelect, onClose, initialView = 'list' }: TemplatesPopupProps) => {
     const [templates, setTemplates] = useState<Template[]>([]);
     const [prompts, setPrompts] = useState<Template[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [activeTab, setActiveTab] = useState<'templates' | 'prompts'>('templates');
-    const [isCreating, setIsCreating] = useState(false);
+    const [isCreating, setIsCreating] = useState(initialView === 'create');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -82,18 +84,22 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         }
 
         setIsCreating(true);
-        setFormData({
-            title: '',
-            description: '',
-            prompt: '',
-            category_id: categories.length > 0 ? String(categories[0].id) : '',
-            tags: ''
-        });
+        // Don't reset everything, maybe user wants to switch context
+        if (!formData.category_id && categories.length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                category_id: String(categories[0].id)
+            }));
+        }
     };
 
     const handleCancelCreate = () => {
-        setIsCreating(false);
-        setError(null);
+        if (initialView === 'create') {
+            onClose(); // Verify this behavior with user if needed, but logic implies if opened to create, cancel should close
+        } else {
+            setIsCreating(false);
+            setError(null);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -121,7 +127,11 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
 
             // Success
             setIsCreating(false);
-            loadData(); // Reload list
+            if (initialView === 'create') {
+                onClose();
+            } else {
+                loadData(); // Reload list
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to create');
         } finally {
@@ -138,26 +148,20 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
 
                 <div className="templates-popup-header">
                     <div className="header-left">
-                        {isCreating ? (
-                            <div className="templates-tabs">
-                                <h2>New {activeTab === 'templates' ? 'Template' : 'Prompt'}</h2>
-                            </div>
-                        ) : (
-                            <div className="templates-tabs">
-                                <h2
-                                    className={activeTab === 'templates' ? 'active' : ''}
-                                    onClick={() => setActiveTab('templates')}
-                                >
-                                    Templates
-                                </h2>
-                                <h2
-                                    className={activeTab === 'prompts' ? 'active' : ''}
-                                    onClick={() => setActiveTab('prompts')}
-                                >
-                                    Prompts
-                                </h2>
-                            </div>
-                        )}
+                        <div className="templates-tabs">
+                            <h2
+                                className={activeTab === 'templates' ? 'active' : ''}
+                                onClick={() => setActiveTab('templates')}
+                            >
+                                {isCreating ? 'New Template' : 'Templates'}
+                            </h2>
+                            <h2
+                                className={activeTab === 'prompts' ? 'active' : ''}
+                                onClick={() => setActiveTab('prompts')}
+                            >
+                                {isCreating ? 'New Prompt' : 'Prompts'}
+                            </h2>
+                        </div>
 
                         {!isCreating && (
                             <span className="refresh-status" onClick={loadData}>
@@ -167,11 +171,14 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                         )}
                     </div>
 
-                    {!isCreating && (
-                        <button type="button" className="new-template-btn" onClick={handleCreate}>
-                            <span className="plus-icon">+</span> New {activeTab === 'templates' ? 'Template' : 'Prompt'}
-                        </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <ThemeToggle />
+                        {!isCreating && (
+                            <button type="button" className="new-template-btn" onClick={handleCreate}>
+                                <span className="plus-icon">+</span> New {activeTab === 'templates' ? 'Template' : 'Prompt'}
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="templates-popup-content">

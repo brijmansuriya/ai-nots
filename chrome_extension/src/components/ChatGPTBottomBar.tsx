@@ -36,6 +36,9 @@ const Icons = {
   ),
   MessageSquare: () => (
     <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+  ),
+  Plus: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
   )
 };
 
@@ -43,11 +46,12 @@ interface ToolbarUIProps {
   onInsertText: (text: string) => void;
   isVisible: boolean;
   onOpenTemplates: () => void;
+  onOpenCreateTemplate: () => void;
   user: any;
   onLogout: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, onOpenCreateTemplate, user, onLogout }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -56,6 +60,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
   const tools = [
     { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
+    { id: 'create', label: 'Create', icon: Icons.Plus, action: onOpenCreateTemplate },
     { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
     { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
     { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: () => console.log('Clear clicked') },
@@ -213,6 +218,7 @@ const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [templatesInitialView, setTemplatesInitialView] = useState<'list' | 'create'>('list');
   const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
 
@@ -323,7 +329,14 @@ const ChatGPTBottomBar = () => {
         <ToolbarUI
           isVisible={isVisible}
           onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
-          onOpenTemplates={() => setShowTemplates(true)}
+          onOpenTemplates={() => {
+            setTemplatesInitialView('list');
+            setShowTemplates(true);
+          }}
+          onOpenCreateTemplate={() => {
+            setTemplatesInitialView('create');
+            setShowTemplates(true);
+          }}
           user={user}
           onLogout={async () => {
             await apiService.logout();
@@ -334,6 +347,7 @@ const ChatGPTBottomBar = () => {
       )}
       {showTemplates && createPortal(
         <TemplatesPopup
+          initialView={templatesInitialView}
           onSelect={(text) => {
             insertTextIntoChatGPT(inputRef.current, text);
             setShowTemplates(false);

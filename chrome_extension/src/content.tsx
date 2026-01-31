@@ -2,11 +2,13 @@
 import contentStyles from './content.css?inline';
 import chatGptBottomBarStyles from './components/ChatGPTBottomBar.css?inline';
 import extensionDashboardStyles from './components/ExtensionDashboard.css?inline';
+import indexStyles from './index.css?inline'; // Import global variables
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import ChatGPTBottomBar from './components/ChatGPTBottomBar';
 import { debug } from './utils/debug';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Function to inject styles
 const injectStyles = () => {
@@ -16,6 +18,7 @@ const injectStyles = () => {
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
+        ${indexStyles}
         ${contentStyles}
         ${chatGptBottomBarStyles}
         ${extensionDashboardStyles}
@@ -72,7 +75,9 @@ const renderComponent = (container: HTMLElement) => {
 
         rootInstance.render(
             <StrictMode>
-                <ComponentToRender />
+                <ThemeProvider defaultTheme="system" storageKey="ai-notes-extension-theme" rootElement={container}>
+                    <ComponentToRender />
+                </ThemeProvider>
             </StrictMode>
         );
         console.log('🔵 [Content Script] Successfully rendered', componentName);
