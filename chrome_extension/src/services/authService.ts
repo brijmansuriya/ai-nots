@@ -133,6 +133,21 @@ class AuthService {
         return response;
     }
 
+    async googleLogin(token: string): Promise<AuthResponse> {
+        const response = await this.request<AuthResponse>('/api/extension/auth/google', {
+            method: 'POST',
+            body: JSON.stringify({ token }),
+        });
+
+        // Save token
+        if (response.token) {
+            await this.saveToken(response.token);
+            await this.saveUser(response.user);
+        }
+
+        return response;
+    }
+
     async logout(): Promise<void> {
         try {
             await this.request('/api/extension/auth/logout', {

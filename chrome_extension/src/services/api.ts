@@ -39,14 +39,9 @@ class ApiService {
 
   async initialize(): Promise<void> {
     return new Promise((resolve) => {
-      debug.info('Initializing API service', 'ApiService');
-      chrome.storage.local.get(['apiBaseUrl', 'apiToken'], (result: { [key: string]: any }) => {
+      chrome.storage.local.get(['apiBaseUrl', 'api_token'], (result: Record<string, any>) => {
         this.baseUrl = result.apiBaseUrl || ENV.API_BASE_URL;
-        this.token = result.apiToken || '';
-        debug.info('API service initialized', 'ApiService', {
-          baseUrl: this.baseUrl,
-          hasToken: !!this.token,
-        });
+        this.token = result.api_token || ''; // Use api_token consistently
         resolve();
       });
     });
@@ -59,7 +54,7 @@ class ApiService {
     await this.initialize();
 
     if (!this.baseUrl) {
-      throw new Error('API base URL not configured. Please set it in extension settings.');
+      throw new Error('API base URL not configured.');
     }
 
     const url = `${this.baseUrl.replace(/\/$/, '')}${endpoint}`;
@@ -69,25 +64,23 @@ class ApiService {
       ...(options.headers as Record<string, string> || {}),
     };
 
-    // Add authentication if token is available (API token auth)
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    // Use API token auth (no cookies needed)
     const fetchOptions: RequestInit = {
       ...options,
       headers: headers as HeadersInit,
     };
 
-    debug.network(options.method || 'GET', url, undefined, {
-      hasAuth: !!this.token,
-      authType: 'Bearer',
-    });
-
     try {
       const response = await fetch(url, fetchOptions);
-      debug.network(options.method || 'GET', url, response.status);
+
+      if (response.status === 401) {
+        debug.error('Unauthorized request (401), logging out...', 'ApiService');
+        this.clearAuth();
+        throw new Error('Unauthorized');
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -100,139 +93,115 @@ class ApiService {
           errorMessage = errorText || errorMessage;
         }
 
-        debug.error(`API request failed: ${errorMessage}`, 'ApiService', {
-          url,
-          status: response.status,
-          statusText: response.statusText,
-        });
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      return data as T;
+      return await response.json() as T;
     } catch (error) {
       debug.error('Network request failed', 'ApiService', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Network request failed');
+      throw error;
+    }
+  }
+
+  private clearAuth(): void {
+    this.token = '';
+    chrome.storage.local.remove(['api_token', 'cachedPrompts']);
+    try {
+      chrome.runtime.sendMessage({ type: 'AUTH_LOGOUT' }).catch(() => { });
+    } catch (e) {
+      // Ignore errors if context is invalidated or no listener
     }
   }
 
   async getCategories(): Promise<Category[]> {
     try {
-      const response = await this.request<Category[]>('/api/extension/categories');
-      return Array.isArray(response) ? response : [];
+      const response = await this.request<any>('/api/extension/categories');
+      return response?.data || response || [];
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
       return [];
     }
   }
 
   async getTags(): Promise<Tag[]> {
     try {
-      const response = await this.request<Tag[]>('/api/extension/tags');
-      return Array.isArray(response) ? response : [];
+      const response = await this.request<any>('/api/extension/tags');
+      return response?.data || response || [];
     } catch (error) {
-      console.error('Failed to fetch tags:', error);
       return [];
     }
   }
 
   async getPlatforms(): Promise<Platform[]> {
     try {
-      const response = await this.request<Platform[]>('/api/extension/platforms');
-      return Array.isArray(response) ? response : [];
+      const response = await this.request<any>('/api/extension/platforms');
+      return response?.data || response || [];
     } catch (error) {
-      console.error('Failed to fetch platforms:', error);
       return [];
     }
   }
 
   async savePrompt(data: SavePromptData): Promise<any> {
-    // Ensure platform array has at least one item (default to ChatGPT)
-    const platform = data.platform.length > 0 ? data.platform : ['ChatGPT'];
-
-    const payload = {
-      title: data.title,
-      prompt: data.prompt,
-      description: data.description || '',
-      category_id: data.category_id,
-      tags: data.tags,
-      platform: platform,
-      dynamic_variables: data.dynamic_variables || [],
-      status: data.status || '1',
-    };
-
     return this.request('/api/extension/prompts', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePrompt(id: number, data: SavePromptData): Promise<any> {
+    return this.request(`/api/extension/prompts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePrompt(id: number): Promise<any> {
+    return this.request(`/api/extension/prompts/${id}`, {
+      method: 'DELETE',
     });
   }
 
   async createTemplate(data: SavePromptData): Promise<any> {
-    // Ensure platform array has at least one item (default to ChatGPT)
-    const platform = data.platform.length > 0 ? data.platform : ['ChatGPT'];
-
-    const payload = {
-      title: data.title,
-      prompt: data.prompt,
-      description: data.description || '',
-      category_id: data.category_id,
-      tags: data.tags,
-      platform: platform,
-      dynamic_variables: data.dynamic_variables || [],
-      status: data.status || '1',
-    };
-
     return this.request('/api/extension/templates', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(data),
     });
   }
 
   async getTemplates(): Promise<any[]> {
     try {
       const response = await this.request<any>('/api/extension/templates');
-      console.log('Templates response:', response);
-
-      // Handle Laravel Resource response { data: [...], ... }
-      if (response && Array.isArray(response.data)) {
-        console.log('......................');
-        console.log('Templates data:', response.data);
+      if (response?.data) {
+        chrome.storage.local.set({ cachedTemplates: response.data });
         return response.data;
       }
-
-      console.log('Templates response:', response);
       return Array.isArray(response) ? response : [];
     } catch (error) {
-      console.warn('Failed to fetch templates:', error);
-      return [];
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['cachedTemplates'], (result: { [key: string]: any }) => resolve(result.cachedTemplates || []));
+      });
     }
   }
 
   async getPrompts(): Promise<any[]> {
     try {
       const response = await this.request<any>('/api/extension/prompts');
-      console.log('Prompts response:', response);
-
-      if (response && Array.isArray(response.data)) {
+      if (response?.data) {
+        chrome.storage.local.set({ cachedPrompts: response.data });
         return response.data;
       }
-
       return Array.isArray(response) ? response : [];
     } catch (error) {
-      console.warn('Failed to fetch prompts:', error);
-      return [];
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['cachedPrompts'], (result: { [key: string]: any }) => resolve(result.cachedPrompts || []));
+      });
     }
   }
 
   async getCurrentUser(): Promise<any> {
     try {
       const response = await this.request<any>('/api/extension/auth/me');
-      return response;
+      return response?.user || response;
     } catch (error) {
-      console.warn('Failed to fetch user:', error);
       return null;
     }
   }
@@ -241,12 +210,15 @@ class ApiService {
     try {
       await this.request('/api/extension/auth/logout', { method: 'POST' });
     } catch (error) {
-      console.warn('Failed to logout:', error);
+      console.warn('Backend logout failed');
+    } finally {
+      this.clearAuth();
     }
   }
 
   getLoginUrl(): string {
-    return `${this.baseUrl.replace(/\/$/, '')}/login`;
+    const extId = chrome.runtime.id;
+    return `${this.baseUrl.replace(/\/$/, '')}/extension-login?ext_id=${extId}`;
   }
 
   setConfig(config: ApiConfig): void {
@@ -257,4 +229,3 @@ class ApiService {
 
 export const apiService = new ApiService();
 export type { Category, Tag, Platform, SavePromptData };
-

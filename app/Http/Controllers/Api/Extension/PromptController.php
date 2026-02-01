@@ -139,4 +139,81 @@ class PromptController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    /**
+     * Update an existing prompt
+     */
+    public function update(StorePromptRequest $request, PromptNote $prompt): JsonResponse
+    {
+        $user = auth()->user();
+
+        // Check ownership
+        if ($prompt->promptable_id !== $user->id || $prompt->promptable_type !== $user->getMorphClass()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validated();
+
+        $prompt->update([
+            'title' => $validated['title'],
+            'prompt' => $validated['prompt'],
+            'description' => $validated['description'] ?? null,
+            'category_id' => $validated['category_id'],
+            'status' => $validated['status'] ?? $prompt->status,
+        ]);
+
+        // Sync tags
+        if (isset($validated['tags'])) {
+            $tagIds = [];
+            foreach ($validated['tags'] as $tagName) {
+                $tag = Tag::firstOrCreate(
+                    ['name' => $tagName],
+                    [
+                        'slug' => Str::slug($tagName),
+                        'created_by_type' => $user->getMorphClass(),
+                        'created_by_id' => $user->id,
+                        'status' => 'active'
+                    ]
+                );
+                $tagIds[] = $tag->id;
+            }
+            $prompt->tags()->sync($tagIds);
+        }
+
+        // Sync platforms
+        if (isset($validated['platform'])) {
+            $platformIds = [];
+            foreach ($validated['platform'] as $platformName) {
+                $platform = Platform::whereRaw('LOWER(name) = ?', [strtolower($platformName)])->first();
+                if ($platform) {
+                    $platformIds[] = $platform->id;
+                }
+            }
+            $prompt->platforms()->sync($platformIds);
+        }
+
+        $prompt->load(['category', 'tags', 'platforms']);
+
+        return response()->json([
+            'data' => new PromptResource($prompt),
+            'message' => 'Prompt updated successfully'
+        ]);
+    }
+
+    /**
+     * Delete a prompt
+     */
+    public function destroy(PromptNote $prompt): JsonResponse
+    {
+        $user = auth()->user();
+
+        // Check ownership
+        if ($prompt->promptable_id !== $user->id || $prompt->promptable_type !== $user->getMorphClass()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $prompt->delete();
+
+        return response()->json(['message' => 'Prompt deleted successfully']);
+    }
 }

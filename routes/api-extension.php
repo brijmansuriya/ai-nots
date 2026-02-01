@@ -20,9 +20,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Authentication routes (public)
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware(['throttle:auth'])->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('google', [AuthController::class, 'googleLogin']);
 
     // Protected auth routes
     Route::middleware(['auth:sanctum'])->group(function () {
@@ -41,5 +42,7 @@ Route::get('templates', [TemplateController::class, 'index']);
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('prompts', [PromptController::class, 'index']);
     Route::post('prompts', [PromptController::class, 'store']);
+    Route::put('prompts/{prompt}', [PromptController::class, 'update']);
+    Route::delete('prompts/{prompt}', [PromptController::class, 'destroy']);
     Route::post('templates', [TemplateController::class, 'store']);
 });

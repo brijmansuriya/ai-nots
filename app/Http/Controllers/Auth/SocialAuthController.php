@@ -31,6 +31,13 @@ class SocialAuthController extends Controller
         // Log the user in
         Auth::login($user);
 
+        // Extension Login Support
+        if ($extensionId = session('auth_extension_id')) {
+            session()->forget('auth_extension_id');
+            return app(\App\Http\Controllers\Api\Extension\AuthRedirectController::class)
+                ->issueTokenAndRedirect($user, $extensionId);
+        }
+
         // Redirect to the intended page or home
         return redirect()->intended('/');
     }

@@ -7,9 +7,11 @@ use App\Http\Controllers\PromptController;
 use App\Http\Controllers\PromptMetricsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Api\Extension\AuthRedirectController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensure this route is correct
+Route::get('/extension-login', [AuthRedirectController::class, 'redirect'])->name('extension.login');
 
 Route::get('/about', [AboutController::class, 'index'])->name('about');
 Route::get('/features', function () {

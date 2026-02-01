@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
+use Laravel\Socialite\Facades\Socialite;
+
 class AuthController extends Controller
 {
     /**
@@ -44,13 +46,13 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+            return response()->json([
+                'message' => 'The provided credentials are incorrect.',
+                'errors' => [
+                    'email' => ['The provided credentials are incorrect.'],
+                ]
+            ], 422);
         }
-
-        // Revoke all existing tokens for this user (optional - for security)
-        // $user->tokens()->delete();
 
         // Create new API token for the extension
         $token = $user->createToken('extension-token', ['extension:access'])->plainTextToken;
@@ -60,6 +62,41 @@ class AuthController extends Controller
             'token' => $token,
             'message' => 'Login successful',
         ]);
+    }
+
+    /**
+     * Google Login via token
+     */
+    public function googleLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        try {
+            // Extension will send a Google access_token
+            $googleUser = Socialite::driver('google')->userFromToken($request->token);
+
+            $user = User::updateOrCreate([
+                'email' => $googleUser->getEmail(),
+            ], [
+                'name' => $googleUser->getName(),
+                'google_id' => $googleUser->getId(),
+                'password' => Hash::make(\Illuminate\Support\Str::random(24)), // Random password for oauth users
+            ]);
+
+            $token = $user->createToken('extension-token', ['extension:access'])->plainTextToken;
+
+            return response()->json([
+                'user' => new UserResource($user),
+                'token' => $token,
+                'message' => 'Google login successful',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Google authentication failed: ' . $e->getMessage(),
+            ], 422);
+        }
     }
 
     /**

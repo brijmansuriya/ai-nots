@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     {
         return Inertia::render('auth/login', [
             'canResetPassword' => Route::has('password.request'),
-            'status'           => $request->session()->get('status'),
+            'status' => $request->session()->get('status'),
         ]);
     }
 
@@ -36,6 +36,14 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         Auth::shouldUse('web');
+
+        // Extension Login Support
+        if ($extensionId = session('auth_extension_id')) {
+            session()->forget('auth_extension_id');
+            return app(\App\Http\Controllers\Api\Extension\AuthRedirectController::class)
+                ->issueTokenAndRedirect(Auth::user(), $extensionId);
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

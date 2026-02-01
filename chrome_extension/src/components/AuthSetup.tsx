@@ -50,7 +50,7 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
         try {
             setCheckingAuth(true);
             const isAuth = await authService.isAuthenticated();
-            
+
             if (isAuth) {
                 const user = await authService.getUser();
                 setAuthStatus({
@@ -81,12 +81,12 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
             setMessage({ type: 'success', text: response.message || 'Login successful!' });
             setShowLogin(false);
             setLoginData({ email: 'mansuriyabri@gmail.com', password: '12345678' });
-            
+
             setAuthStatus({
                 isAuthenticated: true,
                 user: { name: response.user.name, email: response.user.email },
             });
-            
+
             setTimeout(() => {
                 onAuthenticated();
             }, 1000);
@@ -116,12 +116,12 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
                 password: '',
                 password_confirmation: '',
             });
-            
+
             setAuthStatus({
                 isAuthenticated: true,
                 user: { name: response.user.name, email: response.user.email },
             });
-            
+
             setTimeout(() => {
                 onAuthenticated();
             }, 1000);
@@ -135,6 +135,51 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
         }
     };
 
+    const handleGoogleLogin = async () => {
+        try {
+            setLoading(true);
+            setMessage(null);
+
+            // 1. Get Google OAuth2 token from Chrome Identity
+            // Note: This requires 'oauth2' configuration in manifest.json for production
+            // For development/demonstration, we assume it's set up or use launchWebAuthFlow
+            chrome.identity.getAuthToken({ interactive: true }, async (result: any) => {
+                const token = typeof result === 'string' ? result : result?.token;
+
+                if (chrome.runtime.lastError || !token) {
+                    throw new Error(chrome.runtime.lastError?.message || 'Google login failed to start');
+                }
+
+                try {
+                    // 2. Exchange Google token for Laravel Sanctum token
+                    const response = await authService.googleLogin(token);
+
+                    setMessage({ type: 'success', text: response.message || 'Google Login successful!' });
+
+                    setAuthStatus({
+                        isAuthenticated: true,
+                        user: { name: response.user.name, email: response.user.email },
+                    });
+
+                    setTimeout(() => {
+                        onAuthenticated();
+                    }, 1000);
+                } catch (error) {
+                    setMessage({
+                        type: 'error',
+                        text: error instanceof Error ? error.message : 'Google authentication failed',
+                    });
+                    setLoading(false);
+                }
+            });
+        } catch (error) {
+            setMessage({
+                type: 'error',
+                text: error instanceof Error ? error.message : 'Google login failed',
+            });
+            setLoading(false);
+        }
+    };
 
     // If authenticated, don't show this component (parent will show dashboard)
     if (authStatus.isAuthenticated) {
@@ -331,6 +376,24 @@ const AuthSetup = ({ onAuthenticated }: AuthSetupProps) => {
                         className="auth-setup-button register"
                     >
                         Register
+                    </button>
+
+                    <div className="auth-setup-divider">
+                        <span>OR</span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="auth-setup-button google"
+                        disabled={loading}
+                    >
+                        {loading ? 'Processing...' : (
+                            <>
+                                <span className="google-icon">G</span>
+                                Continue with Google
+                            </>
+                        )}
                     </button>
                 </div>
             )}

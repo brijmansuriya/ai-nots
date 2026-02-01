@@ -46,25 +46,24 @@ interface ToolbarUIProps {
   onInsertText: (text: string) => void;
   isVisible: boolean;
   onOpenTemplates: () => void;
-  onOpenCreateTemplate: () => void;
   user: any;
   onLogout: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, onOpenCreateTemplate, user, onLogout }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  if (!isVisible) return null;
+  // Apply hidden class based on visibility settings
+  const isHidden = !isVisible;
 
   const tools = [
     { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
-    { id: 'create', label: 'Create', icon: Icons.Plus, action: onOpenCreateTemplate },
-    { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
-    { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
+    // { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
+    // { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
     { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: () => console.log('Clear clicked') },
-    { id: 'chat', label: 'Chat', icon: Icons.MessageSquare, action: () => console.log('Chat clicked') },
+    // { id: 'chat', label: 'Chat', icon: Icons.MessageSquare, action: () => console.log('Chat clicked') },
   ];
 
   const getInitials = (name: string) => {
@@ -73,7 +72,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, on
   };
 
   return (
-    <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'}`}>
+    <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'} ${isHidden ? 'hidden' : ''}`}>
       <div className="ainots-left-section">
         {isExpanded ? (
           <>
@@ -217,8 +216,8 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
 const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showTemplates, setShowTemplates] = useState(false);
-  const [templatesInitialView, setTemplatesInitialView] = useState<'list' | 'create'>('list');
   const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
 
@@ -232,49 +231,55 @@ const ChatGPTBottomBar = () => {
   };
 
   useEffect(() => {
-    // Load visibility
+    // 1. Theme Detection
+    const updateTheme = () => {
+      const isDark = document.documentElement.classList.contains('dark') ||
+        document.body.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(isDark ? 'dark' : 'light');
+    };
+
+    updateTheme();
+    const themeObserver = new MutationObserver(updateTheme);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+    // 2. Load Visibility from Storage
     if (chrome.runtime?.id) {
       chrome.storage.local.get(['bottomBarVisible'], (result) => {
-        if (chrome.runtime.lastError) {
-          console.warn('⚠️ [ChatGPTBottomBar] Storage error:', chrome.runtime.lastError);
-          return;
-        }
+        if (chrome.runtime.lastError) return;
         setIsVisible(result.bottomBarVisible !== false);
       });
     }
 
-    // Listen for storage changes
     const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-      // Double check context validity in callback
       if (!chrome.runtime?.id) return;
-
-      if (changes.bottomBarVisible) {
-        setIsVisible(changes.bottomBarVisible.newValue !== false);
+      if (changes.bottomBarVisible) setIsVisible(changes.bottomBarVisible.newValue !== false);
+      if (changes.api_token) {
+        if (changes.api_token.newValue) {
+          fetchUser();
+        } else {
+          setUser(null);
+        }
       }
     };
 
+    const handleMessage = (message: any) => {
+      if (!chrome.runtime?.id) return;
+      if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') fetchUser();
+    };
+
     if (chrome.runtime?.id) {
-      try {
-        chrome.storage.onChanged.addListener(handleStorageChange);
-      } catch (e) {
-        console.warn('⚠️ [ChatGPTBottomBar] Failed to add storage listener:', e);
-      }
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      chrome.runtime.onMessage.addListener(handleMessage);
     }
 
     const attachContainer = (foundInput: HTMLElement) => {
-      // Check context at start of action
-      if (!chrome.runtime?.id) {
-        console.warn('⚠️ [ChatGPTBottomBar] Extension context invalidated, stopping attach.');
-        return;
-      }
+      if (!chrome.runtime?.id) return;
 
-      // Locate parent
       let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
       if (!parent) parent = foundInput.parentElement;
-
       if (!parent) return;
 
-      // Create or reuse container
       let toolbarRoot = document.getElementById('ai-nots-toolbar-portal');
       if (!toolbarRoot) {
         toolbarRoot = document.createElement('div');
@@ -282,25 +287,30 @@ const ChatGPTBottomBar = () => {
         toolbarRoot.className = 'ainots-bottom-bar-root';
         parent.appendChild(toolbarRoot);
       } else if (toolbarRoot.parentElement !== parent) {
-        parent.appendChild(toolbarRoot); // Re-attach if parent changed
+        parent.appendChild(toolbarRoot);
       }
 
       setContainer(toolbarRoot);
       inputRef.current = foundInput;
+
+      return () => { };
     };
 
     fetchUser();
-    const cleanup = waitForPromptInput(attachContainer);
+    let inputCleanup = waitForPromptInput(attachContainer);
 
     const observer = new MutationObserver(() => {
-      const currentInput = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+      // Use more robust detection for SPA navigations and Custom GPTs
+      const currentInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+        document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+        document.querySelector('textarea#prompt-textarea') as HTMLElement ||
         document.querySelector('textarea') as HTMLElement;
-      const root = document.getElementById('ai-nots-toolbar-portal');
 
-      if (currentInput) {
-        inputRef.current = currentInput;
+      if (currentInput && inputRef.current !== currentInput) {
+        inputCleanup = attachContainer(currentInput);
       }
 
+      const root = document.getElementById('ai-nots-toolbar-portal');
       if (currentInput && (!root || !root.isConnected)) {
         attachContainer(currentInput);
       }
@@ -309,14 +319,12 @@ const ChatGPTBottomBar = () => {
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      cleanup && cleanup();
+      themeObserver.disconnect();
       observer.disconnect();
+      inputCleanup && inputCleanup();
       if (chrome.runtime?.id) {
-        try {
-          chrome.storage.onChanged.removeListener(handleStorageChange);
-        } catch (e) {
-          // Ignore errors during cleanup of invalid context
-        }
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+        chrome.runtime.onMessage.removeListener(handleMessage);
       }
     };
   }, []);
@@ -326,34 +334,30 @@ const ChatGPTBottomBar = () => {
   return (
     <>
       {createPortal(
-        <ToolbarUI
-          isVisible={isVisible}
-          onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
-          onOpenTemplates={() => {
-            setTemplatesInitialView('list');
-            setShowTemplates(true);
-          }}
-          onOpenCreateTemplate={() => {
-            setTemplatesInitialView('create');
-            setShowTemplates(true);
-          }}
-          user={user}
-          onLogout={async () => {
-            await apiService.logout();
-            setUser(null);
-          }}
-        />,
+        <div className={theme === 'dark' ? 'dark' : 'light'}>
+          <ToolbarUI
+            isVisible={isVisible}
+            onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
+            onOpenTemplates={() => setShowTemplates(true)}
+            user={user}
+            onLogout={async () => {
+              await apiService.logout();
+              setUser(null);
+            }}
+          />
+        </div>,
         container
       )}
       {showTemplates && createPortal(
-        <TemplatesPopup
-          initialView={templatesInitialView}
-          onSelect={(text) => {
-            insertTextIntoChatGPT(inputRef.current, text);
-            setShowTemplates(false);
-          }}
-          onClose={() => setShowTemplates(false)}
-        />,
+        <div className={theme === 'dark' ? 'dark' : 'light'}>
+          <TemplatesPopup
+            onSelect={(text) => {
+              insertTextIntoChatGPT(inputRef.current, text);
+              setShowTemplates(false);
+            }}
+            onClose={() => setShowTemplates(false)}
+          />
+        </div>,
         document.body
       )}
     </>
