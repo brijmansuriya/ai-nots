@@ -15,8 +15,8 @@
   justify-content: space-between;
   gap: 8px;
   padding: 4px;
-  background-color: var(--background, #ffffff);
-  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  background-color: var(--background);
+  border: 1px solid var(--border);
   border-radius: 9999px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   pointer-events: auto;
@@ -24,8 +24,6 @@
   height: 52px;
   min-width: 60px;
   overflow: visible;
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .ainots-bottom-bar.hidden {
@@ -38,32 +36,9 @@
   overflow: hidden;
 }
 
-.light {
-  --background: #ffffff;
-  --foreground: #09090b;
-  --border: #e4e4e7;
-  --accent: #10a37f;
-  --accent-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted-foreground: #71717a;
-}
-
-.dark {
-  --background: #212121;
-  --foreground: #ececf1;
-  --border: rgba(255, 255, 255, 0.1);
-  --accent: #10a37f;
-  --accent-foreground: #ffffff;
-  --secondary: #2f2f2f;
-  --secondary-foreground: #ececf1;
-  --muted-foreground: #8e8ea0;
-}
-
-:root.dark .ainots-bottom-bar,
-.dark .ainots-bottom-bar {
-  background-color: #171717;
-  border-color: rgba(255, 255, 255, 0.1);
+.ainots-theme-provider.dark .ainots-bottom-bar {
+  background-color: var(--background);
+  border-color: var(--border);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
@@ -73,107 +48,106 @@
   gap: 4px;
 }
 
-.ainots-right-section {
-  display: flex;
-  align-items: center;
-}
-
-/* Unified Button Style with Animation */
 .ainots-toolbar-button {
   display: flex;
   align-items: center;
-  gap: 0;
-  padding: 0;
-  width: 44px;
-  height: 44px;
-  background-color: transparent;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  color: #8e8ea0;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-  outline: none;
-  justify-content: center;
-}
-
-/* Active State Expansion */
-.ainots-toolbar-button.active {
-  width: auto;
-  max-width: 200px;
-  /* Allow expansion */
-  padding: 0 16px 0 12px;
-  background-color: #f0f0f0;
-  color: #1a1a1a;
   gap: 8px;
-  justify-content: flex-start;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: none;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
-:root.dark .ainots-toolbar-button.active,
-.dark .ainots-toolbar-button.active {
-  background-color: #2f2f2f;
-  color: #ffffff;
+.ainots-toolbar-button.active {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.ainots-theme-provider.dark .ainots-toolbar-button.active {
+  background-color: var(--secondary);
+  color: var(--foreground);
 }
 
 .ainots-toolbar-button:not(.active):hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #1a1a1a;
+  background-color: var(--secondary);
+  color: var(--foreground);
 }
 
-:root.dark .ainots-toolbar-button:not(.active):hover,
-.dark .ainots-toolbar-button:not(.active):hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+.ainots-icon {
+  width: 18px;
+  height: 18px;
 }
 
-/* Label Animation */
-.ainots-button-label {
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.3s ease,
-    margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  font-size: 14px;
-  font-weight: 500;
+.ainots-separator {
+  width: 1px;
+  height: 24px;
+  background-color: var(--border);
+  margin: 0 4px;
 }
 
-.ainots-toolbar-button.active .ainots-button-label {
-  max-width: 120px;
-  opacity: 1;
+.ainots-right-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 4px;
 }
 
-/* User Section Styling */
+.ainots-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ainots-icon-btn:hover {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.ainots-user-section {
+  position: relative;
+}
+
 .ainots-user-trigger {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 4px 8px 4px 4px;
+  border-radius: 9999px;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 999px;
   transition: background-color 0.2s;
-  color: #8e8ea0;
+  color: var(--muted-foreground);
 }
 
 .ainots-user-trigger:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  background-color: var(--secondary);
 }
 
 .ainots-user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background-color: #6a6a6a;
-  color: white;
+  background: var(--primary);
+  color: var(--primary-foreground);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .ainots-user-avatar img {
@@ -187,131 +161,83 @@
   bottom: calc(100% + 12px);
   right: 0;
   width: 220px;
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: var(--popover);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  padding: 8px 0;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 8px;
   z-index: 1000;
   animation: menuIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-:root.dark .ainots-user-menu,
-.dark .ainots-user-menu {
-  background-color: #2a2b32;
-  border-color: #444654;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes menuIn {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.95);
+    transform: translateY(10px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 .ainots-user-menu-header {
-  padding: 12px 16px;
+  padding: 8px 12px 12px;
 }
 
 .ainots-user-menu-header strong {
   display: block;
   font-size: 14px;
-  color: #1a1a1a;
+  color: var(--foreground);
 }
 
 .ainots-user-menu-header p {
-  margin: 2px 0 0;
   font-size: 12px;
-  color: #6e6e80;
-}
-
-:root.dark .ainots-user-menu-header strong,
-.dark .ainots-user-menu-header strong {
-  color: #ececf1;
-}
-
-:root.dark .ainots-user-menu-header p,
-.dark .ainots-user-menu-header p {
-  color: #8e8ea0;
+  color: var(--muted-foreground);
+  margin: 2px 0 0;
 }
 
 .ainots-user-menu-divider {
   height: 1px;
-  background-color: rgba(0, 0, 0, 0.08);
+  background-color: var(--border);
   margin: 4px 0;
-}
-
-:root.dark .ainots-user-menu-divider,
-.dark .ainots-user-menu-divider {
-  background-color: #444654;
 }
 
 .ainots-user-menu-item {
   width: 100%;
-  padding: 10px 16px;
   text-align: left;
-  background: none;
+  padding: 8px 12px;
   border: none;
+  background: transparent;
+  border-radius: 6px;
   font-size: 14px;
-  color: #ef4444;
+  color: var(--foreground);
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .ainots-user-menu-item:hover {
-  background-color: rgba(239, 68, 68, 0.05);
+  background-color: var(--secondary);
 }
 
-/* Login Button */
 .ainots-login-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
-  height: 40px;
+  padding: 8px 16px;
   background-color: var(--accent);
   color: var(--accent-foreground);
   border: none;
-  border-radius: 999px;
+  border-radius: 9999px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  pointer-events: auto;
 }
 
 .ainots-login-btn:hover {
-  background-color: var(--accent-foreground);
+  background-color: var(--muted-foreground);
+  color: var(--accent-foreground);
   transform: translateY(-1px);
-}
-
-.ainots-login-btn .ainots-icon {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-}
-
-.ainots-separator {
-  width: 1px;
-  height: 20px;
-  background-color: rgba(255, 255, 255, 0.1);
-  margin: 0 4px;
-}
-
-.ainots-icon {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2px;
-  flex-shrink: 0;
-  /* Prevent icon from shrinking during animation */
-}
-
-.ainots-user-trigger .ainots-icon {
-  width: 14px;
-  height: 14px;
 }

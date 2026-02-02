@@ -52,7 +52,7 @@ console.log('🔵 [Main] Extension popup initialized');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="system" storageKey="ai-notes-extension-theme">
+    <ThemeProvider>
       <App />
     </ThemeProvider>
   </StrictMode>,

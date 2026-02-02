@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { debug, enableDebug, disableDebug } from '../utils/debug';
-import { ThemeToggle } from './ThemeToggle';
 import './ExtensionDashboard.css';
 
 interface UserInfo {
@@ -160,7 +159,6 @@ const ExtensionDashboard = () => {
       <div className="extension-dashboard-header">
         <h2>AI Notes Extension</h2>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <ThemeToggle />
           <button
             type="button"
             onClick={handleLogout}

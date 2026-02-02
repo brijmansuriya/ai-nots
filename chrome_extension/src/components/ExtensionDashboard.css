@@ -3,19 +3,21 @@
   max-width: 500px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  min-height: 100%;
+}
+
+.ainots-theme-provider.dark .extension-dashboard {
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .extension-dashboard-loading {
   padding: 40px;
   text-align: center;
-  color: #6b7280;
+  color: var(--muted-foreground);
   font-size: 16px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-loading {
-    color: #9ca3af;
-  }
 }
 
 .extension-dashboard-header {
@@ -29,13 +31,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-header h2 {
-    color: #f9fafb;
-  }
+  color: var(--foreground);
 }
 
 .extension-dashboard-logout {
@@ -55,17 +51,15 @@
   border-color: #f87171;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-logout {
-    background: #7f1d1d;
-    color: #fecaca;
-    border-color: #ef4444;
-  }
+.ainots-theme-provider.dark .extension-dashboard-logout {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-color: #ef4444;
+}
 
-  .extension-dashboard-logout:hover {
-    background: #991b1b;
-    border-color: #dc2626;
-  }
+.ainots-theme-provider.dark .extension-dashboard-logout:hover {
+  background: #991b1b;
+  border-color: #dc2626;
 }
 
 .extension-dashboard-user {
@@ -73,17 +67,10 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  background: var(--secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
   margin-bottom: 24px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-user {
-    background: #374151;
-    border-color: #4b5563;
-  }
 }
 
 .extension-dashboard-avatar {
@@ -108,26 +95,16 @@
 .extension-dashboard-user-name {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--foreground);
   margin-bottom: 4px;
 }
 
 .extension-dashboard-user-email {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--muted-foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-user-name {
-    color: #f9fafb;
-  }
-
-  .extension-dashboard-user-email {
-    color: #9ca3af;
-  }
 }
 
 .extension-dashboard-stats {
@@ -139,41 +116,24 @@
 
 .extension-dashboard-stat {
   padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  background: var(--secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
   text-align: center;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-stat {
-    background: #374151;
-    border-color: #4b5563;
-  }
 }
 
 .extension-dashboard-stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: var(--foreground);
   margin-bottom: 4px;
 }
 
 .extension-dashboard-stat-label {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-stat-value {
-    color: #f9fafb;
-  }
-
-  .extension-dashboard-stat-label {
-    color: #9ca3af;
-  }
 }
 
 .extension-dashboard-actions {
@@ -184,59 +144,43 @@
   width: 100%;
   padding: 12px 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
 }
 
 .extension-dashboard-button.primary {
-  background: #667eea;
-  color: white;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 .extension-dashboard-button.primary:hover {
-  background: #5568d3;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-button.primary {
-    background: #7c3aed;
-  }
-
-  .extension-dashboard-button.primary:hover {
-    background: #6d28d9;
-  }
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .extension-dashboard-info {
   padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-}
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-info {
-    background: #374151;
-    border-color: #4b5563;
-  }
+  background: var(--secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .extension-dashboard-info h3 {
   margin: 0 0 12px 0;
   font-size: 14px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: 700;
+  color: var(--foreground);
 }
 
 .extension-dashboard-info ul {
   margin: 0;
   padding-left: 20px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--muted-foreground);
   line-height: 1.6;
 }
 
@@ -248,15 +192,13 @@
   margin-top: 20px;
   padding: 16px;
   background: #fef3c7;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid #fcd34d;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-debug {
-    background: #78350f;
-    border-color: #f59e0b;
-  }
+.ainots-theme-provider.dark .extension-dashboard-debug {
+  background: #78350f;
+  border-color: #f59e0b;
 }
 
 .extension-dashboard-debug h3 {
@@ -266,10 +208,8 @@
   color: #92400e;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-debug h3 {
-    color: #fcd34d;
-  }
+.ainots-theme-provider.dark .extension-dashboard-debug h3 {
+  color: #fcd34d;
 }
 
 .extension-dashboard-debug-controls {
@@ -288,12 +228,8 @@
 }
 
 .extension-dashboard-button.debug-off {
-  background: #6b7280;
-  color: white;
-}
-
-.extension-dashboard-button.debug-off:hover {
-  background: #4b5563;
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .extension-dashboard-button.bottom-bar-toggle {
@@ -305,14 +241,8 @@
   background: #2563eb;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-button.bottom-bar-toggle {
-    background: #1e40af;
-  }
-
-  .extension-dashboard-button.bottom-bar-toggle:hover {
-    background: #1e3a8a;
-  }
+.ainots-theme-provider.dark .extension-dashboard-button.bottom-bar-toggle {
+  background: #1e40af;
 }
 
 .extension-dashboard-button.logout-button {
@@ -324,14 +254,8 @@
   background: #dc2626;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-button.logout-button {
-    background: #991b1b;
-  }
-
-  .extension-dashboard-button.logout-button:hover {
-    background: #7f1d1d;
-  }
+.ainots-theme-provider.dark .extension-dashboard-button.logout-button {
+  background: #991b1b;
 }
 
 .extension-dashboard-debug-hint {
@@ -341,19 +265,6 @@
   line-height: 1.5;
 }
 
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-debug-hint {
-    color: #fcd34d;
-  }
+.ainots-theme-provider.dark .extension-dashboard-debug-hint {
+  color: #fcd34d;
 }
-
-@media (prefers-color-scheme: dark) {
-  .extension-dashboard-info h3 {
-    color: #f9fafb;
-  }
-
-  .extension-dashboard-info ul {
-    color: #9ca3af;
-  }
-}
-

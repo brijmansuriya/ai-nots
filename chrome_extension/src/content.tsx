@@ -75,7 +75,7 @@ const renderComponent = (container: HTMLElement) => {
 
         rootInstance.render(
             <StrictMode>
-                <ThemeProvider defaultTheme="system" storageKey="ai-notes-extension-theme" rootElement={container}>
+                <ThemeProvider rootElement={container}>
                     <ComponentToRender />
                 </ThemeProvider>
             </StrictMode>

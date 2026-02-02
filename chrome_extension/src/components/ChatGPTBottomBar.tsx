@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
 import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
+import { useTheme } from '../context/ThemeContext';
 import './ChatGPTBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -48,9 +49,10 @@ interface ToolbarUIProps {
   onOpenTemplates: () => void;
   user: any;
   onLogout: () => void;
+  onClear: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -62,7 +64,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
     { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
     // { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
     // { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
-    { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: () => console.log('Clear clicked') },
+    { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: onClear },
     // { id: 'chat', label: 'Chat', icon: Icons.MessageSquare, action: () => console.log('Chat clicked') },
   ];
 
@@ -213,10 +215,46 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
   }
 }
 
+function clearChatGPTInput(input: HTMLElement | null) {
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
+    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+    Array.from(document.querySelectorAll('textarea'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+  );
+
+  if (!currentInput) return;
+
+  currentInput.focus();
+
+  try {
+    const isContentEditable = currentInput.getAttribute('contenteditable') === 'true';
+
+    if (isContentEditable) {
+      document.execCommand('selectAll', false);
+      document.execCommand('delete', false);
+    } else if (currentInput instanceof HTMLTextAreaElement || 'value' in currentInput) {
+      (currentInput as any).value = '';
+    }
+
+    currentInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+    currentInput.dispatchEvent(new Event('change', { bubbles: true }));
+  } catch (err) {
+    console.error('❌ [ChatGPTBottomBar] Clear error:', err);
+    if (currentInput.getAttribute('contenteditable') === 'true') {
+      currentInput.innerText = '';
+    } else if ('value' in currentInput) {
+      (currentInput as any).value = '';
+    }
+    currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
 const ChatGPTBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const { theme } = useTheme();
   const [showTemplates, setShowTemplates] = useState(false);
   const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
@@ -231,17 +269,7 @@ const ChatGPTBottomBar = () => {
   };
 
   useEffect(() => {
-    // 1. Theme Detection
-    const updateTheme = () => {
-      const isDark = document.documentElement.classList.contains('dark') ||
-        document.body.classList.contains('dark') ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTheme(isDark ? 'dark' : 'light');
-    };
-
-    updateTheme();
-    const themeObserver = new MutationObserver(updateTheme);
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    fetchUser();
 
     // 2. Load Visibility from Storage
     if (chrome.runtime?.id) {
@@ -319,7 +347,6 @@ const ChatGPTBottomBar = () => {
     observer.observe(document.body, { childList: true, subtree: true });
 
     return () => {
-      themeObserver.disconnect();
       observer.disconnect();
       inputCleanup && inputCleanup();
       if (chrome.runtime?.id) {
@@ -334,7 +361,7 @@ const ChatGPTBottomBar = () => {
   return (
     <>
       {createPortal(
-        <div className={theme === 'dark' ? 'dark' : 'light'}>
+        <div className={`ainots-theme-provider ${theme}`}>
           <ToolbarUI
             isVisible={isVisible}
             onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
@@ -344,12 +371,13 @@ const ChatGPTBottomBar = () => {
               await apiService.logout();
               setUser(null);
             }}
+            onClear={() => clearChatGPTInput(inputRef.current)}
           />
         </div>,
         container
       )}
       {showTemplates && createPortal(
-        <div className={theme === 'dark' ? 'dark' : 'light'}>
+        <div className={`ainots-theme-provider ${theme}`}>
           <TemplatesPopup
             onSelect={(text) => {
               insertTextIntoChatGPT(inputRef.current, text);

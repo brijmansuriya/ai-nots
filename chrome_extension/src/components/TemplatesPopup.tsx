@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { apiService } from '../services/api';
 import type { Category, Tag } from '../services/api';
-import { ThemeToggle } from './ThemeToggle';
 import './TemplatesPopup.css';
 
 interface Template {
@@ -356,7 +355,6 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             </div>
                         </div>
                         <div className="header-actions">
-                            <ThemeToggle />
                             <button className="refresh-btn" onClick={loadData} title="Refresh">
                                 <Icons.Refresh />
                             </button>
