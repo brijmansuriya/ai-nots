@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Fuse from 'fuse.js';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import type { Category, Tag } from '../services/api';
+
+
 import './TemplatesPopup.css';
 
 interface Template {
@@ -55,15 +57,38 @@ const Icons = {
 };
 
 const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
-    // Core Data State
-    const [templates, setTemplates] = useState<Template[]>([]);
-    const [prompts, setPrompts] = useState<Template[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [tags, setTags] = useState<Tag[]>([]);
+    const queryClient = useQueryClient();
+
+    // Queries
+    const { data: user, isLoading: userLoading } = useQuery({
+        queryKey: ['user'],
+        queryFn: () => apiService.getCurrentUser(),
+    });
+
+    const isAuthenticated = !!user;
+
+    const { data: templates = [], isLoading: templatesLoading } = useQuery({
+        queryKey: ['templates'],
+        queryFn: () => apiService.getTemplates(),
+    });
+
+    const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+        queryKey: ['categories'],
+        queryFn: () => apiService.getCategories(),
+    });
+
+    const { data: tags = [], isLoading: tagsLoading } = useQuery({
+        queryKey: ['tags'],
+        queryFn: () => apiService.getTags(),
+    });
+
+    const { data: prompts = [], isLoading: promptsLoading } = useQuery({
+        queryKey: ['prompts'],
+        queryFn: () => apiService.getPrompts(),
+        enabled: isAuthenticated,
+    });
+
     const [activeTab, setActiveTab] = useState<'templates' | 'prompts'>('templates');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Filter & Search State
     const [searchQuery, setSearchQuery] = useState('');
@@ -89,6 +114,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -99,52 +125,33 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
 
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Load initial data and persisted state
-    const loadData = async () => {
-        try {
-            setLoading(true);
-            const userData = await apiService.getCurrentUser();
-            setIsAuthenticated(!!userData);
-
-            const [templatesRes, categoriesRes, tagsRes] = await Promise.all([
-                apiService.getTemplates(),
-                apiService.getCategories(),
-                apiService.getTags()
-            ]);
-
-            setTemplates(templatesRes || []);
-            setCategories(categoriesRes || []);
-            setTags(tagsRes || []);
-
-            if (userData) {
-                const promptsRes = await apiService.getPrompts();
-                setPrompts(promptsRes || []);
-            }
-
-            // Load from storage
-            chrome.storage.local.get(['fav_prompts', 'recent_prompts', 'last_filters'], (result: any) => {
-                if (result.fav_prompts) setFavorites(result.fav_prompts as number[]);
-                if (result.recent_prompts) setRecentIds(result.recent_prompts as number[]);
-                if (result.last_filters) {
-                    const filters = result.last_filters;
-                    setSelectedCategory(filters.category || null);
-                    setSelectedTags(filters.tags || []);
-                }
-            });
-
-        } catch (err) {
-            setError('Failed to load data. Please check your connection.');
-        } finally {
-            setLoading(false);
+    // Mutations
+    const logoutMutation = useMutation({
+        mutationFn: () => apiService.logout(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['user'] });
+            queryClient.setQueryData(['prompts'], []);
+            setShowLogoutConfirm(false);
         }
-    };
+    });
 
+    // Load persisted state (favorites/recents)
     useEffect(() => {
-        loadData();
+        chrome.storage.local.get(['fav_prompts', 'recent_prompts', 'last_filters'], (result: any) => {
+            if (result.fav_prompts) setFavorites(result.fav_prompts as number[]);
+            if (result.recent_prompts) setRecentIds(result.recent_prompts as number[]);
+            if (result.last_filters) {
+                const filters = result.last_filters;
+                setSelectedCategory(filters.category || null);
+                setSelectedTags(filters.tags || []);
+            }
+        });
 
         // Listen for external auth changes
         const handleMessage = (message: any) => {
-            if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') loadData();
+            if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') {
+                queryClient.invalidateQueries();
+            }
         };
         chrome.runtime.onMessage.addListener(handleMessage);
 
@@ -161,7 +168,10 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             chrome.runtime.onMessage.removeListener(handleMessage);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, []);
+    }, [queryClient]);
+
+    const loading = templatesLoading || categoriesLoading || tagsLoading || (isAuthenticated && promptsLoading) || userLoading;
+
 
     // Selection Logic: Filtering + Fuzzy Search
     const filteredData = useMemo(() => {
@@ -175,7 +185,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         // Apply Tag Filter (Match ALL selected tags - AND logic)
         if (selectedTags.length > 0) {
             baseList = baseList.filter(item =>
-                selectedTags.every(tagId => item.tags?.some(tag => tag.id === tagId))
+                selectedTags.every(tagId => item.tags?.some((tag: any) => tag.id === tagId))
             );
         }
 
@@ -308,8 +318,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             } else {
                 await apiService.savePrompt(payload);
             }
+            queryClient.invalidateQueries();
             resetForm();
-            loadData();
         } catch (err: any) {
             setError(err.message || 'Failed to save');
         } finally {
@@ -317,19 +327,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            setLoading(true);
-            await apiService.logout();
-            setIsAuthenticated(false);
-            setPrompts([]);
-            setShowLogoutConfirm(false);
-            loadData();
-        } catch (err) {
-            console.error('Logout failed', err);
-        } finally {
-            setLoading(false);
-        }
+    const handleLogout = () => {
+        logoutMutation.mutate();
     };
 
     const truncateWords = (text: string, count: number) => {
@@ -355,7 +354,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             </div>
                         </div>
                         <div className="header-actions">
-                            <button className="refresh-btn" onClick={loadData} title="Refresh">
+                            <button className="refresh-btn" onClick={() => queryClient.invalidateQueries()} title="Refresh">
                                 <Icons.Refresh />
                             </button>
                             <button className="close-btn" onClick={onClose}>×</button>
@@ -542,7 +541,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                     </div>
                                     <p className="card-preview">{truncateWords(item.prompt, 100)}</p>
                                     <div className="card-tags">
-                                        {(item.tags || []).map(tag => (
+                                        {(item.tags || []).map((tag: any) => (
                                             <span key={tag.id} className="tag-chip mini">{tag.name}</span>
                                         ))}
                                     </div>

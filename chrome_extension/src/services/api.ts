@@ -114,30 +114,18 @@ class ApiService {
   }
 
   async getCategories(): Promise<Category[]> {
-    try {
-      const response = await this.request<any>('/api/extension/categories');
-      return response?.data || response || [];
-    } catch (error) {
-      return [];
-    }
+    const response = await this.request<any>('/api/extension/categories');
+    return response?.data || response || [];
   }
 
   async getTags(): Promise<Tag[]> {
-    try {
-      const response = await this.request<any>('/api/extension/tags');
-      return response?.data || response || [];
-    } catch (error) {
-      return [];
-    }
+    const response = await this.request<any>('/api/extension/tags');
+    return response?.data || response || [];
   }
 
   async getPlatforms(): Promise<Platform[]> {
-    try {
-      const response = await this.request<any>('/api/extension/platforms');
-      return response?.data || response || [];
-    } catch (error) {
-      return [];
-    }
+    const response = await this.request<any>('/api/extension/platforms');
+    return response?.data || response || [];
   }
 
   async savePrompt(data: SavePromptData): Promise<any> {
@@ -168,34 +156,15 @@ class ApiService {
   }
 
   async getTemplates(): Promise<any[]> {
-    try {
-      const response = await this.request<any>('/api/extension/templates');
-      if (response?.data) {
-        chrome.storage.local.set({ cachedTemplates: response.data });
-        return response.data;
-      }
-      return Array.isArray(response) ? response : [];
-    } catch (error) {
-      return new Promise((resolve) => {
-        chrome.storage.local.get(['cachedTemplates'], (result: { [key: string]: any }) => resolve(result.cachedTemplates || []));
-      });
-    }
+    const response = await this.request<any>('/api/extension/templates');
+    return response?.data || (Array.isArray(response) ? response : []);
   }
 
   async getPrompts(): Promise<any[]> {
-    try {
-      const response = await this.request<any>('/api/extension/prompts');
-      if (response?.data) {
-        chrome.storage.local.set({ cachedPrompts: response.data });
-        return response.data;
-      }
-      return Array.isArray(response) ? response : [];
-    } catch (error) {
-      return new Promise((resolve) => {
-        chrome.storage.local.get(['cachedPrompts'], (result: { [key: string]: any }) => resolve(result.cachedPrompts || []));
-      });
-    }
+    const response = await this.request<any>('/api/extension/prompts');
+    return response?.data || (Array.isArray(response) ? response : []);
   }
+
 
   async getCurrentUser(): Promise<any> {
     try {

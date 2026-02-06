@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from './context/ThemeContext'
 import './index.css'
+import { queryClient, chromeStoragePersister } from './lib/queryClient'
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import App from './App.tsx'
 
 // Global error handlers for comprehensive logging
@@ -52,8 +54,14 @@ console.log('🔵 [Main] Extension popup initialized');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister: chromeStoragePersister }}
+    >
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </PersistQueryClientProvider>
   </StrictMode>,
 )
+

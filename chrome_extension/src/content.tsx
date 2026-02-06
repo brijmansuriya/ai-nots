@@ -9,6 +9,8 @@ import { createRoot } from 'react-dom/client';
 import ChatGPTBottomBar from './components/ChatGPTBottomBar';
 import { debug } from './utils/debug';
 import { ThemeProvider } from './context/ThemeContext';
+import { queryClient, chromeStoragePersister } from './lib/queryClient';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 
 // Function to inject styles
 const injectStyles = () => {
@@ -75,9 +77,14 @@ const renderComponent = (container: HTMLElement) => {
 
         rootInstance.render(
             <StrictMode>
-                <ThemeProvider rootElement={container}>
-                    <ComponentToRender />
-                </ThemeProvider>
+                <PersistQueryClientProvider
+                    client={queryClient}
+                    persistOptions={{ persister: chromeStoragePersister }}
+                >
+                    <ThemeProvider rootElement={container}>
+                        <ComponentToRender />
+                    </ThemeProvider>
+                </PersistQueryClientProvider>
             </StrictMode>
         );
         console.log('🔵 [Content Script] Successfully rendered', componentName);
