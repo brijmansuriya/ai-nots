@@ -73,6 +73,9 @@ const Icons = {
     Edit: () => (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
     ),
+    X: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+    ),
 };
 
 interface Folder {
@@ -454,10 +457,22 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const renderFolders = (foldersList: Folder[], level = 0): any[] => {
         const query = searchQuery.trim().toLowerCase();
 
-        // Helper to check if folder matches or has matching descendants
+        // Helper to check if folder matches or has matching descendants (recursive)
         const matchesQuery = (folder: Folder): boolean => {
             if (!query) return true;
+            // Folder name matches
             if (folder.name.toLowerCase().includes(query)) return true;
+
+            // Check if any prompt in this folder matches (Title, Description, or Content)
+            const folderPrompts = folderPromptsMap[folder.id] || [];
+            const hasMatchingPrompt = folderPrompts.some(p =>
+                p.title.toLowerCase().includes(query) ||
+                (p.description && p.description.toLowerCase().includes(query)) ||
+                p.prompt.toLowerCase().includes(query)
+            );
+            if (hasMatchingPrompt) return true;
+
+            // Check children recursively
             return !!(folder.children && folder.children.some(child => matchesQuery(child)));
         };
 
@@ -471,13 +486,21 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             const hasChildren = folder.children && folder.children.length > 0;
             const isExpanded = expandedFolders.includes(folder.id) || (query && (
                 folder.children?.some(matchesQuery) ||
-                prompts.some(p => p.folder_id === folder.id && (p.title.toLowerCase().includes(query) || p.prompt.toLowerCase().includes(query)))
+                (folderPromptsMap[folder.id] || []).some(p =>
+                    p.title.toLowerCase().includes(query) ||
+                    (p.description && p.description.toLowerCase().includes(query)) ||
+                    p.prompt.toLowerCase().includes(query)
+                )
             ));
 
             // Find prompts in this folder using pre-indexed map
             const folderPrompts = folderPromptsMap[folder.id] || [];
             const filteredPrompts = query
-                ? folderPrompts.filter(p => p.title.toLowerCase().includes(query) || p.prompt.toLowerCase().includes(query))
+                ? folderPrompts.filter(p =>
+                    p.title.toLowerCase().includes(query) ||
+                    (p.description && p.description.toLowerCase().includes(query)) ||
+                    p.prompt.toLowerCase().includes(query)
+                )
                 : folderPrompts;
 
             return (
@@ -738,7 +761,9 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                 </button>
                             )}
 
-                            <button className="close-btn" onClick={onClose}>×</button>
+                            <button className="close-btn" onClick={onClose} title="Close Popup">
+                                <Icons.X />
+                            </button>
                         </div>
                     </div>
 

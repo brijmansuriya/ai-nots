@@ -394,7 +394,7 @@
 
 .ainots-btn.primary {
   background-color: var(--primary);
-  color: white;
+  color: var(--primary-foreground);
 }
 
 .ainots-btn.primary:hover {

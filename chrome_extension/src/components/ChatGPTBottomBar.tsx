@@ -43,6 +43,9 @@ const Icons = {
   ),
   MessageCircle: () => (
     <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+  ),
+  X: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
   )
 };
 
@@ -253,7 +256,9 @@ const FeedbackModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess:
       <div className="ainots-modal-content feedback-modal" onClick={e => e.stopPropagation()}>
         <div className="ainots-modal-header">
           <h3>Submit Feedback</h3>
-          <button className="ainots-modal-close" onClick={onClose}>×</button>
+          <button className="ainots-modal-close" onClick={onClose} title="Close">
+            <Icons.X />
+          </button>
         </div>
         <form className="ainots-form" onSubmit={handleSubmit}>
           {error && <div className="ainots-form-error">{error}</div>}

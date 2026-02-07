@@ -27,6 +27,7 @@
   --border: #e4e4e7;
   --input: #ffffff;
   --ring: #09090b;
+  --primary-hover: #18181b;
 }
 
 /* Dark Mode Variables - Matched to ChatGPT */
@@ -42,6 +43,7 @@
   --primary: #ffffff;
   --primary-muted: rgba(255, 255, 255, 0.1);
   --primary-foreground: #0d0d0d;
+  --primary-hover: #e5e5e5;
   --secondary: #2f2f2f;
   --secondary-foreground: #ececf1;
   --muted: #2f2f2f;
