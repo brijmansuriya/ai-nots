@@ -4,7 +4,7 @@ import { waitForPromptInput } from '../utils/waitForPromptInput';
 import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
 import { useTheme } from '../context/ThemeContext';
-import './ChatGPTBottomBar.css';
+import './AIBottomBar.css';
 
 // SVG Icons (Lucide style)
 const Icons = {
@@ -160,11 +160,12 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
   );
 };
 
-// ... insertTextIntoChatGPT function remains the same ...
-function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
+// ... insertTextIntoAI function remains the same ...
+function insertTextIntoAI(input: HTMLElement | null, text: string) {
   // Always attempt to find the latest VISIBLE input if current is stale
   const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
     document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
     Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
     Array.from(document.querySelectorAll('textarea'))
@@ -172,7 +173,7 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
   );
 
   if (!currentInput) {
-    console.error('❌ [ChatGPTBottomBar] Could not find any valid prompt input.');
+    console.error('❌ [AIBottomBar] Could not find any valid prompt input.');
     return;
   }
 
@@ -193,7 +194,7 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
       const success = document.execCommand('insertText', false, text);
 
       if (!success) {
-        console.warn('⚠️ [ChatGPTBottomBar] execCommand failed, falling back to innerText.');
+        console.warn('⚠️ [AIBottomBar] execCommand failed, falling back to innerText.');
         currentInput.innerText = text;
       }
     } else if (currentInput instanceof HTMLTextAreaElement || 'value' in currentInput) {
@@ -209,7 +210,7 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
     currentInput.dispatchEvent(changeEvent);
 
   } catch (err) {
-    console.error('❌ [ChatGPTBottomBar] Insertion error:', err);
+    console.error('❌ [AIBottomBar] Insertion error:', err);
     // Absolute final fallback
     if (currentInput.getAttribute('contenteditable') === 'true') {
       currentInput.innerText = text;
@@ -293,9 +294,10 @@ const FeedbackModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   );
 };
 
-function clearChatGPTInput(input: HTMLElement | null) {
+function clearAIInput(input: HTMLElement | null) {
   const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
     document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
     Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
     Array.from(document.querySelectorAll('textarea'))
@@ -319,7 +321,7 @@ function clearChatGPTInput(input: HTMLElement | null) {
     currentInput.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
     currentInput.dispatchEvent(new Event('change', { bubbles: true }));
   } catch (err) {
-    console.error('❌ [ChatGPTBottomBar] Clear error:', err);
+    console.error('❌ [AIBottomBar] Clear error:', err);
     if (currentInput.getAttribute('contenteditable') === 'true') {
       currentInput.innerText = '';
     } else if ('value' in currentInput) {
@@ -329,7 +331,7 @@ function clearChatGPTInput(input: HTMLElement | null) {
   }
 }
 
-const ChatGPTBottomBar = () => {
+const AIBottomBar = () => {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const { theme } = useTheme();
@@ -384,6 +386,7 @@ const ChatGPTBottomBar = () => {
       if (!chrome.runtime?.id) return;
 
       let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
+      if (!parent) parent = foundInput.closest('.input-area') as HTMLElement | null; // Gemini fallback
       if (!parent) parent = foundInput.parentElement;
       if (!parent) return;
 
@@ -409,7 +412,7 @@ const ChatGPTBottomBar = () => {
     const observer = new MutationObserver(() => {
       // Use more robust detection for SPA navigations and Custom GPTs
       const currentInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
-        document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+        document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
         document.querySelector('textarea#prompt-textarea') as HTMLElement ||
         document.querySelector('textarea') as HTMLElement;
 
@@ -443,14 +446,14 @@ const ChatGPTBottomBar = () => {
         <div className={`ainots-theme-provider ${theme}`}>
           <ToolbarUI
             isVisible={isVisible}
-            onInsertText={(text) => insertTextIntoChatGPT(inputRef.current, text)}
+            onInsertText={(text) => insertTextIntoAI(inputRef.current, text)}
             onOpenTemplates={() => setShowTemplates(true)}
             user={user}
             onLogout={async () => {
               await apiService.logout();
               setUser(null);
             }}
-            onClear={() => clearChatGPTInput(inputRef.current)}
+            onClear={() => clearAIInput(inputRef.current)}
             onFeedback={() => setShowFeedback(true)}
           />
         </div>,
@@ -460,7 +463,7 @@ const ChatGPTBottomBar = () => {
         <div className={`ainots-theme-provider ${theme}`}>
           <TemplatesPopup
             onSelect={(text) => {
-              insertTextIntoChatGPT(inputRef.current, text);
+              insertTextIntoAI(inputRef.current, text);
               setShowTemplates(false);
             }}
             onClose={() => setShowTemplates(false)}
@@ -484,4 +487,4 @@ const ChatGPTBottomBar = () => {
   );
 };
 
-export default ChatGPTBottomBar;
+export default AIBottomBar;

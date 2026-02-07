@@ -1,35 +1,30 @@
 import { useEffect, useState, useRef } from 'react';
 import SavePromptModal from './SavePromptModal';
 import { debug } from '../utils/debug';
-import './ChatGPTDetector.css';
+import './AIDetector.css';
 
-interface ChatGPTInput {
+interface AIInput {
   element: HTMLElement;
-  input: HTMLInputElement | HTMLTextAreaElement;
+  input: HTMLElement; // Use HTMLElement to support contenteditable
   value: string;
 }
 
-const ChatGPTDetector = () => {
-  const [detectedInput, setDetectedInput] = useState<ChatGPTInput | null>(null);
+const AIDetector = () => {
+  const [detectedInput, setDetectedInput] = useState<AIInput | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const observerRef = useRef<MutationObserver | null>(null);
   const checkIntervalRef = useRef<number | null>(null);
 
-  const findChatGPTInput = (): ChatGPTInput | null => {
-    debug.info('Searching for ChatGPT input', 'ChatGPTDetector');
-    // Look for elements with class containing "group/composer" and "w-full"
-    // ChatGPT uses Tailwind classes, so we need to check for the combination
-    const containers = document.querySelectorAll('[class*="group/composer"][class*="w-full"]');
-    debug.info(`Found ${containers.length} containers with group/composer class`, 'ChatGPTDetector');
+  const findAIInput = (): AIInput | null => {
+    debug.info('Searching for AI input', 'AIDetector');
 
-    for (const container of containers) {
-      // Look for textarea or input within the container
-      const textarea = container.querySelector('textarea');
-      const input = container.querySelector('input[type="text"]');
-
-      const inputElement = textarea || input;
-      if (inputElement && (inputElement instanceof HTMLTextAreaElement || inputElement instanceof HTMLInputElement)) {
+    // 1. ChatGPT Selectors
+    const chatgptContainers = document.querySelectorAll('[class*="group/composer"][class*="w-full"]');
+    for (const container of chatgptContainers) {
+      const inputElement = container.querySelector('textarea') || container.querySelector('input[type="text"]');
+      if (inputElement && (inputElement.tagName === 'TEXTAREA' || inputElement.tagName === 'INPUT')) {
         return {
+
           element: container as HTMLElement,
           input: inputElement,
           value: inputElement.value || '',
@@ -37,28 +32,30 @@ const ChatGPTDetector = () => {
       }
     }
 
-    // Fallback: Look for any textarea in the main content area
-    // ChatGPT's main input is usually a textarea
+    // 2. Gemini Selectors
+    const geminiInput = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement;
+    if (geminiInput && geminiInput.offsetParent !== null) {
+      // Find a suitable container for positioning the save button
+      const container = geminiInput.closest('.input-area') as HTMLElement || geminiInput.parentElement;
+      if (container) {
+        return {
+          element: container,
+          input: geminiInput,
+          value: geminiInput.innerText || '',
+        };
+      }
+    }
+
+    // 3. Fallback: Look for any visible contenteditable or textarea
     const textareas = document.querySelectorAll('textarea');
     for (const textarea of textareas) {
-      // Check if it's likely the main input (has reasonable size and is visible)
       const rect = textarea.getBoundingClientRect();
       if (rect.width > 200 && rect.height > 40 && textarea.offsetParent !== null) {
-        // Check if it's in a composer-like container
-        let parent = textarea.parentElement;
-        let depth = 0;
-        while (parent && depth < 5) {
-          const classList = Array.from(parent.classList);
-          if (classList.some(cls => cls.includes('composer') || cls.includes('group'))) {
-            return {
-              element: parent,
-              input: textarea,
-              value: textarea.value || '',
-            };
-          }
-          parent = parent.parentElement;
-          depth++;
-        }
+        return {
+          element: textarea.parentElement || textarea,
+          input: textarea,
+          value: textarea.value || '',
+        };
       }
     }
 
@@ -66,7 +63,7 @@ const ChatGPTDetector = () => {
   };
 
   const updateDetectedInput = () => {
-    const found = findChatGPTInput();
+    const found = findAIInput();
     if (found) {
       setDetectedInput((prev) => {
         // Only update if the element or value changed
@@ -81,8 +78,8 @@ const ChatGPTDetector = () => {
   };
 
   useEffect(() => {
-    debug.render('ChatGPTDetector');
-    debug.info('Setting up ChatGPT detector', 'ChatGPTDetector');
+    debug.render('AIDetector');
+    debug.info('Setting up AI detector', 'AIDetector');
 
     // Initial check
     updateDetectedInput();
@@ -133,11 +130,16 @@ const ChatGPTDetector = () => {
     const handleInput = () => {
       setDetectedInput((prev) => {
         if (prev && prev.input === detectedInput.input) {
+          const isInputOrTextarea = ['INPUT', 'TEXTAREA'].includes(prev.input.tagName);
+          const newValue = isInputOrTextarea
+            ? (prev.input as HTMLInputElement | HTMLTextAreaElement).value
+            : prev.input.innerText;
           return {
             ...prev,
-            value: prev.input.value || '',
+            value: newValue || '',
           };
         }
+
         return prev;
       });
     };
@@ -178,7 +180,7 @@ const ChatGPTDetector = () => {
     <>
       {hasValue && (
         <div
-          className="chatgpt-save-button-container"
+          className="ai-save-button-container"
           style={{
             position: 'fixed',
             top: `${rect.top - 50}px`,
@@ -187,7 +189,7 @@ const ChatGPTDetector = () => {
           }}
         >
           <button
-            className="chatgpt-save-button"
+            className="ai-save-button"
             onClick={handleSaveClick}
             title="Save prompt to AI Notes"
           >
@@ -206,5 +208,5 @@ const ChatGPTDetector = () => {
   );
 };
 
-export default ChatGPTDetector;
+export default AIDetector;
 

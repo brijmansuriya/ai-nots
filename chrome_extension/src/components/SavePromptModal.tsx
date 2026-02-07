@@ -51,7 +51,7 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
         }
 
         // Ensure ChatGPT platform is selected
-        const chatGPTPlatform = platformList.find(p => 
+        const chatGPTPlatform = platformList.find(p =>
           p.name.toLowerCase().includes('chatgpt') || p.name.toLowerCase() === 'chatgpt'
         );
         if (chatGPTPlatform) {
@@ -99,7 +99,7 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
       setError('Title is required');
       return;
@@ -111,7 +111,7 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
     if (!finalCategoryId && categories.length > 0) {
       finalCategoryId = categories[0].id;
     }
-    
+
     if (!finalCategoryId) {
       setError('Please select a category or ensure categories are available');
       return;

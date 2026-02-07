@@ -1,12 +1,12 @@
 // Import CSS as inline strings
 import contentStyles from './content.css?inline';
-import chatGptBottomBarStyles from './components/ChatGPTBottomBar.css?inline';
+import aiBottomBarStyles from './components/AIBottomBar.css?inline';
 import extensionDashboardStyles from './components/ExtensionDashboard.css?inline';
 import indexStyles from './index.css?inline'; // Import global variables
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import ChatGPTBottomBar from './components/ChatGPTBottomBar';
+import AIBottomBar from './components/AIBottomBar';
 import { debug } from './utils/debug';
 import { ThemeProvider } from './context/ThemeContext';
 import { queryClient, chromeStoragePersister } from './lib/queryClient';
@@ -22,7 +22,7 @@ const injectStyles = () => {
     style.textContent = `
         ${indexStyles}
         ${contentStyles}
-        ${chatGptBottomBarStyles}
+        ${aiBottomBarStyles}
         ${extensionDashboardStyles}
     `;
     document.head.appendChild(style);
@@ -48,26 +48,35 @@ const isChatGPTPage = (): boolean => {
     return isChatGPT;
 };
 
+// Check if we're on a Gemini page
+const isGeminiPage = (): boolean => {
+    const hostname = window.location.hostname.toLowerCase();
+    const isGemini = hostname.includes('gemini.google.com');
+
+    debug.info(`Checking if Gemini page: ${hostname} → ${isGemini}`, 'ContentScript');
+    return isGemini;
+};
+
 // Function to render or re-render the component
 const renderComponent = (container: HTMLElement) => {
     const isChatGPT = isChatGPTPage();
+    const isGemini = isGeminiPage();
 
-    // For ChatGPT pages, render only ChatGPTBottomBar (the Generate toolbar)
+    // For ChatGPT/Gemini pages, render AIBottomBar
     // For other pages, render nothing
     let ComponentToRender;
     let componentName;
 
-    if (isChatGPT) {
-        // Render only ChatGPTBottomBar for ChatGPT pages
-        componentName = 'ChatGPTBottomBar';
-        ComponentToRender = ChatGPTBottomBar;
+    if (isChatGPT || isGemini) {
+        componentName = 'AIBottomBar';
+        ComponentToRender = AIBottomBar;
     } else {
-        // Don't render anything for non-ChatGPT pages
+        // Don't render anything for non-AI pages
         componentName = 'None';
         ComponentToRender = () => null;
     }
 
-    debug.render(componentName, { isChatGPT, hostname: window.location.hostname });
+    debug.render(componentName, { isChatGPT, isGemini, hostname: window.location.hostname });
 
     try {
         if (!rootInstance) {
@@ -106,11 +115,12 @@ const initExtension = () => {
 
     try {
         const isChatGPT = isChatGPTPage();
+        const isGemini = isGeminiPage();
         console.log('🔵 [Content Script] Initializing extension...', {
             readyState: document.readyState,
             url: window.location.href,
             hostname: window.location.hostname,
-            isChatGPT: isChatGPT,
+            isAI: isChatGPT || isGemini,
         });
 
         // ... (rest of logic) ...
@@ -119,7 +129,7 @@ const initExtension = () => {
             readyState: document.readyState,
             url: window.location.href,
             hostname: window.location.hostname,
-            isChatGPT: isChatGPT,
+            isAI: isChatGPT || isGemini,
         });
 
         // Check if container already exists
@@ -156,7 +166,7 @@ const initExtension = () => {
         }
 
         // Render the appropriate component based on the page
-        console.log('🔵 [Content Script] Rendering component for page type:', isChatGPT ? 'ChatGPT' : 'Regular');
+        console.log('🔵 [Content Script] Rendering component for page type:', (isChatGPT || isGemini) ? 'AI' : 'Regular');
         renderComponent(container);
     } catch (error) {
         console.error('❌ [Content Script] Failed to initialize extension:', error);
@@ -231,11 +241,11 @@ if (chrome.runtime?.id) {
 
                         console.log('🔵 [Content Script] Bottom bar visibility updated in storage');
 
-                        // Also directly update ChatGPT toolbar if it exists
-                        const chatGPTToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
-                        if (chatGPTToolbar) {
-                            chatGPTToolbar.style.display = message.visible ? 'flex' : 'none';
-                            console.log('🔵 [Content Script] ChatGPT toolbar visibility updated directly');
+                        // Also directly update AI toolbar if it exists
+                        const aiToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
+                        if (aiToolbar) {
+                            aiToolbar.style.display = message.visible ? 'flex' : 'none';
+                            console.log('🔵 [Content Script] AI toolbar visibility updated directly');
                         }
 
                         // Re-render the component to reflect the change

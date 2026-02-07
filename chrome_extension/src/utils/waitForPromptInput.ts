@@ -13,26 +13,33 @@ export function waitForPromptInput(callback: (input: HTMLElement) => void): (() 
       return chatgptInput;
     }
 
-    // 2. Primary fallback: any visible contenteditable div with role="textbox"
+    // 2. Specific Gemini Selector
+    const geminiInput = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement;
+    if (geminiInput && geminiInput.offsetParent !== null) {
+      return geminiInput;
+    }
+
+    // 3. Primary fallback: any visible contenteditable div with role="textbox"
     const input = Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
     if (input) {
       return input;
     }
 
-    // 3. Fallback: any visible contenteditable div
+    // 4. Fallback: any visible contenteditable div
     const fallback = Array.from(document.querySelectorAll('div[contenteditable="true"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
     if (fallback) {
       return fallback;
     }
 
-    // 4. Visible Textarea fallback
+    // 5. Visible Textarea fallback
     const textarea = Array.from(document.querySelectorAll('textarea'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLTextAreaElement;
 
     return textarea || null;
   };
+
 
   // Try to find immediately first
   const input = findPromptInput();
