@@ -15,6 +15,7 @@ interface Template {
     category?: { id: number; name: string };
     tags?: Array<{ id: number; name: string }>;
     platforms?: Array<{ id: number; name: string }>;
+    folder_id?: number | null;
 }
 
 interface TemplatesPopupProps {
@@ -53,8 +54,36 @@ const Icons = {
     ),
     History: () => (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-    )
+    ),
+    Folder: () => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" /></svg>
+    ),
+    ChevronRight: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+    ),
+    ChevronDown: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+    ),
+    MoreVertical: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+    ),
+    Trash: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+    ),
+    Edit: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
+    ),
 };
+
+interface Folder {
+    id: number;
+    name: string;
+    emoji?: string;
+    color?: string;
+    parent_id?: number;
+    prompts_count: number;
+    children?: Folder[];
+}
 
 const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const queryClient = useQueryClient();
@@ -88,10 +117,19 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         enabled: isAuthenticated,
     });
 
-    const [activeTab, setActiveTab] = useState<'templates' | 'prompts'>('templates');
+    const { data: folders = [], isLoading: foldersLoading } = useQuery({
+        queryKey: ['folders'],
+        queryFn: () => apiService.getFolders(),
+        enabled: isAuthenticated,
+    });
+
+    const [activeTab, setActiveTab] = useState<'templates' | 'prompts' | 'folders'>('templates');
+    const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
+    const [expandedFolders, setExpandedFolders] = useState<number[]>([]);
 
     // Filter & Search State
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [selectedTags, setSelectedTags] = useState<number[]>([]);
     const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -121,7 +159,17 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         prompt: '',
         category_id: '',
         tags: '',
+        folder_id: '',
     });
+
+    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+    const [folderFormData, setFolderFormData] = useState<{ id?: number; name: string; parent_id: string; color: string }>({
+        name: '',
+        parent_id: '',
+        color: '#3b82f6'
+    });
+
+    const [contextMenu, setContextMenu] = useState<{ id: number; x: number; y: number; type: 'folder' | 'prompt' } | null>(null);
 
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -155,23 +203,89 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         };
         chrome.runtime.onMessage.addListener(handleMessage);
 
-        // Keyboard Shortcut: '/' to focus search
+        // Keyboard Shortcuts
         const handleKeyDown = (e: KeyboardEvent) => {
+            // '/' to focus search
             if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
                 e.preventDefault();
                 searchInputRef.current?.focus();
             }
+
+            // Pro Shortcuts: Just like Postman
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                setActiveTab('prompts');
+                resetForm();
+                setIsCreating(true);
+            }
+            if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+                e.preventDefault();
+                handleNewFolder();
+            }
+            if (e.ctrlKey && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            if (e.key === 'F2' && selectedFolderId) {
+                e.preventDefault();
+                const folder = folders.find(f => f.id === selectedFolderId);
+                if (folder) handleEditFolder(folder);
+            }
+            if (e.key === 'Delete' && selectedFolderId) {
+                e.preventDefault();
+                if (window.confirm('Are you sure you want to delete this folder?')) {
+                    handleDeleteFolder(selectedFolderId);
+                }
+            }
         };
         window.addEventListener('keydown', handleKeyDown);
+
+        // Storage Listener for Sync
+        const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (changes.api_token || changes.user) {
+                console.log('🔵 [TemplatesPopup] Auth state changed in storage, refreshing queries...');
+                queryClient.invalidateQueries();
+            }
+        };
+        chrome.storage.onChanged.addListener(handleStorageChange);
 
         return () => {
             chrome.runtime.onMessage.removeListener(handleMessage);
             window.removeEventListener('keydown', handleKeyDown);
+            chrome.storage.onChanged.removeListener(handleStorageChange);
+            // Close context menu on click outside
+            window.removeEventListener('click', () => setContextMenu(null));
         };
-    }, [queryClient]);
+    }, [queryClient, folders, selectedFolderId]);
 
-    const loading = templatesLoading || categoriesLoading || tagsLoading || (isAuthenticated && promptsLoading) || userLoading;
+    // Global click to close context menu
+    useEffect(() => {
+        const h = () => setContextMenu(null);
+        window.addEventListener('click', h);
+        return () => window.removeEventListener('click', h);
+    }, []);
 
+    const loading = templatesLoading || categoriesLoading || tagsLoading || (isAuthenticated && promptsLoading) || (isAuthenticated && foldersLoading) || userLoading;
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Optimize Folder Search: Pre-calculate folder -> prompts map
+    const folderPromptsMap = useMemo(() => {
+        const map: Record<number, Template[]> = {};
+        prompts.forEach(p => {
+            if (p.folder_id) {
+                if (!map[p.folder_id]) map[p.folder_id] = [];
+                map[p.folder_id].push(p);
+            }
+        });
+        return map;
+    }, [prompts]);
 
     // Selection Logic: Filtering + Fuzzy Search
     const filteredData = useMemo(() => {
@@ -182,10 +296,15 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             baseList = baseList.filter(item => item.category_id === selectedCategory);
         }
 
+        // Apply Folder Filter
+        if (selectedFolderId !== null) {
+            baseList = baseList.filter(item => (item as any).folder_id === selectedFolderId);
+        }
+
         // Apply Tag Filter (Match ALL selected tags - AND logic)
         if (selectedTags.length > 0) {
             baseList = baseList.filter(item =>
-                selectedTags.every(tagId => item.tags?.some((tag: any) => tag.id === tagId))
+                selectedTags.every(tagId => (item.tags || []).some((tag: any) => tag.id === tagId))
             );
         }
 
@@ -200,19 +319,19 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                 .sort((a, b) => recentIds.indexOf(b.id) - recentIds.indexOf(a.id));
         }
 
-        // Apply Fuzzy Search
-        if (searchQuery.trim()) {
+        // Apply Fuzzy Search (Using debounced query)
+        if (debouncedSearchQuery.trim()) {
             const fuse = new Fuse(baseList, {
                 keys: ['title', 'prompt', 'category.name', 'tags.name'],
                 threshold: 0.4,
                 distance: 100,
                 ignoreLocation: true
             });
-            return fuse.search(searchQuery).map(result => result.item);
+            return fuse.search(debouncedSearchQuery).map(result => result.item);
         }
 
         return baseList;
-    }, [templates, prompts, activeTab, selectedCategory, selectedTags, showFavoritesOnly, showRecentlyUsed, favorites, recentIds, searchQuery]);
+    }, [templates, prompts, activeTab, selectedCategory, selectedTags, showFavoritesOnly, showRecentlyUsed, favorites, recentIds, debouncedSearchQuery]);
 
     // Persist filters when they change
     useEffect(() => {
@@ -271,15 +390,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         const newRecents = [item.id, ...recentIds.filter(id => id !== item.id)].slice(0, 20);
         setRecentIds(newRecents);
         chrome.storage.local.set({ recent_prompts: newRecents });
-
         onSelect(item.prompt);
         setTimeout(() => onClose(), 100);
-    };
-
-    const handleCopy = (e: React.MouseEvent, text: string) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(text);
-        // Simple visual feedback could go here
     };
 
     const resetForm = () => {
@@ -289,6 +401,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             prompt: '',
             category_id: categories.length > 0 ? String(categories[0].id) : '',
             tags: '',
+            folder_id: selectedFolderId ? String(selectedFolderId) : '',
         });
         setIsCreating(false);
         setIsEditing(false);
@@ -301,14 +414,15 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         setError(null);
         try {
             const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
-            const payload = {
+            const payload: any = {
                 title: formData.title,
                 description: formData.description,
                 prompt: formData.prompt,
                 category_id: Number(formData.category_id),
                 tags: tagsArray,
                 platform: ['ChatGPT'],
-                status: '1'
+                status: '1',
+                folder_id: formData.folder_id ? Number(formData.folder_id) : null,
             };
 
             if (isEditing && editingId) {
@@ -337,6 +451,254 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         return words.slice(0, count).join(' ') + '...';
     };
 
+    const renderFolders = (foldersList: Folder[], level = 0): any[] => {
+        const query = searchQuery.trim().toLowerCase();
+
+        // Helper to check if folder matches or has matching descendants
+        const matchesQuery = (folder: Folder): boolean => {
+            if (!query) return true;
+            if (folder.name.toLowerCase().includes(query)) return true;
+            return !!(folder.children && folder.children.some(child => matchesQuery(child)));
+        };
+
+        const filteredFolders = foldersList.filter(matchesQuery);
+
+        if (level === 0 && query && filteredFolders.length === 0) {
+            return [<div key="no-matches" className="empty-state"><p>No folders match your search.</p></div>];
+        }
+
+        return filteredFolders.map(folder => {
+            const hasChildren = folder.children && folder.children.length > 0;
+            const isExpanded = expandedFolders.includes(folder.id) || (query && (
+                folder.children?.some(matchesQuery) ||
+                prompts.some(p => p.folder_id === folder.id && (p.title.toLowerCase().includes(query) || p.prompt.toLowerCase().includes(query)))
+            ));
+
+            // Find prompts in this folder using pre-indexed map
+            const folderPrompts = folderPromptsMap[folder.id] || [];
+            const filteredPrompts = query
+                ? folderPrompts.filter(p => p.title.toLowerCase().includes(query) || p.prompt.toLowerCase().includes(query))
+                : folderPrompts;
+
+            return (
+                <div key={folder.id} className={`folder-item-wrapper ${isExpanded ? 'is-expanded' : ''}`} style={{ '--level': level } as any}>
+                    <div
+                        className={`folder-item ${selectedFolderId === folder.id ? 'active' : ''}`}
+                        style={{ paddingLeft: `${level * 16 + 12}px` }}
+                        onClick={() => {
+                            if (selectedFolderId === folder.id) {
+                                // Toggle expansion if already selected
+                                setExpandedFolders(prev =>
+                                    prev.includes(folder.id) ? prev.filter(f => f !== folder.id) : [...prev, folder.id]
+                                );
+                            } else {
+                                setSelectedFolderId(folder.id);
+                                if (!expandedFolders.includes(folder.id)) {
+                                    setExpandedFolders(prev => [...prev, folder.id]);
+                                }
+                            }
+                        }}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({ id: folder.id, x: e.clientX, y: e.clientY, type: 'folder' });
+                        }}
+                    >
+                        <div className="folder-item-left">
+                            <button
+                                className={`expand-btn ${hasChildren || filteredPrompts.length > 0 ? '' : 'invisible'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedFolders(prev =>
+                                        prev.includes(folder.id) ? prev.filter(f => f !== folder.id) : [...prev, folder.id]
+                                    );
+                                }}
+                            >
+                                {isExpanded ? <Icons.ChevronDown /> : <Icons.ChevronRight />}
+                            </button>
+                            <span className="folder-color-indicator" style={{ backgroundColor: folder.color || '#3b82f6' }}></span>
+                            <span className="folder-name">{folder.name}</span>
+                        </div>
+                        <div className="folder-item-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                                className="kebab-btn"
+                                onClick={(e) => {
+                                    const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                    setContextMenu({ id: folder.id, x: rect.left, y: rect.bottom, type: 'folder' });
+                                }}
+                            >
+                                <Icons.MoreVertical />
+                            </button>
+                        </div>
+                    </div>
+                    {isExpanded && (
+                        <div className="folder-content-body">
+                            {hasChildren && (
+                                <div className="folder-children">
+                                    {renderFolders(folder.children!, level + 1)}
+                                </div>
+                            )}
+                            {filteredPrompts.length > 0 && (
+                                <div className="folder-prompts-list">
+                                    {filteredPrompts.map(p => (
+                                        <div
+                                            key={p.id}
+                                            className="inline-prompt-item"
+                                            style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+                                        >
+                                            <div className="inline-prompt-content" onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSelect(p);
+                                            }}>
+                                                <div className="inline-prompt-header">
+                                                    <Icons.MessageSquare />
+                                                    <span className="inline-prompt-title">{p.title}</span>
+                                                </div>
+                                                <p className="inline-prompt-preview">
+                                                    {p.prompt.length > 80 ? p.prompt.substring(0, 80) + '...' : p.prompt}
+                                                </p>
+                                            </div>
+                                            <div className="inline-prompt-actions">
+                                                <button className="inline-action-btn insert" title="Insert Into Chat" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSelect(p);
+                                                }}>
+                                                    Insert
+                                                </button>
+                                                <button className="inline-action-btn delete" title="Delete Prompt" onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeletePrompt(p.id);
+                                                }}>
+                                                    <Icons.Trash />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        });
+    };
+
+    const handleNewFolder = (parentId?: number) => {
+        setFolderFormData({
+            name: '',
+            parent_id: parentId?.toString() || '',
+            color: '#3b82f6'
+        });
+        setIsCreatingFolder(true);
+    };
+
+    const handleEditFolder = (folder: Folder) => {
+        setFolderFormData({
+            id: folder.id,
+            name: folder.name,
+            parent_id: folder.parent_id?.toString() || '',
+            color: folder.color || '#3b82f6'
+        });
+        setIsCreatingFolder(true);
+    };
+
+    const handleDeleteFolder = async (id: number) => {
+        try {
+            await apiService.deleteFolder(id);
+            queryClient.invalidateQueries({ queryKey: ['folders'] });
+            if (selectedFolderId === id) setSelectedFolderId(null);
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete folder');
+        }
+    };
+
+    const handleCreateFolder = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError(null);
+        try {
+            const payload = {
+                name: folderFormData.name,
+                parent_id: folderFormData.parent_id ? Number(folderFormData.parent_id) : null,
+                color: folderFormData.color,
+            };
+
+            if (folderFormData.id) {
+                await apiService.updateFolder(folderFormData.id, payload);
+            } else {
+                await apiService.createFolder(payload);
+            }
+
+            await queryClient.refetchQueries({ queryKey: ['folders'] });
+            await queryClient.refetchQueries({ queryKey: ['prompts'] });
+            setIsCreatingFolder(false);
+        } catch (err: any) {
+            setError(err.message || 'Failed to sync folder');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeletePrompt = async (id: number) => {
+        if (!window.confirm('Are you sure you want to delete this prompt?')) return;
+        try {
+            await apiService.deletePrompt(id);
+            // Optimistic update or refetch
+            queryClient.invalidateQueries({ queryKey: ['prompts'] });
+            // If in search, maybe clear or wait for invalidation
+        } catch (err: any) {
+            setError(err.message || 'Failed to delete prompt');
+        }
+    };
+
+    const handleSimilarPrompts = (item: Template) => {
+        // Clear search query first
+        setSearchQuery('');
+
+        // Use tags if available
+        if (item.tags && item.tags.length > 0) {
+            const tagIds = item.tags.map(t => (t as any).id);
+            setSelectedTags(tagIds);
+            setTempTags(tagIds);
+        } else if (item.category_id) {
+            // Fallback to category if no tags
+            setSelectedCategory(item.category_id);
+            setTempCategory(item.category_id);
+        }
+
+        // Stay on current tab, don't switch to 'prompts' forcibly
+        // unless they are currently in a view that doesn't support the item type (not the case here)
+    };
+
+    const findFolderName = (folderId?: number | null) => {
+        if (!folderId) return null;
+        const findInFolders = (list: Folder[]): string | null => {
+            for (const f of list) {
+                if (f.id === folderId) return f.name;
+                if (f.children) {
+                    const found = findInFolders(f.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return findInFolders(folders);
+    };
+
+    const renderFolderOptions = (foldersList: Folder[], level = 0): any[] => {
+        const options: any[] = [];
+        foldersList.forEach(folder => {
+            options.push(
+                <option key={folder.id} value={folder.id}>
+                    {'\u00A0'.repeat(level * 4)}{folder.emoji || '📁'} {folder.name}
+                </option>
+            );
+            if (folder.children && folder.children.length > 0) {
+                options.push(...renderFolderOptions(folder.children, level + 1));
+            }
+        });
+        return options;
+    };
+
     return (
         <div className="templates-popup-overlay" onClick={onClose}>
             <div className="templates-popup" onClick={(e) => e.stopPropagation()}>
@@ -344,19 +706,38 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                 <div className="templates-popup-header">
                     <div className="header-top-row">
                         <div className="templates-tabs">
-                            <div className={`tab-item ${activeTab === 'templates' ? 'active' : ''}`} onClick={() => setActiveTab('templates')}>
+                            <div className={`tab-item ${activeTab === 'templates' ? 'active' : ''}`} onClick={() => { setActiveTab('templates'); setSelectedFolderId(null); }}>
                                 <Icons.FileText />
                                 <h2>Templates</h2>
                             </div>
-                            <div className={`tab-item ${activeTab === 'prompts' ? 'active' : ''}`} onClick={() => setActiveTab('prompts')}>
+                            <div className={`tab-item ${activeTab === 'prompts' ? 'active' : ''}`} onClick={() => { setActiveTab('prompts'); setSelectedFolderId(null); }}>
                                 <Icons.MessageSquare />
                                 <h2>My Prompts</h2>
+                            </div>
+                            <div className={`tab-item ${activeTab === 'folders' ? 'active' : ''}`} onClick={() => setActiveTab('folders')}>
+                                <Icons.Folder />
+                                <h2>Folders</h2>
                             </div>
                         </div>
                         <div className="header-actions">
                             <button className="refresh-btn" onClick={() => queryClient.invalidateQueries()} title="Refresh">
                                 <Icons.Refresh />
                             </button>
+
+                            {/* Header Auth Section */}
+                            {isAuthenticated ? (
+                                <div className="user-profile-header">
+                                    <div className="user-avatar" title={user.name}>
+                                        {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="user-name-abbr">{user.name.split(' ')[0]}</span>
+                                </div>
+                            ) : (
+                                <button className="header-login-btn" onClick={() => window.open(apiService.getLoginUrl(), '_blank')}>
+                                    Login
+                                </button>
+                            )}
+
                             <button className="close-btn" onClick={onClose}>×</button>
                         </div>
                     </div>
@@ -368,7 +749,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             <input
                                 ref={searchInputRef}
                                 type="text"
-                                placeholder="Search title, content... (Press /)"
+                                placeholder={activeTab === 'folders' ? "Search folders..." : "Search title, content... (Press /)"}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -486,6 +867,38 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                     </div>
                 </div>
 
+                {/* Context Menu */}
+                {contextMenu && (
+                    <div
+                        className="custom-context-menu"
+                        style={{ top: contextMenu.y, left: contextMenu.x }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button onClick={() => {
+                            const folder = folders.find(f => f.id === contextMenu.id);
+                            if (folder) handleEditFolder(folder);
+                            setContextMenu(null);
+                        }}>
+                            <Icons.Edit /> Rename
+                        </button>
+                        <button onClick={() => {
+                            handleNewFolder(contextMenu.id);
+                            setContextMenu(null);
+                        }}>
+                            <Icons.Plus /> New Subfolder
+                        </button>
+                        <div className="menu-divider" />
+                        <button className="danger" onClick={() => {
+                            if (window.confirm('Delete this folder?')) {
+                                handleDeleteFolder(contextMenu.id);
+                            }
+                            setContextMenu(null);
+                        }}>
+                            <Icons.Trash /> Delete
+                        </button>
+                    </div>
+                )}
+
                 {/* Main Content */}
                 <div className="templates-popup-content">
                     {loading && !(isCreating || isEditing) ? (
@@ -495,14 +908,26 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                         </div>
                     ) : error ? (
                         <div className="error-box">{error}</div>
-                    ) : activeTab === 'prompts' && !isAuthenticated ? (
+                    ) : (activeTab === 'prompts' || activeTab === 'folders') && !isAuthenticated ? (
                         <div className="auth-required">
                             <div className="auth-icon-placeholder">🔐</div>
                             <h3>Authentication Required</h3>
-                            <p>Log in to access and sync your personal prompt library.</p>
+                            <p>Log in to access and sync {activeTab === 'prompts' ? 'your personal prompt library' : 'your folder structure'}.</p>
                             <button className="login-primary-btn" onClick={() => window.open(apiService.getLoginUrl(), '_blank')}>
                                 Login with AI Notes
                             </button>
+                        </div>
+                    ) : activeTab === 'folders' ? (
+                        <div className="folder-container">
+                            {folders.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>No folders found. Create folders from the website.</p>
+                                </div>
+                            ) : (
+                                <div className="folder-list">
+                                    {renderFolders(folders)}
+                                </div>
+                            )}
                         </div>
                     ) : filteredData.length === 0 ? (
                         <div className="empty-state">
@@ -520,30 +945,53 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             {filteredData.map(item => (
                                 <div key={item.id} className="modern-card" onClick={() => handleSelect(item)}>
                                     <div className="card-header">
-                                        <div className="card-title-group">
-                                            <span className="card-label">{item.category?.name || 'Uncategorized'}</span>
-                                            <h4 className="card-title">{item.title}</h4>
+                                        <div className="card-badges-column">
+                                            <span className="item-badge category">{item.category?.name || 'Uncategorized'}</span>
+                                            {item.folder_id && (
+                                                <span className="item-badge folder">
+                                                    <Icons.Folder />
+                                                    {findFolderName(item.folder_id)}
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="card-actions-float">
                                             <button
-                                                className={`action-btn fav ${favorites.includes(item.id) ? 'active' : ''}`}
-                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                                                className="action-btn similar"
+                                                title="Find Similar"
+                                                onClick={(e) => { e.stopPropagation(); handleSimilarPrompts(item); }}
                                             >
-                                                <Icons.Heart filled={favorites.includes(item.id)} />
+                                                <Icons.Search />
+                                                <span>Similar</span>
                                             </button>
-                                            <button className="action-btn" onClick={(e) => { e.stopPropagation(); handleSelect(item); }} title="Insert into ChatGPT">
+                                            <button className="action-btn insert" onClick={(e) => { e.stopPropagation(); handleSelect(item); }} title="Insert into ChatGPT">
                                                 <Icons.Plus />
-                                            </button>
-                                            <button className="action-btn" onClick={(e) => handleCopy(e, item.prompt)} title="Copy to clipboard">
-                                                <Icons.Copy />
+                                                <span>Insert</span>
                                             </button>
                                         </div>
                                     </div>
+                                    <h4 className="card-title" title={item.title}>{item.title}</h4>
                                     <p className="card-preview">{truncateWords(item.prompt, 100)}</p>
-                                    <div className="card-tags">
-                                        {(item.tags || []).map((tag: any) => (
-                                            <span key={tag.id} className="tag-chip mini">{tag.name}</span>
-                                        ))}
+
+                                    <div className="card-footer-actions">
+                                        <div className="card-tags">
+                                            {(item.tags || []).map((tag: any) => (
+                                                <span key={tag.id} className="tag-chip mini">{tag.name}</span>
+                                            ))}
+                                        </div>
+                                        <div className="card-footer-btns">
+                                            <button
+                                                className={`action-btn fav ${favorites.includes(item.id) ? 'active' : ''}`}
+                                                onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
+                                                title={favorites.includes(item.id) ? "Remove from Favorites" : "Add to Favorites"}
+                                            >
+                                                <Icons.Heart filled={favorites.includes(item.id)} />
+                                            </button>
+                                            {activeTab === 'prompts' && (
+                                                <button className="action-btn delete" onClick={(e) => { e.stopPropagation(); handleDeletePrompt(item.id); }} title="Delete Prompt">
+                                                    <Icons.Trash />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -555,6 +1003,9 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                 <div className="templates-popup-footer">
                     <button className="f-btn secondary" onClick={() => { setActiveTab('templates'); resetForm(); setIsCreating(true); }}>
                         + New Template
+                    </button>
+                    <button className="f-btn secondary" onClick={() => handleNewFolder()}>
+                        + New Folder
                     </button>
                     <button className="f-btn primary" onClick={() => { setActiveTab('prompts'); resetForm(); setIsCreating(true); }}>
                         + New Prompt
@@ -589,6 +1040,13 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                     </select>
                                 </div>
                                 <div className="m-field">
+                                    <label>Folder (Optional)</label>
+                                    <select value={formData.folder_id} onChange={e => setFormData({ ...formData, folder_id: e.target.value })}>
+                                        <option value="">No Folder</option>
+                                        {renderFolderOptions(folders)}
+                                    </select>
+                                </div>
+                                <div className="m-field">
                                     <label>Tags (Comma separated)</label>
                                     <input value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="writing, seo, coding..." />
                                 </div>
@@ -596,6 +1054,36 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                     <button type="button" className="f-btn ghost" onClick={resetForm}>Cancel</button>
                                     <button type="submit" className="f-btn primary" disabled={submitting}>
                                         {submitting ? 'Saving...' : 'Save Draft'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {isCreatingFolder && (
+                    <div className="modal-overlay-layer">
+                        <div className="modal-panel">
+                            <div className="modal-header">
+                                <h3>{folderFormData.id ? 'Edit Folder' : 'Create New Folder'}</h3>
+                                <button className="m-close" onClick={() => setIsCreatingFolder(false)}>×</button>
+                            </div>
+                            <form className="m-form" onSubmit={handleCreateFolder}>
+                                <div className="m-field">
+                                    <label>Folder Name</label>
+                                    <input required value={folderFormData.name} onChange={e => setFolderFormData({ ...folderFormData, name: e.target.value })} placeholder="Enter folder name..." />
+                                </div>
+                                <div className="m-field">
+                                    <label>Parent Folder (Optional)</label>
+                                    <select value={folderFormData.parent_id} onChange={e => setFolderFormData({ ...folderFormData, parent_id: e.target.value })}>
+                                        <option value="">Root Level</option>
+                                        {renderFolderOptions(folders)}
+                                    </select>
+                                </div>
+                                <div className="m-footer">
+                                    <button type="button" className="f-btn ghost" onClick={() => setIsCreatingFolder(false)}>Cancel</button>
+                                    <button type="submit" className="f-btn primary" disabled={submitting}>
+                                        {submitting ? 'Creating...' : 'Create Folder'}
                                     </button>
                                 </div>
                             </form>
@@ -616,7 +1104,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

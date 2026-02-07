@@ -57,7 +57,7 @@ class Folder extends Model
      */
     public function descendants(): HasMany
     {
-        return $this->children()->with('descendants');
+        return $this->children()->withCount('prompts')->with('descendants');
     }
 
     /**

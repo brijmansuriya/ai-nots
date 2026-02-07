@@ -21,6 +21,7 @@ class PromptResource extends JsonResource
             'description' => $this->description,
             'status' => $this->status,
             'category_id' => $this->category_id,
+            'folder_id' => $this->folder_id,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'platforms' => PlatformResource::collection($this->whenLoaded('platforms')),

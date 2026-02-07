@@ -22,6 +22,16 @@ interface Platform {
   name: string;
 }
 
+interface Folder {
+  id: number;
+  name: string;
+  emoji?: string;
+  color?: string;
+  parent_id?: number;
+  prompts_count: number;
+  children?: Folder[];
+}
+
 interface SavePromptData {
   title: string;
   prompt: string;
@@ -31,6 +41,7 @@ interface SavePromptData {
   platform: string[];
   dynamic_variables?: string[];
   status?: string;
+  folder_id?: number | null;
 }
 
 class ApiService {
@@ -105,7 +116,7 @@ class ApiService {
 
   private clearAuth(): void {
     this.token = '';
-    chrome.storage.local.remove(['api_token', 'cachedPrompts']);
+    chrome.storage.local.remove(['api_token', 'user', 'user_data', 'cachedPrompts']);
     try {
       chrome.runtime.sendMessage({ type: 'AUTH_LOGOUT' }).catch(() => { });
     } catch (e) {
@@ -165,6 +176,39 @@ class ApiService {
     return response?.data || (Array.isArray(response) ? response : []);
   }
 
+  async getFolders(): Promise<Folder[]> {
+    const response = await this.request<any>('/api/extension/folders');
+    return response?.data || (Array.isArray(response) ? response : []);
+  }
+
+  async createFolder(data: { name: string; parent_id?: number | null; emoji?: string; color?: string }): Promise<Folder> {
+    const response = await this.request<any>('/api/extension/folders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response?.data || response;
+  }
+
+  async updateFolder(id: number, data: { name?: string; parent_id?: number | null; emoji?: string; color?: string }): Promise<Folder> {
+    const response = await this.request<any>(`/api/extension/folders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response?.data || response;
+  }
+
+  async deleteFolder(id: number): Promise<any> {
+    return this.request(`/api/extension/folders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async sendFeedback(data: { type: string; message: string; metadata?: any }): Promise<any> {
+    return this.request('/api/extension/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
   async getCurrentUser(): Promise<any> {
     try {
@@ -197,4 +241,4 @@ class ApiService {
 }
 
 export const apiService = new ApiService();
-export type { Category, Tag, Platform, SavePromptData };
+export type { Category, Tag, Platform, SavePromptData, Folder };

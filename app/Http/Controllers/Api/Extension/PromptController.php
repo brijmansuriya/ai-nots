@@ -63,6 +63,7 @@ class PromptController extends Controller
             'promptable_type' => $user->getMorphClass(),
             'promptable_id' => $user->id,
             'status' => $validated['status'] ?? PromptStatus::PENDING->value,
+            'folder_id' => $validated['folder_id'] ?? null,
             'is_template' => false,
         ];
 
@@ -159,6 +160,7 @@ class PromptController extends Controller
             'prompt' => $validated['prompt'],
             'description' => $validated['description'] ?? null,
             'category_id' => $validated['category_id'],
+            'folder_id' => $validated['folder_id'] ?? $prompt->folder_id,
             'status' => $validated['status'] ?? $prompt->status,
         ]);
 

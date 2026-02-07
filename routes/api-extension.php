@@ -45,4 +45,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('prompts/{prompt}', [PromptController::class, 'update']);
     Route::delete('prompts/{prompt}', [PromptController::class, 'destroy']);
     Route::post('templates', [TemplateController::class, 'store']);
+    Route::get('folders', [\App\Http\Controllers\Api\Extension\FolderController::class, 'index']);
+    Route::post('folders', [\App\Http\Controllers\Api\Extension\FolderController::class, 'store']);
+    Route::put('folders/{folder}', [\App\Http\Controllers\Api\Extension\FolderController::class, 'update']);
+    Route::delete('folders/{folder}', [\App\Http\Controllers\Api\Extension\FolderController::class, 'destroy']);
+    Route::post('feedback', [\App\Http\Controllers\Api\Extension\FeedbackController::class, 'store']);
 });

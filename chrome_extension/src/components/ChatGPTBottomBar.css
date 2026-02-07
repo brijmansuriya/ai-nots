@@ -241,3 +241,178 @@
   color: var(--accent-foreground);
   transform: translateY(-1px);
 }
+
+/* Modal & Form Styles (Localized for Bottom Bar) */
+.ainots-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.ainots-modal-content {
+  background-color: var(--background);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  animation: modalScale 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScale {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ainots-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ainots-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.ainots-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.ainots-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ainots-form-error {
+  padding: 10px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ainots-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ainots-form-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.ainots-form-field input,
+.ainots-form-field select,
+.ainots-form-field textarea {
+  background-color: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--foreground);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.ainots-form-field select {
+  cursor: pointer;
+}
+
+.ainots-form-field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.ainots-form-field input:focus,
+.ainots-form-field select:focus,
+.ainots-form-field textarea:focus {
+  border-color: var(--primary);
+  background-color: var(--background);
+  box-shadow: 0 0 0 3px var(--primary-muted);
+}
+
+.ainots-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.ainots-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.ainots-btn.primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.ainots-btn.primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.ainots-btn.secondary {
+  background-color: var(--secondary);
+  color: var(--foreground);
+  border-color: var(--border);
+}
+
+.ainots-btn.secondary:hover {
+  background-color: var(--accent);
+}
+
+.ainots-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

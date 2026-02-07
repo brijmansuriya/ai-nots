@@ -40,6 +40,9 @@ const Icons = {
   ),
   Plus: () => (
     <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+  ),
+  MessageCircle: () => (
+    <svg className="ainots-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
   )
 };
 
@@ -50,9 +53,10 @@ interface ToolbarUIProps {
   user: any;
   onLogout: () => void;
   onClear: () => void;
+  onFeedback: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear, onFeedback }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -62,10 +66,8 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
   const tools = [
     { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
-    // { id: 'personas', label: 'Personas', icon: Icons.Users, action: () => console.log('Personas clicked') },
-    // { id: 'generate', label: 'Generate', icon: Icons.MagicWand, action: () => console.log('Generate clicked') },
+    { id: 'feedback', label: 'Feedback', icon: Icons.MessageCircle, action: onFeedback },
     { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: onClear },
-    // { id: 'chat', label: 'Chat', icon: Icons.MessageSquare, action: () => console.log('Chat clicked') },
   ];
 
   const getInitials = (name: string) => {
@@ -215,6 +217,77 @@ function insertTextIntoChatGPT(input: HTMLElement | null, text: string) {
   }
 }
 
+const FeedbackModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) => {
+  const [message, setMessage] = useState('');
+  const [type, setType] = useState('general');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      await apiService.sendFeedback({
+        type,
+        message,
+        metadata: {
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+          platform: navigator.platform
+        }
+      });
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit feedback');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="ainots-modal-overlay feedback-modal-overlay" onClick={onClose}>
+      <div className="ainots-modal-content feedback-modal" onClick={e => e.stopPropagation()}>
+        <div className="ainots-modal-header">
+          <h3>Submit Feedback</h3>
+          <button className="ainots-modal-close" onClick={onClose}>×</button>
+        </div>
+        <form className="ainots-form" onSubmit={handleSubmit}>
+          {error && <div className="ainots-form-error">{error}</div>}
+          <div className="ainots-form-field">
+            <label>Feedback Type</label>
+            <select value={type} onChange={e => setType(e.target.value)}>
+              <option value="general">General Feedback</option>
+              <option value="bug">Report a Bug</option>
+              <option value="feature">Feature Request</option>
+              <option value="improvement">UI/UX Improvement</option>
+            </select>
+          </div>
+          <div className="ainots-form-field">
+            <label>Message</label>
+            <textarea
+              required
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              placeholder="Tell us what you think or report an issue..."
+              rows={4}
+            />
+          </div>
+          <div className="ainots-modal-footer">
+            <button type="button" className="ainots-btn secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="ainots-btn primary" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Feedback'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 function clearChatGPTInput(input: HTMLElement | null) {
   const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
     document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
@@ -256,6 +329,7 @@ const ChatGPTBottomBar = () => {
   const [isVisible, setIsVisible] = useState(true);
   const { theme } = useTheme();
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
 
@@ -372,6 +446,7 @@ const ChatGPTBottomBar = () => {
               setUser(null);
             }}
             onClear={() => clearChatGPTInput(inputRef.current)}
+            onFeedback={() => setShowFeedback(true)}
           />
         </div>,
         container
@@ -384,6 +459,18 @@ const ChatGPTBottomBar = () => {
               setShowTemplates(false);
             }}
             onClose={() => setShowTemplates(false)}
+          />
+        </div>,
+        document.body
+      )}
+      {showFeedback && createPortal(
+        <div className={`ainots-theme-provider ${theme}`}>
+          <FeedbackModal
+            onClose={() => setShowFeedback(false)}
+            onSuccess={() => {
+              setShowFeedback(false);
+              alert('Thank you for your feedback!');
+            }}
           />
         </div>,
         document.body

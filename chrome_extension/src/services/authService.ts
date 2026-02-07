@@ -167,15 +167,15 @@ class AuthService {
 
     async getToken(): Promise<string | null> {
         return new Promise((resolve) => {
-            chrome.storage.local.get(['apiToken'], (result: { [key: string]: any }) => {
-                resolve(result.apiToken || null);
+            chrome.storage.local.get(['api_token'], (result: { [key: string]: any }) => {
+                resolve(result.api_token || null);
             });
         });
     }
 
     async saveToken(token: string): Promise<void> {
         return new Promise((resolve) => {
-            chrome.storage.local.set({ apiToken: token }, () => {
+            chrome.storage.local.set({ api_token: token }, () => {
                 debug.info('Token saved', 'AuthService');
                 resolve();
             });
@@ -201,7 +201,7 @@ class AuthService {
 
     async clearAuth(): Promise<void> {
         return new Promise((resolve) => {
-            chrome.storage.local.remove(['apiToken', 'user'], () => {
+            chrome.storage.local.remove(['api_token', 'user'], () => {
                 debug.info('Auth cleared', 'AuthService');
                 resolve();
             });
