@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+- check already exists code then create new code
+- if component available then reuse it possible

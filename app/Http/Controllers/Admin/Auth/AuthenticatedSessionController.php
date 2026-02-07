@@ -1,9 +1,8 @@
 <?php
-
 namespace App\Http\Controllers\Admin\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Admin\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,8 +18,8 @@ class AuthenticatedSessionController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('admin/auth/login', [
-            'canResetPassword' => Route::has('password.request'),
-            'status' => $request->session()->get('status'),
+            'canResetPassword' => Route::has('admin.password.request'),
+            'status'           => $request->session()->get('status'),
         ]);
     }
 
@@ -29,9 +28,15 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Allow both admin and user to be logged in simultaneously
+        // No logout of web guard
+
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Ensure admin guard is used
+        Auth::shouldUse('admin');
 
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
@@ -41,11 +46,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        Auth::guard('admin')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('admin/dashboard');
+        return redirect()->route('admin.login');
     }
 }

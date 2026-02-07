@@ -1,0 +1,67 @@
+/* Global Theme Scoping */
+.ainots-theme-provider {
+  --radius: 0.75rem;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light Mode Variables */
+.ainots-theme-provider.light {
+  --background: #ffffff;
+  --foreground: #09090b;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+  --primary: #09090b;
+  --primary-muted: rgba(9, 9, 11, 0.05);
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e4e4e7;
+  --input: #ffffff;
+  --ring: #09090b;
+  --primary-hover: #18181b;
+}
+
+/* Dark Mode Variables - Matched to ChatGPT */
+.ainots-theme-provider.dark {
+  --background: #171717;
+  /* ChatGPT Main Dark */
+  --foreground: #ececf1;
+  --card: #212121;
+  /* ChatGPT Secondary Dark */
+  --card-foreground: #ececf1;
+  --popover: #171717;
+  --popover-foreground: #ececf1;
+  --primary: #ffffff;
+  --primary-muted: rgba(255, 255, 255, 0.1);
+  --primary-foreground: #0d0d0d;
+  --primary-hover: #e5e5e5;
+  --secondary: #2f2f2f;
+  --secondary-foreground: #ececf1;
+  --muted: #2f2f2f;
+  --muted-foreground: #8e8ea0;
+  --accent: #2f2f2f;
+  --accent-foreground: #ffffff;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fefaca;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: #212121;
+  --ring: #ffffff;
+}
+
+/* Base resets using variables to ensure no mixing */
+.ainots-theme-provider * {
+  border-color: var(--border);
+}
+
+.ainots-theme-provider ::placeholder {
+  color: var(--muted-foreground);
+}

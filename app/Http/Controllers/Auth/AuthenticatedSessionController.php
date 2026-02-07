@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -29,9 +28,21 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Allow both admin and user to be logged in simultaneously
+        // No logout of admin guard
+
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        Auth::shouldUse('web');
+
+        // Extension Login Support
+        if ($extensionId = session('auth_extension_id')) {
+            session()->forget('auth_extension_id');
+            return app(\App\Http\Controllers\Api\Extension\AuthRedirectController::class)
+                ->issueTokenAndRedirect(Auth::user(), $extensionId);
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
@@ -46,6 +57,6 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('home');
     }
 }

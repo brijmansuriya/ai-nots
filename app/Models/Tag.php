@@ -19,11 +19,10 @@ class Tag extends Model
     protected $fillable = [
         'name',
         'slug',
-        'description',
-        'status', //'pending', 'active', 'deactive'
-        'created_by_id',
         'created_by_type',
-        'updated_at',
+        'created_by_id',
+        'status',
+        'is_public',
     ];
 
     const STATUS_PENDING = 'pending';

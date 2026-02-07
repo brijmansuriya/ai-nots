@@ -21,10 +21,10 @@ export function AdminDataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
-  const rows = Array.isArray(data) ? data : data.data
+  const rows = Array.isArray(data) ? data : (data?.data || [])
 
   const table = useReactTable({
-    data: rows,
+    data: rows || [],
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -55,8 +55,8 @@ export function AdminDataTable<TData, TValue>({
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+            <Button variant="outline" className="text-foreground">
+              <span>Columns</span> <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -103,7 +103,7 @@ export function AdminDataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-foreground">
                   No results.
                 </TableCell>
               </TableRow>

@@ -39,12 +39,20 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        // Determine which guard to use based on the route
+        $user = null;
+        if ($request->is('admin/*')) {
+            $user = $request->user('admin');
+        } else {
+            $user = $request->user('web');
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'ziggy' => fn (): array => [
                 ...(new Ziggy)->toArray(),

@@ -20,7 +20,7 @@ interface EditCategoryProps {
 const breadcrumbs: BreadcrumbItem[] = [
   {
     title: 'Dashboard',
-    href: '/dashboard',
+    href: '/admin/dashboard',
   },
   {
     title: 'Categories',
@@ -45,13 +45,13 @@ export default function EditCategory({ category }: EditCategoryProps) {
     <AdminLayout breadcrumbs={breadcrumbs}>
       <Head title="Edit Category" />
       <div className="flex items-center justify-between mb-4 px-4 pt-4">
-        <h1 className="text-lg font-semibold">Edit Category</h1>
+        <h1 className="text-lg font-semibold text-foreground">Edit Category</h1>
       </div>
 
       <form onSubmit={submit} className="px-4 py-4 space-y-4">
         {/* Name */}
         <div className="grid gap-2">
-          <Label htmlFor="name">Category Name</Label>
+          <Label htmlFor="name" className="text-foreground">Category Name</Label>
           <Input
             id="name"
             type="text"
@@ -68,7 +68,7 @@ export default function EditCategory({ category }: EditCategoryProps) {
 
         {/* Slug */}
         <div className="grid gap-2">
-          <Label htmlFor="slug">Slug</Label>
+          <Label htmlFor="slug" className="text-foreground">Slug</Label>
           <Input
             id="slug"
             type="text"
@@ -84,9 +84,9 @@ export default function EditCategory({ category }: EditCategoryProps) {
 
         {/* Status */}
         <div className="grid gap-2">
-          <Label htmlFor="status">Status</Label>
+          <Label htmlFor="status" className="text-foreground">Status</Label>
           <div className="flex items-center space-x-4">
-            <label className="flex items-center space-x-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
                 name="status"
@@ -94,11 +94,11 @@ export default function EditCategory({ category }: EditCategoryProps) {
                 checked={data.status === 'active'}
                 onChange={() => setData('status', 'active')}
                 disabled={processing}
-                className="form-radio"
+                className="form-radio text-foreground"
               />
-              <span>Active</span>
+              <span className="text-foreground">Active</span>
             </label>
-            <label className="flex items-center space-x-2">
+            <label className="flex items-center space-x-2 cursor-pointer">
               <input
                 type="radio"
                 name="status"
@@ -106,9 +106,9 @@ export default function EditCategory({ category }: EditCategoryProps) {
                 checked={data.status === 'deactive'}
                 onChange={() => setData('status', 'deactive')}
                 disabled={processing}
-                className="form-radio"
+                className="form-radio text-foreground"
               />
-              <span>Inactive</span>
+              <span className="text-foreground">Inactive</span>
             </label>
           </div>
           <InputError message={errors.status} className="mt-2" />

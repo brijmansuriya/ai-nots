@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -25,6 +26,13 @@ class Category extends Model
     const STATUS_PENDING = 'pending';
     const STATUS_ACTIVE = 'active';
     const STATUS_DEACTIVE = 'deactive';
- 
+
+    /**
+     * Get the prompts for this category.
+     */
+    public function promptNotes(): HasMany
+    {
+        return $this->hasMany(PromptNote::class);
+    }
 
 }

@@ -1,27 +1,35 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { FileText, LayoutDashboard, Tag, FolderTree, Monitor, LogOut } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutGrid,
+        href: '/admin/dashboard',
+        icon: LayoutDashboard,
     },{
         title: 'Tags',
-        href: route('admin.tags.index'),
-        icon: LayoutGrid,
+        href: '/admin/tags',
+        icon: Tag,
     },
     {
         //categories
         title: 'Categories',
-        href: route('admin.categories.index'),
-        icon: LayoutGrid,
+        href: '/admin/categories',
+        icon: FolderTree,
+    },
+    {
+        title: 'Platforms',
+        href: '/admin/platforms',
+        icon: Monitor,
+    },
+    {
+        title: 'Templates',
+        href: '/admin/prompts',
+        icon: FileText,
     }
 ];
 
@@ -45,7 +53,7 @@ export function AdminSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
+                            <Link href="/admin/dashboard" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -57,10 +65,18 @@ export function AdminSidebar() {
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            {/* <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
-                { <NavUser /> }
-            </SidebarFooter> */}
+            <SidebarFooter>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton asChild className="text-neutral-600 hover:text-neutral-800 dark:text-neutral-300 dark:hover:text-neutral-100">
+                            <Link method="post" href="/admin/logout" as="button">
+                                <LogOut className="h-5 w-5" />
+                                <span>Log out</span>
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarFooter>
         </Sidebar>
     );
 }

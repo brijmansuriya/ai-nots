@@ -1,12 +1,23 @@
+/* ==========================
+   Tailwind CSS Imports
+========================== */
 @import 'tailwindcss';
-
 @plugin 'tailwindcss-animate';
 
+/* ==========================
+   Source Directives
+========================== */
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
+/* ==========================
+   Custom Variants
+========================== */
 @custom-variant dark (&:is(.dark *));
 
+/* ==========================
+   Theme Variables
+========================== */
 @theme {
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -57,16 +68,17 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --color-ai-dark: #0f2027;
+    --color-ai-mid: #203a43;
+    --color-ai-light: #2c5364;
+    --color-ai-cyan: #00ddeb;
+    --color-ai-coral: #ff6f61;
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+/* ==========================
+   Base Styles
+========================== */
 @layer base {
     *,
     ::after,
@@ -156,4 +168,129 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* ==========================
+   Web-Specific Styles
+========================== */
+
+/* Background Animation - Only for non-dark mode */
+body:not(.dark) {
+    animation: gradientShift 15s ease infinite;
+    background: linear-gradient(135deg, var(--color-ai-dark), var(--color-ai-mid), var(--color-ai-light));
+    background-size: 300% 300%;
+    color: white;
+    min-height: 100vh;
+}
+
+/* Dark mode background */
+body.dark {
+    background: #030712;
+    color: #f9fafb;
+    min-height: 100vh;
+}
+
+html.dark {
+    background-color: #030712;
+}
+
+/* Modern Black & White Gradient Theme */
+/* body:not(.dark) .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #f9fafb, #ffffff, #f3f4f6);
+} */
+
+body.dark .bg-gradient-to-br {
+    background: linear-gradient(to bottom right, #030712, #111827, #000000);
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Hero Section Animation */
+.hero {
+    animation: fadeIn 1.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Notes Section Animation */
+.notes-section {
+    animation: slideUp 1s ease;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Note Card Animation */
+.note-card {
+    animation: fadeInCard 0.5s ease forwards;
+    opacity: 0;
+    animation-delay: calc(var(--index) * 0.1s);
+}
+
+@keyframes fadeInCard {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth hover transitions */
+.note-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode hover shadow */
+.dark .note-card:hover {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Animation */
+.modal {
+    animation: fadeInModal 0.4s ease-out;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ==========================
+   Scrollbar Styles
+========================== */
+.themed-scrollbar {
+    /* Firefox */
+    scrollbar-color: #00f7ff #1a2a44; /* ai-cyan thumb, ai-dark track */
+    scrollbar-width: thin;
+}
+
+/* WebKit (Chrome, Safari, Edge) */
+.themed-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-track {
+    background: rgba(26, 42, 68, 0.6); /* ai-dark/60 */
+    border-radius: 4px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb {
+    background: #00f7ff; /* ai-cyan */
+    border-radius: 4px;
+}
+
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #00d4e6; /* Slightly darker ai-cyan for hover */
+}
+
+.themed-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
 }
