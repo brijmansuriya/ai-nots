@@ -161,8 +161,6 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         description: '',
         prompt: '',
         category_id: '',
-        tags: '',
-        folder_id: '',
     });
 
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -403,8 +401,6 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             description: '',
             prompt: '',
             category_id: categories.length > 0 ? String(categories[0].id) : '',
-            tags: '',
-            folder_id: selectedFolderId ? String(selectedFolderId) : '',
         });
         setIsCreating(false);
         setIsEditing(false);
@@ -416,16 +412,15 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         setSubmitting(true);
         setError(null);
         try {
-            const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
             const payload: any = {
                 title: formData.title,
                 description: formData.description,
                 prompt: formData.prompt,
                 category_id: Number(formData.category_id),
-                tags: tagsArray,
+                tags: [],
                 platform: ['ChatGPT'],
                 status: '1',
-                folder_id: formData.folder_id ? Number(formData.folder_id) : null,
+                folder_id: null,
             };
 
             if (isEditing && editingId) {
@@ -1063,17 +1058,6 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                         <option value="">Select Category</option>
                                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
-                                </div>
-                                <div className="m-field">
-                                    <label>Folder (Optional)</label>
-                                    <select value={formData.folder_id} onChange={e => setFormData({ ...formData, folder_id: e.target.value })}>
-                                        <option value="">No Folder</option>
-                                        {renderFolderOptions(folders)}
-                                    </select>
-                                </div>
-                                <div className="m-field">
-                                    <label>Tags (Comma separated)</label>
-                                    <input value={formData.tags} onChange={e => setFormData({ ...formData, tags: e.target.value })} placeholder="writing, seo, coding..." />
                                 </div>
                                 <div className="m-footer">
                                     <button type="button" className="f-btn ghost" onClick={resetForm}>Cancel</button>
