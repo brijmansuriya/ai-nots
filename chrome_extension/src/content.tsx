@@ -26,14 +26,11 @@ const injectStyles = () => {
         ${extensionDashboardStyles}
     `;
     document.head.appendChild(style);
-    console.log('🔵 [Content Script] Styles injected');
     debug.info('Styles injected', 'ContentScript');
 };
 
 // Inject immediately
 injectStyles();
-
-console.log('🔵 [Content Script] Content script loaded');
 // Store root reference to avoid recreating it
 let rootInstance: ReturnType<typeof createRoot> | null = null;
 
@@ -116,12 +113,9 @@ const initExtension = () => {
     try {
         const isChatGPT = isChatGPTPage();
         const isGemini = isGeminiPage();
-        console.log('🔵 [Content Script] Initializing extension...', {
-            readyState: document.readyState,
-            url: window.location.href,
-            hostname: window.location.hostname,
-            isAI: isChatGPT || isGemini,
-        });
+        if (isChatGPT || isGemini) {
+            console.log('🔵 [Content Script] Initializing extension for', isChatGPT ? 'ChatGPT' : 'Gemini');
+        }
 
         // ... (rest of logic) ...
 
@@ -166,7 +160,6 @@ const initExtension = () => {
         }
 
         // Render the appropriate component based on the page
-        console.log('🔵 [Content Script] Rendering component for page type:', (isChatGPT || isGemini) ? 'AI' : 'Regular');
         renderComponent(container);
     } catch (error) {
         console.error('❌ [Content Script] Failed to initialize extension:', error);
@@ -175,10 +168,6 @@ const initExtension = () => {
 };
 
 // Wait for DOM to be ready
-console.log('🔵 [Content Script] Content script loaded', {
-    readyState: document.readyState,
-    url: window.location.href,
-});
 debug.info('Content script loaded', 'ContentScript', {
     readyState: document.readyState,
     url: window.location.href,
@@ -226,12 +215,10 @@ if (chrome.runtime?.id) {
         // Double check context inside listener
         if (!chrome.runtime?.id) return;
 
-        console.log('🔵 [Content Script] Message received:', message);
         debug.info('Message received from popup', 'ContentScript', message);
 
         if (message.type === 'TOGGLE_BOTTOM_BAR') {
             try {
-                console.log('🔵 [Content Script] Toggling bottom bar visibility:', message.visible);
                 debug.action('Toggling bottom bar visibility', 'ContentScript', { visible: message.visible });
 
                 // Update storage (this will trigger storage.onChanged listeners)
@@ -239,22 +226,17 @@ if (chrome.runtime?.id) {
                     chrome.storage.local.set({ bottomBarVisible: message.visible }, () => {
                         if (chrome.runtime.lastError) return;
 
-                        console.log('🔵 [Content Script] Bottom bar visibility updated in storage');
-
                         // Also directly update AI toolbar if it exists
                         const aiToolbar = document.getElementById('ai-nots-chatgpt-toolbar');
                         if (aiToolbar) {
                             aiToolbar.style.display = message.visible ? 'flex' : 'none';
-                            console.log('🔵 [Content Script] AI toolbar visibility updated directly');
                         }
 
                         // Re-render the component to reflect the change
                         const container = document.getElementById('ai-notes-bottom-bar-root');
                         if (container) {
                             renderComponent(container);
-                            console.log('🔵 [Content Script] Component re-rendered with new visibility');
                         } else {
-                            console.warn('⚠️ [Content Script] Container not found, initializing extension');
                             initExtension();
                         }
                     });
@@ -262,7 +244,6 @@ if (chrome.runtime?.id) {
 
                 sendResponse({ success: true });
             } catch (error) {
-                console.error('❌ [Content Script] Error handling toggle message:', error);
                 debug.error('Failed to toggle bottom bar', 'ContentScript', error);
                 sendResponse({ success: false, error: error });
             }
@@ -272,8 +253,6 @@ if (chrome.runtime?.id) {
         return false;
     });
 }
-
-console.log('🔵 [Content Script] Content script initialized with error handlers and message listener');
 
 // Also listen for page navigation (for SPAs)
 let lastUrl = window.location.href;

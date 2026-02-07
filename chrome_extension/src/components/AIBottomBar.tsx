@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { waitForPromptInput } from '../utils/waitForPromptInput';
 import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
@@ -332,27 +333,22 @@ function clearAIInput(input: HTMLElement | null) {
 }
 
 const AIBottomBar = () => {
+  const queryClient = useQueryClient();
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
   const { theme } = useTheme();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const inputRef = useRef<HTMLElement | null>(null);
 
-  const fetchUser = async () => {
-    try {
-      const userData = await apiService.getCurrentUser();
-      setUser(userData);
-    } catch (err) {
-      console.warn('Failed to fetch user in bottom bar');
-    }
-  };
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => apiService.getCurrentUser(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   useEffect(() => {
-    fetchUser();
-
-    // 2. Load Visibility from Storage
+    // 1. Load Visibility from Storage
     if (chrome.runtime?.id) {
       chrome.storage.local.get(['bottomBarVisible'], (result) => {
         if (chrome.runtime.lastError) return;
@@ -364,17 +360,15 @@ const AIBottomBar = () => {
       if (!chrome.runtime?.id) return;
       if (changes.bottomBarVisible) setIsVisible(changes.bottomBarVisible.newValue !== false);
       if (changes.api_token) {
-        if (changes.api_token.newValue) {
-          fetchUser();
-        } else {
-          setUser(null);
-        }
+        queryClient.invalidateQueries({ queryKey: ['user'] });
       }
     };
 
     const handleMessage = (message: any) => {
       if (!chrome.runtime?.id) return;
-      if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') fetchUser();
+      if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') {
+        queryClient.invalidateQueries({ queryKey: ['user'] });
+      }
     };
 
     if (chrome.runtime?.id) {
@@ -406,7 +400,6 @@ const AIBottomBar = () => {
       return () => { };
     };
 
-    fetchUser();
     let inputCleanup = waitForPromptInput(attachContainer);
 
     const observer = new MutationObserver(() => {
@@ -451,7 +444,7 @@ const AIBottomBar = () => {
             user={user}
             onLogout={async () => {
               await apiService.logout();
-              setUser(null);
+              queryClient.invalidateQueries({ queryKey: ['user'] });
             }}
             onClear={() => clearAIInput(inputRef.current)}
             onFeedback={() => setShowFeedback(true)}
@@ -462,7 +455,7 @@ const AIBottomBar = () => {
       {showTemplates && createPortal(
         <div className={`ainots-theme-provider ${theme}`}>
           <TemplatesPopup
-            onSelect={(text) => {
+            onSelect={(text: string) => {
               insertTextIntoAI(inputRef.current, text);
               setShowTemplates(false);
             }}

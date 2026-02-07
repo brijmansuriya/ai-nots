@@ -211,6 +211,11 @@ class ApiService {
   }
 
   async getCurrentUser(): Promise<any> {
+    await this.initialize();
+    if (!this.token) {
+      return null;
+    }
+
     try {
       const response = await this.request<any>('/api/extension/auth/me');
       return response?.user || response;
