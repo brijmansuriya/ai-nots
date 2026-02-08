@@ -184,35 +184,50 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         }
     });
 
-    // Load persisted state (favorites/recents)
+    // 1. Initial Load: Restore persistent state (favorites/recents/filters) once on mount
     useEffect(() => {
         chrome.storage.local.get(['fav_prompts', 'recent_prompts', 'last_filters'], (result: any) => {
             if (result.fav_prompts) setFavorites(result.fav_prompts as number[]);
             if (result.recent_prompts) setRecentIds(result.recent_prompts as number[]);
             if (result.last_filters) {
                 const filters = result.last_filters;
-                setSelectedCategory(filters.category || null);
-                setSelectedTags(filters.tags || []);
+                if (filters.category !== undefined) setSelectedCategory(filters.category);
+                if (filters.tags) setSelectedTags(filters.tags);
             }
         });
+    }, []);
 
-        // Listen for external auth changes
+    // 2. Auth Sync: Invalidate queries on storage change (api_token/user)
+    useEffect(() => {
+        const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+            if (changes.api_token || changes.user) {
+                console.log('🔵 [TemplatesPopup] Auth state sync: refreshing queries...');
+                queryClient.invalidateQueries();
+            }
+        };
+        chrome.storage.onChanged.addListener(handleStorageChange);
+        return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    }, [queryClient]);
+
+    // 3. Message Listener: Handle specific auth events
+    useEffect(() => {
         const handleMessage = (message: any) => {
             if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') {
                 queryClient.invalidateQueries();
             }
         };
         chrome.runtime.onMessage.addListener(handleMessage);
+        return () => chrome.runtime.onMessage.removeListener(handleMessage);
+    }, [queryClient]);
 
-        // Keyboard Shortcuts
+    // 4. Keyboard Shortcuts
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // '/' to focus search
             if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
                 e.preventDefault();
                 searchInputRef.current?.focus();
             }
 
-            // Pro Shortcuts: Just like Postman
             if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
                 setActiveTab('prompts');
@@ -240,24 +255,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
             }
         };
         window.addEventListener('keydown', handleKeyDown);
-
-        // Storage Listener for Sync
-        const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
-            if (changes.api_token || changes.user) {
-                console.log('🔵 [TemplatesPopup] Auth state changed in storage, refreshing queries...');
-                queryClient.invalidateQueries();
-            }
-        };
-        chrome.storage.onChanged.addListener(handleStorageChange);
-
-        return () => {
-            chrome.runtime.onMessage.removeListener(handleMessage);
-            window.removeEventListener('keydown', handleKeyDown);
-            chrome.storage.onChanged.removeListener(handleStorageChange);
-            // Close context menu on click outside
-            window.removeEventListener('click', () => setContextMenu(null));
-        };
-    }, [queryClient, folders, selectedFolderId]);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [folders, selectedFolderId]);
 
     // Global click to close context menu
     useEffect(() => {
@@ -365,6 +364,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const applyFilters = () => {
         console.log('Applying Filters');
         setSelectedCategory(tempCategory);
+        console.log('tempTags::::::002', tempTags);
         setSelectedTags(tempTags);
         setShowFavoritesOnly(tempFavs);
         setShowRecentlyUsed(tempRecent);
@@ -670,21 +670,29 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
 
     const handleSimilarPrompts = (item: Template) => {
         // Clear search query first
-        setSearchQuery('');
+        if (searchQuery) setSearchQuery('');
 
         // Use tags if available
         if (item.tags && item.tags.length > 0) {
             const tagIds = item.tags.map(t => (t as any).id);
-            setSelectedTags(tagIds);
-            setTempTags(tagIds);
+            // Only update if tags are different to prevent flickering
+            const currentTagIds = selectedTags;
+            const isSame = tagIds.length === currentTagIds.length && tagIds.every(id => currentTagIds.includes(id));
+
+            if (!isSame) {
+                setSelectedTags(tagIds);
+                setTempTags(tagIds);
+            }
         } else if (item.category_id) {
             // Fallback to category if no tags
-            setSelectedCategory(item.category_id);
-            setTempCategory(item.category_id);
+            if (selectedCategory !== item.category_id) {
+                setSelectedCategory(item.category_id);
+                setTempCategory(item.category_id);
+            }
         }
 
-        // Stay on current tab, don't switch to 'prompts' forcibly
-        // unless they are currently in a view that doesn't support the item type (not the case here)
+        // Close filter panel if it was open to avoid confusion
+        setIsFilterPanelOpen(false);
     };
 
     const findFolderName = (folderId?: number | null) => {
@@ -955,6 +963,7 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             <button className="reset-filters-btn" onClick={() => {
                                 setSearchQuery('');
                                 setSelectedCategory(null);
+                                console.log('reset filters 004');
                                 setSelectedTags([]);
                                 setShowFavoritesOnly(false);
                                 setShowRecentlyUsed(false);
@@ -1021,13 +1030,28 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
 
                 {/* Footer */}
                 <div className="templates-popup-footer">
-                    <button className="f-btn secondary" onClick={() => { setActiveTab('templates'); resetForm(); setIsCreating(true); }}>
+                    <button
+                        className="f-btn secondary"
+                        onClick={() => { setActiveTab('templates'); resetForm(); setIsCreating(true); }}
+                        disabled={!isAuthenticated}
+                        title={!isAuthenticated ? "Login required to create templates" : ""}
+                    >
                         + New Template
                     </button>
-                    <button className="f-btn secondary" onClick={() => handleNewFolder()}>
+                    <button
+                        className="f-btn secondary"
+                        onClick={() => handleNewFolder()}
+                        disabled={!isAuthenticated}
+                        title={!isAuthenticated ? "Login required to create folders" : ""}
+                    >
                         + New Folder
                     </button>
-                    <button className="f-btn primary" onClick={() => { setActiveTab('prompts'); resetForm(); setIsCreating(true); }}>
+                    <button
+                        className="f-btn primary"
+                        onClick={() => { setActiveTab('prompts'); resetForm(); setIsCreating(true); }}
+                        disabled={!isAuthenticated}
+                        title={!isAuthenticated ? "Login required to create prompts" : ""}
+                    >
                         + New Prompt
                     </button>
                     {isAuthenticated && (

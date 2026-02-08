@@ -474,6 +474,26 @@
     opacity: 0.9;
 }
 
+.f-btn:disabled {
+    opacity: 0.5;
+    filter: grayscale(1);
+    cursor: not-allowed !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    /* Allow tooltip to show */
+}
+
+.f-btn:disabled:hover {
+    background: var(--secondary) !important;
+    color: var(--foreground) !important;
+    box-shadow: none !important;
+}
+
+.f-btn.primary:disabled:hover {
+    background: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+}
+
 /* Mobile Bottom Sheet */
 @media (max-width: 640px) {
     .filter-panel {

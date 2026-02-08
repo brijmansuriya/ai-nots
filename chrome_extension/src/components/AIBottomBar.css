@@ -64,6 +64,17 @@
   white-space: nowrap;
 }
 
+.ainots-toolbar-button:disabled {
+  opacity: 0.5;
+  filter: grayscale(1);
+  cursor: not-allowed;
+}
+
+.ainots-toolbar-button:disabled:hover {
+  background: none !important;
+  color: var(--muted-foreground) !important;
+}
+
 .ainots-toolbar-button.active {
   background-color: var(--secondary);
   color: var(--foreground);
@@ -305,6 +316,8 @@
   font-weight: 700;
   color: var(--foreground);
 }
+
+
 
 .ainots-modal-close {
   background: none;

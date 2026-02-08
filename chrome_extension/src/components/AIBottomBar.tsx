@@ -96,7 +96,8 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
                     setActiveTool(tool.id);
                     tool.action();
                   }}
-                  title={isActive ? '' : tool.label}
+                  disabled={tool.id === 'feedback' && !user}
+                  title={isActive ? '' : (tool.id === 'feedback' && !user ? 'Login required for feedback' : tool.label)}
                 >
                   <Icon />
                   <span className="ainots-button-label">{tool.label}</span>

@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import SavePromptModal from './SavePromptModal';
+import { useQuery } from '@tanstack/react-query';
+import { apiService } from '../services/api';
 import { debug } from '../utils/debug';
 import './AIDetector.css';
 
@@ -169,12 +171,19 @@ const AIDetector = () => {
     setShowSaveModal(false);
   };
 
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: () => apiService.getCurrentUser(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   if (!detectedInput) {
     return null;
   }
 
   const hasValue = detectedInput.value.trim().length > 0;
   const rect = detectedInput.element.getBoundingClientRect();
+  const isAuthenticated = !!user;
 
   return (
     <>
@@ -191,7 +200,8 @@ const AIDetector = () => {
           <button
             className="ai-save-button"
             onClick={handleSaveClick}
-            title="Save prompt to AI Notes"
+            disabled={!isAuthenticated}
+            title={isAuthenticated ? "Save prompt to AI Notes" : "Login to save prompts"}
           >
             💾 Save Prompt
           </button>
