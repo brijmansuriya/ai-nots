@@ -111,9 +111,34 @@ const ExtensionDashboard = () => {
 
   const handleToggleBottomBar = () => {
     try {
+      const newState = !bottomBarVisible;
+      setBottomBarVisible(newState);
 
+      console.log('🔵 [ExtensionDashboard] Toggling bottom bar to:', newState);
 
+      // Save to storage
+      chrome.storage.local.set({ bottomBarVisible: newState }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('❌ [ExtensionDashboard] Error saving bottom bar visibility:', chrome.runtime.lastError);
+          return;
+        }
 
+        // Notify all tabs to update visibility
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach(tab => {
+            if (tab.id) {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'TOGGLE_BOTTOM_BAR',
+                visible: newState
+              }).catch(() => {
+                // Ignore errors for tabs where extension might not be active
+              });
+            }
+          });
+        });
+
+        debug.info(`Bottom bar visibility set to: ${newState}`, 'ExtensionDashboard');
+      });
     } catch (error) {
       console.error('❌ [ExtensionDashboard] Error toggling bottom bar:', error);
       debug.error('Failed to toggle bottom bar', 'ExtensionDashboard', error);

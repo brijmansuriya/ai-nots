@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 
 class SocialAuthController extends Controller
@@ -32,7 +33,10 @@ class SocialAuthController extends Controller
         Auth::login($user);
 
         // Extension Login Support
-        if ($extensionId = session('auth_extension_id')) {
+        $extensionId = session('auth_extension_id');
+        Log::info('Checking for extension ID in social login session', ['ext_id' => $extensionId]);
+
+        if ($extensionId) {
             session()->forget('auth_extension_id');
             return app(\App\Http\Controllers\Api\Extension\AuthRedirectController::class)
                 ->issueTokenAndRedirect($user, $extensionId);

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Extension;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
 
 class AuthRedirectController extends Controller
 {
@@ -18,8 +20,11 @@ class AuthRedirectController extends Controller
         $extensionId = $request->query('ext_id');
 
         if (!$extensionId) {
+            Log::warning('Extension login attempt without ext_id');
             return response()->json(['message' => 'Extension ID is required'], 422);
         }
+
+        Log::info('Extension login redirect initiated', ['ext_id' => $extensionId]);
 
         if (Auth::check()) {
             return $this->issueTokenAndRedirect(Auth::user(), $extensionId);
@@ -39,6 +44,16 @@ class AuthRedirectController extends Controller
         $token = $user->createToken('extension-token', ['extension:access'])->plainTextToken;
 
         $callbackUrl = "chrome-extension://{$extensionId}/callback.html?token={$token}";
+
+        Log::info('Issuing extension token and redirecting', [
+            'ext_id' => $extensionId,
+            'url' => $callbackUrl,
+            'is_inertia' => request()->header('X-Inertia') ? 'yes' : 'no'
+        ]);
+
+        if (request()->header('X-Inertia')) {
+            return Inertia::location($callbackUrl);
+        }
 
         return redirect()->away($callbackUrl);
     }

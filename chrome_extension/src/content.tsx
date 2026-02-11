@@ -113,17 +113,24 @@ const initExtension = () => {
     try {
         const isChatGPT = isChatGPTPage();
         const isGemini = isGeminiPage();
-        if (isChatGPT || isGemini) {
-            console.log('🔵 [Content Script] Initializing extension for', isChatGPT ? 'ChatGPT' : 'Gemini');
+
+        // ONLY inject and initialize if we are on a supported AI page
+        if (!isChatGPT && !isGemini) {
+            debug.info('Not on a supported AI page, skipping initialization', 'ContentScript', {
+                hostname: window.location.hostname
+            });
+            return;
         }
 
-        // ... (rest of logic) ...
+        console.log('🔵 [Content Script] Initializing extension for', isChatGPT ? 'ChatGPT' : 'Gemini');
+
+        // Inject styles only when we are sure we're on a supported page
+        injectStyles();
 
         debug.info('Initializing extension...', 'ContentScript', {
             readyState: document.readyState,
             url: window.location.href,
             hostname: window.location.hostname,
-            isAI: isChatGPT || isGemini,
         });
 
         // Check if container already exists
@@ -259,13 +266,20 @@ let lastUrl = window.location.href;
 new MutationObserver(() => {
     const currentUrl = window.location.href;
     if (currentUrl !== lastUrl) {
-        debug.info('URL changed, reinitializing extension', 'ContentScript', {
-            from: lastUrl,
-            to: currentUrl,
-        });
-        console.log('🔵 [Content Script] URL changed, reinitializing:', { from: lastUrl, to: currentUrl });
         lastUrl = currentUrl;
-        setTimeout(initExtension, 500);
+
+        // Only re-initialize if we are on a supported AI site or moving to one
+        const isChatGPT = isChatGPTPage();
+        const isGemini = isGeminiPage();
+
+        if (isChatGPT || isGemini) {
+            debug.info('URL changed, reinitializing extension', 'ContentScript', {
+                from: lastUrl,
+                to: currentUrl,
+            });
+            console.log('🔵 [Content Script] URL changed, reinitializing:', { from: lastUrl, to: currentUrl });
+            setTimeout(initExtension, 500);
+        }
     }
 }).observe(document, { subtree: true, childList: true });
 

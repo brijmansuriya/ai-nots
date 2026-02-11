@@ -6,6 +6,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +27,7 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): \Symfony\Component\HttpFoundation\Response
     {
         // Allow both admin and user to be logged in simultaneously
         // No logout of admin guard
@@ -38,7 +39,10 @@ class AuthenticatedSessionController extends Controller
         Auth::shouldUse('web');
 
         // Extension Login Support
-        if ($extensionId = session('auth_extension_id')) {
+        $extensionId = session('auth_extension_id');
+        Log::info('Checking for extension ID in session', ['ext_id' => $extensionId]);
+
+        if ($extensionId) {
             session()->forget('auth_extension_id');
             return app(\App\Http\Controllers\Api\Extension\AuthRedirectController::class)
                 ->issueTokenAndRedirect(Auth::user(), $extensionId);
