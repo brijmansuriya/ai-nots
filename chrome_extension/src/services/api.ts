@@ -234,7 +234,8 @@ class ApiService {
     }
   }
 
-  getLoginUrl(): string {
+  async getLoginUrl(): Promise<string> {
+    await this.initialize();
     const extId = chrome.runtime.id;
     return `${this.baseUrl.replace(/\/$/, '')}/extension-login?ext_id=${extId}`;
   }

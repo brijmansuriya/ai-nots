@@ -4,12 +4,22 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Listener for messages from content scripts or popup
+// Listener for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') {
-        // We can broadcast this to all tabs if needed, 
-        // but the tabs are already listening to storage changes.
-        // However, having this listener prevents "Receiving end does not exist" errors.
         console.log('Auth status changed:', message.type);
+
+        // Broadcast to all tabs to ensure content scripts update
+        chrome.tabs.query({}, (tabs) => {
+            tabs.forEach(tab => {
+                if (tab.id) {
+                    chrome.tabs.sendMessage(tab.id, message).catch(() => {
+                        // Ignore errors for tabs where extension content script is not injected
+                    });
+                }
+            });
+        });
+
         sendResponse({ status: 'received' });
     }
     return true; // Keep channel open for async response

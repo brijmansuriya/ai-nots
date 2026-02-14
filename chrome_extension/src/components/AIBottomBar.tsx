@@ -58,9 +58,10 @@ interface ToolbarUIProps {
   onLogout: () => void;
   onClear: () => void;
   onFeedback: () => void;
+  onAddPrompt: () => void;
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear, onFeedback }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear, onFeedback, onAddPrompt }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -70,6 +71,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
   const tools = [
     { id: 'templates', label: 'Templates', icon: Icons.FileText, action: onOpenTemplates },
+    { id: 'add-prompt', label: 'Add Prompt', icon: Icons.Plus, action: onAddPrompt },
     { id: 'feedback', label: 'Feedback', icon: Icons.MessageCircle, action: onFeedback },
     { id: 'clear', label: 'Clear', icon: Icons.Trash2, action: onClear },
   ];
@@ -87,6 +89,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
             {tools.map((tool) => {
               const isActive = activeTool === tool.id;
               const Icon = tool.icon;
+              const isDisabled = (tool.id === 'feedback' || tool.id === 'add-prompt') && !user;
 
               return (
                 <button
@@ -96,8 +99,8 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
                     setActiveTool(tool.id);
                     tool.action();
                   }}
-                  disabled={tool.id === 'feedback' && !user}
-                  title={isActive ? '' : (tool.id === 'feedback' && !user ? 'Login required for feedback' : tool.label)}
+                  disabled={isDisabled}
+                  title={isActive ? '' : (isDisabled ? 'Login required' : tool.label)}
                 >
                   <Icon />
                   <span className="ainots-button-label">{tool.label}</span>
@@ -150,7 +153,10 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
         ) : (
           <button
             className="ainots-login-btn"
-            onClick={() => window.open(apiService.getLoginUrl(), '_blank')}
+            onClick={async () => {
+              const url = await apiService.getLoginUrl();
+              window.open(url, '_blank');
+            }}
             title="Login to AI Notes"
           >
             <Icons.Users />
@@ -333,6 +339,28 @@ function clearAIInput(input: HTMLElement | null) {
   }
 }
 
+function getAIInputValue(input: HTMLElement | null): string {
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
+    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
+    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+    Array.from(document.querySelectorAll('textarea'))
+      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+  );
+
+  if (!currentInput) return '';
+
+  const isContentEditable = currentInput.getAttribute('contenteditable') === 'true';
+  if (isContentEditable) {
+    return (currentInput as HTMLElement).innerText || '';
+  } else if (currentInput instanceof HTMLTextAreaElement || 'value' in currentInput) {
+    return (currentInput as any).value || '';
+  }
+
+  return '';
+}
+
 const AIBottomBar = () => {
   const queryClient = useQueryClient();
   const [container, setContainer] = useState<HTMLElement | null>(null);
@@ -340,7 +368,10 @@ const AIBottomBar = () => {
   const { theme } = useTheme();
   const [showTemplates, setShowTemplates] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [popupConfig, setPopupConfig] = useState<{ mode: 'list' | 'create', text?: string } | null>(null);
   const inputRef = useRef<HTMLElement | null>(null);
+  // Use a ref to track the current container to avoid stale closures in the observer
+  const containerRef = useRef<HTMLElement | null>(null);
 
   const { data: user } = useQuery({
     queryKey: ['user'],
@@ -361,6 +392,7 @@ const AIBottomBar = () => {
       if (!chrome.runtime?.id) return;
       if (changes.bottomBarVisible) setIsVisible(changes.bottomBarVisible.newValue !== false);
       if (changes.api_token) {
+        console.log('🔵 [AIBottomBar] Storage api_token changed:', changes.api_token);
         queryClient.invalidateQueries({ queryKey: ['user'] });
       }
     };
@@ -368,7 +400,10 @@ const AIBottomBar = () => {
     const handleMessage = (message: any) => {
       if (!chrome.runtime?.id) return;
       if (message.type === 'AUTH_SUCCESS' || message.type === 'AUTH_LOGOUT') {
+        console.log('🔵 [AIBottomBar] Auth message received:', message.type);
         queryClient.invalidateQueries({ queryKey: ['user'] });
+        // Force refetch to be sure
+        queryClient.refetchQueries({ queryKey: ['user'] });
       }
     };
 
@@ -377,25 +412,69 @@ const AIBottomBar = () => {
       chrome.runtime.onMessage.addListener(handleMessage);
     }
 
+
+
     const attachContainer = (foundInput: HTMLElement) => {
       if (!chrome.runtime?.id) return;
 
       let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
-      if (!parent) parent = foundInput.closest('.input-area') as HTMLElement | null; // Gemini fallback
+
+      // Better Gemini Detection & Positioning
+      const isGemini = window.location.hostname.includes('gemini.google.com');
+      if (isGemini) {
+        // Gemini's structure is complex and changes. 
+        // We want to be *outside* the specific input implementation but *inside* the main chat input wrapper.
+        // Based on user snippet, .input-area-container is the moving wrapper (absolute positioned).
+        // We should append INSIDE it so we move with it.
+        const inputAreaContainer = foundInput.closest('.input-area-container') as HTMLElement | null;
+        const inputArea = foundInput.closest('.input-area') as HTMLElement | null;
+
+        if (inputAreaContainer) {
+          // Append INSIDE the main container so we move with the float
+          parent = inputAreaContainer;
+        } else if (inputArea) {
+          // Fallback: adjacent to input-area
+          parent = inputArea.parentElement;
+        } else {
+          // Fallback: Go up a few levels to find a block level wrapper
+          parent = foundInput.parentElement?.parentElement as HTMLElement | null;
+        }
+      }
+
       if (!parent) parent = foundInput.parentElement;
       if (!parent) return;
 
+      // Check if we already have a valid container attached to this parent
+      if (containerRef.current && containerRef.current.isConnected && containerRef.current.parentElement === parent) {
+        return;
+      }
+
       let toolbarRoot = document.getElementById('ai-nots-toolbar-portal');
+
       if (!toolbarRoot) {
         toolbarRoot = document.createElement('div');
         toolbarRoot.id = 'ai-nots-toolbar-portal';
-        toolbarRoot.className = 'ainots-bottom-bar-root';
+        toolbarRoot.className = `ainots-bottom-bar-root ${isGemini ? 'gemini-portal' : 'chatgpt-portal'}`;
         parent.appendChild(toolbarRoot);
-      } else if (toolbarRoot.parentElement !== parent) {
-        parent.appendChild(toolbarRoot);
+      } else {
+        // Re-use logic
+        // Verify if it's actually in the new parent. If not, move it.
+        if (toolbarRoot.parentElement !== parent) {
+          console.log('[AIBottomBar] Moving portal to new parent');
+          parent.appendChild(toolbarRoot);
+          toolbarRoot.className = `ainots-bottom-bar-root ${isGemini ? 'gemini-portal' : 'chatgpt-portal'}`;
+        }
+
+        // Ensure it's visible (in case it was hidden)
+        toolbarRoot.style.display = '';
       }
 
-      setContainer(toolbarRoot);
+      // Update state and ref
+      if (containerRef.current !== toolbarRoot) {
+        setContainer(toolbarRoot);
+        containerRef.current = toolbarRoot;
+      }
+
       inputRef.current = foundInput;
 
       return () => { };
@@ -441,7 +520,6 @@ const AIBottomBar = () => {
           <ToolbarUI
             isVisible={isVisible}
             onInsertText={(text) => insertTextIntoAI(inputRef.current, text)}
-            onOpenTemplates={() => setShowTemplates(true)}
             user={user}
             onLogout={async () => {
               await apiService.logout();
@@ -449,6 +527,15 @@ const AIBottomBar = () => {
             }}
             onClear={() => clearAIInput(inputRef.current)}
             onFeedback={() => setShowFeedback(true)}
+            onOpenTemplates={() => {
+              setPopupConfig({ mode: 'list' });
+              setShowTemplates(true);
+            }}
+            onAddPrompt={() => {
+              const val = getAIInputValue(inputRef.current);
+              setPopupConfig({ mode: 'create', text: val });
+              setShowTemplates(true);
+            }}
           />
         </div>,
         container
@@ -459,8 +546,15 @@ const AIBottomBar = () => {
             onSelect={(text: string) => {
               insertTextIntoAI(inputRef.current, text);
               setShowTemplates(false);
+              setPopupConfig(null);
             }}
-            onClose={() => setShowTemplates(false)}
+            onClose={() => {
+              setShowTemplates(false);
+              setPopupConfig(null);
+            }}
+            initialMode={popupConfig?.mode}
+            initialPromptText={popupConfig?.text}
+            initialTab={popupConfig?.mode === 'create' ? 'prompts' : 'templates'}
           />
         </div>,
         document.body

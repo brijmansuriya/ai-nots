@@ -164,6 +164,12 @@ const initExtension = () => {
         } else {
             console.log('🔵 [Content Script] Container already exists, reusing it');
             debug.warn('Container already exists, reusing it', 'ContentScript');
+
+            // If we are initializing (no rootInstance), we must clear stale content
+            if (!rootInstance) {
+                console.log('🔵 [Content Script] Clearing stale container content');
+                container.innerHTML = '';
+            }
         }
 
         // Render the appropriate component based on the page

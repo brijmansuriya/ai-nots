@@ -21,7 +21,9 @@ interface Template {
 interface TemplatesPopupProps {
     onSelect: (text: string) => void;
     onClose: () => void;
-    initialView?: 'list' | 'create';
+    initialMode?: 'create' | 'list';
+    initialPromptText?: string;
+    initialTab?: 'templates' | 'prompts' | 'folders';
 }
 
 const Icons = {
@@ -88,7 +90,7 @@ interface Folder {
     children?: Folder[];
 }
 
-const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
+const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPromptText = '', initialTab = 'templates' }: TemplatesPopupProps) => {
     const queryClient = useQueryClient();
 
     // Queries
@@ -126,7 +128,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         enabled: isAuthenticated,
     });
 
-    const [activeTab, setActiveTab] = useState<'templates' | 'prompts' | 'folders'>('templates');
+
+    const [activeTab, setActiveTab] = useState<'templates' | 'prompts' | 'folders'>(initialTab);
     const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
     const [expandedFolders, setExpandedFolders] = useState<number[]>([]);
 
@@ -150,17 +153,26 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     const [recentIds, setRecentIds] = useState<number[]>([]);
 
     // Form / Modal State
-    const [isCreating, setIsCreating] = useState(false);
+    const [isCreating, setIsCreating] = useState(initialMode === 'create');
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        description: string;
+        prompt: string;
+        category_id: string;
+        tags: string[];
+        platform: string[];
+    }>({
         title: '',
         description: '',
         prompt: '',
         category_id: '',
+        tags: ['ai', 'prompts'],
+        platform: ['ChatGPT'],
     });
 
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -274,6 +286,32 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    // Initialize form when creating or when initialPromptText changes
+    useEffect(() => {
+        if ((initialMode === 'create' || isCreating) && categories.length > 0) {
+            const isGemini = window.location.hostname.includes('gemini.google.com');
+            const defaultPlatform = isGemini ? 'Gemini' : 'ChatGPT';
+
+            if (initialPromptText && !formData.prompt) {
+                setFormData(prev => ({
+                    ...prev,
+                    prompt: initialPromptText,
+                    title: initialPromptText.trim().slice(0, 50).replace(/\n/g, ' ') || 'Untitled Prompt',
+                    category_id: prev.category_id || String(categories[0].id),
+                    platform: [defaultPlatform],
+                    tags: ['ai', 'prompts']
+                }));
+            } else if (!formData.category_id) {
+                setFormData(prev => ({
+                    ...prev,
+                    category_id: String(categories[0].id),
+                    platform: [defaultPlatform],
+                    tags: ['ai', 'prompts']
+                }));
+            }
+        }
+    }, [isCreating, categories, initialPromptText, initialMode]);
 
     // Optimize Folder Search: Pre-calculate folder -> prompts map
     const folderPromptsMap = useMemo(() => {
@@ -396,16 +434,22 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
     };
 
     const resetForm = () => {
+        const isGemini = window.location.hostname.includes('gemini.google.com');
+        const defaultPlatform = isGemini ? 'Gemini' : 'ChatGPT';
+
         setFormData({
             title: '',
             description: '',
             prompt: '',
             category_id: categories.length > 0 ? String(categories[0].id) : '',
+            tags: ['ai', 'prompts'],
+            platform: [defaultPlatform],
         });
         setIsCreating(false);
         setIsEditing(false);
         setEditingId(null);
     };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -417,8 +461,8 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                 description: formData.description,
                 prompt: formData.prompt,
                 category_id: Number(formData.category_id),
-                tags: [],
-                platform: ['ChatGPT'],
+                tags: formData.tags,
+                platform: formData.platform,
                 status: '1',
                 folder_id: null,
             };
@@ -759,7 +803,10 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                                     <span className="user-name-abbr">{user.name.split(' ')[0]}</span>
                                 </div>
                             ) : (
-                                <button className="header-login-btn" onClick={() => window.open(apiService.getLoginUrl(), '_blank')}>
+                                <button className="header-login-btn" onClick={async () => {
+                                    const url = await apiService.getLoginUrl();
+                                    window.open(url, '_blank');
+                                }}>
                                     Login
                                 </button>
                             )}
@@ -941,7 +988,10 @@ const TemplatesPopup = ({ onSelect, onClose }: TemplatesPopupProps) => {
                             <div className="auth-icon-placeholder">🔐</div>
                             <h3>Authentication Required</h3>
                             <p>Log in to access and sync {activeTab === 'prompts' ? 'your personal prompt library' : 'your folder structure'}.</p>
-                            <button className="login-primary-btn" onClick={() => window.open(apiService.getLoginUrl(), '_blank')}>
+                            <button className="login-primary-btn" onClick={async () => {
+                                const url = await apiService.getLoginUrl();
+                                window.open(url, '_blank');
+                            }}>
                                 Login with AI Notes
                             </button>
                         </div>
