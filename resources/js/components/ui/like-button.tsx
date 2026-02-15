@@ -70,11 +70,11 @@ export function LikeButton({
     const variantClasses =
         variant === 'ghost'
             ? isLiked
-                ? 'bg-red-50 dark:bg-red-950 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900'
-                : 'bg-transparent border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'bg-red-50 dark:bg-red-950/50 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900'
+                : 'bg-transparent border border-border text-foreground hover:bg-accent hover:text-accent-foreground'
             : isLiked
                 ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg'
-                : 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 shadow-lg hover:shadow-xl';
+                : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 dark:border dark:border-zinc-700';
 
     return (
         <button

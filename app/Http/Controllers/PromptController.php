@@ -24,7 +24,7 @@ class PromptController extends Controller
 
         // Only allow the owner of the prompt to edit it
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -34,7 +34,7 @@ class PromptController extends Controller
         $prompt->load(['tags', 'platforms', 'variables', 'media']);
 
         // Add image URL to prompt data
-        $promptData              = $prompt->toArray();
+        $promptData = $prompt->toArray();
         $promptData['image_url'] = $prompt->image_url;
 
         return Inertia::render('edit-prompt', [
@@ -52,12 +52,13 @@ class PromptController extends Controller
         $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
 
         $promptData['promptable_type'] = auth()->user()?->getMorphClass() ?? null;
-        $promptData['promptable_id']   = auth()->user()->id ?? null;
-        $promptData['status']          = $request->input('status', PromptStatus::PENDING->value); // Default to pending if not provided
-        $promptNote                    = PromptNote::create($promptData);
+        $promptData['promptable_id'] = auth()->user()->id ?? null;
+        $promptData['status'] = $request->input('status', PromptStatus::PENDING->value); // Default to pending if not provided
+        $promptData['is_public'] = $promptData['status']; // Sync is_public with status
+        $promptNote = PromptNote::create($promptData);
 
         // Handle tags - support both existing tags (by name or id) and create new ones
-        $tags   = $validated['tags'];
+        $tags = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
@@ -78,9 +79,9 @@ class PromptController extends Controller
                 $tagIds[] = $existingTag->id;
             } else {
                 // Create new tag if it doesn't exist
-                $slug         = \Str::slug($tag);
+                $slug = \Str::slug($tag);
                 $originalSlug = $slug;
-                $counter      = 1;
+                $counter = 1;
 
                 // Check if the slug already exists and append a number if it does
                 while (Tag::where('slug', $slug)->exists()) {
@@ -89,11 +90,11 @@ class PromptController extends Controller
                 }
 
                 $createdTag = Tag::create([
-                    'name'            => $tag,
-                    'slug'            => $slug,
+                    'name' => $tag,
+                    'slug' => $slug,
                     'created_by_type' => auth()->user()->getMorphClass(),
-                    'created_by_id'   => auth()->user()->id,
-                    'status'          => Tag::STATUS_ACTIVE,
+                    'created_by_id' => auth()->user()->id,
+                    'status' => Tag::STATUS_ACTIVE,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -103,7 +104,7 @@ class PromptController extends Controller
         $promptNote->tags()->sync(array_unique($tagIds));
         $promptNote->platforms()->attach($validated['platform']);
         // Attach dynamic variables to the promptvariables
-        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
+        if ($request->has('dynamic_variables') && !empty($validated['dynamic_variables'])) {
             $variables = array_map(function ($variable) {
                 return ['name' => $variable];
             }, $validated['dynamic_variables']);
@@ -115,7 +116,7 @@ class PromptController extends Controller
         if ($request->hasFile('image')) {
             try {
                 $imageService = new ImageService();
-                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+                $webpPath = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
                 // Get the full path to the saved file
                 $fullPath = storage_path('app/public/' . $webpPath);
@@ -135,7 +136,7 @@ class PromptController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Prompt created successfully.',
-                'data'    => $promptNote->load(['tags', 'platforms']),
+                'data' => $promptNote->load(['tags', 'platforms']),
             ], 201);
         }
 
@@ -145,13 +146,13 @@ class PromptController extends Controller
     public function show($id, Request $request)
     {
         $prompt = PromptNote::with(['tags', 'promptable', 'platforms', 'media'])->findOrFail($id);
-        $user   = auth()->user();
+        $user = auth()->user();
 
         // Check if user can view this prompt
         // Allow if: prompt is active OR user is the owner
         $canView = $prompt->isActive() || ($user && $prompt->promptable_id === $user->id && $prompt->promptable_type === $user->getMorphClass());
 
-        if (! $canView) {
+        if (!$canView) {
             abort(404, 'Prompt not found or not available.');
         }
 
@@ -174,22 +175,22 @@ class PromptController extends Controller
             ->get();
 
         // Prepare prompt data with metrics
-        $promptData                     = $prompt->toArray();
-        $promptData['save_count']       = $prompt->save_count ?? 0;
-        $promptData['copy_count']       = $prompt->copy_count ?? 0;
-        $promptData['likes_count']      = $prompt->likes_count ?? 0;
-        $promptData['views_count']      = $prompt->views_count ?? 0;
+        $promptData = $prompt->toArray();
+        $promptData['save_count'] = $prompt->save_count ?? 0;
+        $promptData['copy_count'] = $prompt->copy_count ?? 0;
+        $promptData['likes_count'] = $prompt->likes_count ?? 0;
+        $promptData['views_count'] = $prompt->views_count ?? 0;
         $promptData['popularity_score'] = $prompt->popularity_score ?? 0.00;
 
         // Build share URL
-        $shareUrl = $prompt->slug 
+        $shareUrl = $prompt->slug
             ? route('prompt.share', ['slug' => $prompt->slug], absolute: true)
             : route('prompt.show', ['id' => $prompt->id], absolute: true);
 
         return Inertia::render('promptDetails', [
-            'prompt'        => $promptData,
+            'prompt' => $promptData,
             'recentPrompts' => $recentPrompts,
-            'shareUrl'      => $shareUrl,
+            'shareUrl' => $shareUrl,
         ]);
     }
 
@@ -205,7 +206,7 @@ class PromptController extends Controller
         // Get user from correct guard (web or admin)
         $webUser = Auth::guard('web')->user();
         $adminUser = Auth::guard('admin')->user();
-        
+
         // Check if user can view this prompt
         // Allow if: prompt is active OR user is the owner (from either guard)
         $isOwner = false;
@@ -214,10 +215,10 @@ class PromptController extends Controller
         } elseif ($prompt->promptable_type === 'admin' && $adminUser && $prompt->promptable_id === $adminUser->id) {
             $isOwner = true;
         }
-        
+
         $canView = $prompt->isActive() || $isOwner;
 
-        if (! $canView) {
+        if (!$canView) {
             abort(404, 'Prompt not found or not available.');
         }
 
@@ -243,26 +244,26 @@ class PromptController extends Controller
             ->get();
 
         // Prepare prompt data with metrics
-        $promptData                     = $prompt->toArray();
-        $promptData['save_count']       = $prompt->save_count ?? 0;
-        $promptData['copy_count']       = $prompt->copy_count ?? 0;
-        $promptData['likes_count']      = $prompt->likes_count ?? 0;
-        $promptData['views_count']      = $prompt->views_count ?? 0;
+        $promptData = $prompt->toArray();
+        $promptData['save_count'] = $prompt->save_count ?? 0;
+        $promptData['copy_count'] = $prompt->copy_count ?? 0;
+        $promptData['likes_count'] = $prompt->likes_count ?? 0;
+        $promptData['views_count'] = $prompt->views_count ?? 0;
         $promptData['popularity_score'] = $prompt->popularity_score ?? 0.00;
 
         // Build share URL
         $shareUrl = route('prompt.share', ['slug' => $prompt->slug], absolute: true);
-        
+
         // Get OG image URL
-        $ogImageUrl = $prompt->image_url 
-            ? url($prompt->image_url) 
+        $ogImageUrl = $prompt->image_url
+            ? url($prompt->image_url)
             : asset('images/og-default.png'); // Fallback image
 
         return Inertia::render('promptDetails', [
-            'prompt'        => $promptData,
+            'prompt' => $promptData,
             'recentPrompts' => $recentPrompts,
-            'shareUrl'      => $shareUrl,
-            'ogImageUrl'    => $ogImageUrl,
+            'shareUrl' => $shareUrl,
+            'ogImageUrl' => $ogImageUrl,
         ]);
     }
 
@@ -272,37 +273,38 @@ class PromptController extends Controller
     public function update(UpdatePromptRequest $request, PromptNote $prompt)
     {
         $validated = $request->validated();
-        $user      = auth()->user();
+        $user = auth()->user();
 
         $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
 
         // Update status if provided, otherwise keep existing
         if ($request->has('status')) {
             $promptData['status'] = $request->input('status');
+            $promptData['is_public'] = $promptData['status']; // Sync is_public with status
         }
 
         // Check if there are actual changes to save a version
         $hasChanges = false;
-        $changes    = [];
+        $changes = [];
 
         if (isset($promptData['title']) && $prompt->title !== $promptData['title']) {
             $hasChanges = true;
-            $changes[]  = 'title';
+            $changes[] = 'title';
         }
 
         if (isset($promptData['prompt']) && $prompt->prompt !== $promptData['prompt']) {
             $hasChanges = true;
-            $changes[]  = 'prompt';
+            $changes[] = 'prompt';
         }
 
         if (isset($promptData['description']) && $prompt->description !== $promptData['description']) {
             $hasChanges = true;
-            $changes[]  = 'description';
+            $changes[] = 'description';
         }
 
         if (isset($promptData['category_id']) && $prompt->category_id != $promptData['category_id']) {
             $hasChanges = true;
-            $changes[]  = 'category';
+            $changes[] = 'category';
         }
 
         // Save version before updating if there are changes
@@ -319,9 +321,9 @@ class PromptController extends Controller
             // Store metadata (tags, category, etc.)
             $metadata = [
                 'category_id' => $prompt->category_id,
-                'tags'        => $prompt->tags->pluck('name')->toArray(),
-                'platforms'   => $prompt->platforms->pluck('name')->toArray(),
-                'variables'   => $prompt->variables->pluck('name')->toArray(),
+                'tags' => $prompt->tags->pluck('name')->toArray(),
+                'platforms' => $prompt->platforms->pluck('name')->toArray(),
+                'variables' => $prompt->variables->pluck('name')->toArray(),
             ];
 
             // Save current state to prompt_versions table (old version)
@@ -329,19 +331,19 @@ class PromptController extends Controller
             PromptVersion::create([
                 'prompt_note_id' => $prompt->id,
                 'version_number' => $versionNumber,
-                'title'          => $prompt->title,
-                'prompt'         => $prompt->prompt,
-                'description'    => $prompt->description,
-                'created_by'     => $user->id,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+                'created_by' => $user->id,
                 'change_summary' => 'Changed: ' . implode(', ', $changes),
-                'metadata'       => $metadata,
+                'metadata' => $metadata,
             ]);
         }
 
         $prompt->update($promptData);
 
         // Handle tags - same logic as store()
-        $tags   = $validated['tags'];
+        $tags = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
@@ -358,9 +360,9 @@ class PromptController extends Controller
             if ($existingTag) {
                 $tagIds[] = $existingTag->id;
             } else {
-                $slug         = \Str::slug($tag);
+                $slug = \Str::slug($tag);
                 $originalSlug = $slug;
-                $counter      = 1;
+                $counter = 1;
 
                 while (Tag::where('slug', $slug)->exists()) {
                     $slug = "{$originalSlug}-{$counter}";
@@ -368,11 +370,11 @@ class PromptController extends Controller
                 }
 
                 $createdTag = Tag::create([
-                    'name'            => $tag,
-                    'slug'            => $slug,
+                    'name' => $tag,
+                    'slug' => $slug,
                     'created_by_type' => $user->getMorphClass(),
-                    'created_by_id'   => $user->id,
-                    'status'          => Tag::STATUS_ACTIVE,
+                    'created_by_id' => $user->id,
+                    'status' => Tag::STATUS_ACTIVE,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -384,7 +386,7 @@ class PromptController extends Controller
 
         // Sync dynamic variables
         $prompt->variables()->delete();
-        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
+        if ($request->has('dynamic_variables') && !empty($validated['dynamic_variables'])) {
             $variables = array_map(function ($variable) {
                 return ['name' => $variable];
             }, $validated['dynamic_variables']);
@@ -404,7 +406,7 @@ class PromptController extends Controller
                 $prompt->clearMediaCollection('prompt_images');
 
                 $imageService = new ImageService();
-                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+                $webpPath = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
                 // Get the full path to the saved file
                 $fullPath = storage_path('app/public/' . $webpPath);
@@ -431,7 +433,7 @@ class PromptController extends Controller
 
         // Only allow the owner of the prompt to delete it
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -458,7 +460,7 @@ class PromptController extends Controller
 
         // Only allow the owner to view versions
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -470,26 +472,26 @@ class PromptController extends Controller
             ->get()
             ->map(function ($version) {
                 return [
-                    'id'             => $version->id,
+                    'id' => $version->id,
                     'version_number' => $version->version_number,
-                    'title'          => $version->title,
-                    'prompt'         => $version->prompt,
-                    'description'    => $version->description,
+                    'title' => $version->title,
+                    'prompt' => $version->prompt,
+                    'description' => $version->description,
                     'change_summary' => $version->change_summary,
-                    'metadata'       => $version->metadata,
-                    'created_by'     => $version->creator?->name,
-                    'created_at'     => $version->created_at->toIso8601String(),
+                    'metadata' => $version->metadata,
+                    'created_by' => $version->creator?->name,
+                    'created_at' => $version->created_at->toIso8601String(),
                     'formatted_date' => $version->formatted_date,
-                    'relative_time'  => $version->relative_time,
+                    'relative_time' => $version->relative_time,
                 ];
             });
 
         return response()->json([
-            'versions'       => $versions,
+            'versions' => $versions,
             'current_prompt' => [
-                'id'          => $prompt->id,
-                'title'       => $prompt->title,
-                'prompt'      => $prompt->prompt,
+                'id' => $prompt->id,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
                 'description' => $prompt->description,
             ],
         ]);
@@ -504,7 +506,7 @@ class PromptController extends Controller
 
         // Only allow the owner to view versions
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -517,29 +519,29 @@ class PromptController extends Controller
             ->get()
             ->map(function ($version) {
                 return [
-                    'id'             => $version->id,
+                    'id' => $version->id,
                     'version_number' => $version->version_number,
-                    'title'          => $version->title,
-                    'prompt'         => $version->prompt,
-                    'description'    => $version->description,
+                    'title' => $version->title,
+                    'prompt' => $version->prompt,
+                    'description' => $version->description,
                     'change_summary' => $version->change_summary,
-                    'metadata'       => $version->metadata,
-                    'created_by'     => $version->creator?->name,
-                    'created_at'     => $version->created_at->toIso8601String(),
+                    'metadata' => $version->metadata,
+                    'created_by' => $version->creator?->name,
+                    'created_at' => $version->created_at->toIso8601String(),
                     'formatted_date' => $version->formatted_date,
-                    'relative_time'  => $version->relative_time,
+                    'relative_time' => $version->relative_time,
                 ];
             });
 
         return Inertia::render('prompt-versions', [
-            'prompt'        => [
-                'id'    => $prompt->id,
+            'prompt' => [
+                'id' => $prompt->id,
                 'title' => $prompt->title,
             ],
-            'versions'      => $versions,
+            'versions' => $versions,
             'currentPrompt' => [
-                'title'       => $prompt->title,
-                'prompt'      => $prompt->prompt,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
                 'description' => $prompt->description,
             ],
         ]);
@@ -554,7 +556,7 @@ class PromptController extends Controller
 
         // Only allow the owner to restore versions
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -582,36 +584,36 @@ class PromptController extends Controller
         // Step 2: Save current (latest) state to prompt_versions table
         $metadata = [
             'category_id' => $prompt->category_id,
-            'tags'        => $prompt->tags->pluck('name')->toArray(),
-            'platforms'   => $prompt->platforms->pluck('name')->toArray(),
-            'variables'   => $prompt->variables->pluck('name')->toArray(),
+            'tags' => $prompt->tags->pluck('name')->toArray(),
+            'platforms' => $prompt->platforms->pluck('name')->toArray(),
+            'variables' => $prompt->variables->pluck('name')->toArray(),
         ];
 
         PromptVersion::create([
             'prompt_note_id' => $prompt->id,
             'version_number' => $versionNumber,
-            'title'          => $prompt->title,
-            'prompt'         => $prompt->prompt,
-            'description'    => $prompt->description,
-            'created_by'     => $user->id,
+            'title' => $prompt->title,
+            'prompt' => $prompt->prompt,
+            'description' => $prompt->description,
+            'created_by' => $user->id,
             'change_summary' => 'Restored from version ' . $version->version_number,
-            'metadata'       => $metadata,
+            'metadata' => $metadata,
         ]);
 
         // Step 3: Update main prompt (prompts table) with the older version's content
         $prompt->update([
-            'title'       => $version->title,
-            'prompt'      => $version->prompt,
+            'title' => $version->title,
+            'prompt' => $version->prompt,
             'description' => $version->description,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Prompt restored to version ' . $version->version_number . ' successfully.',
-            'prompt'  => [
-                'id'          => $prompt->id,
-                'title'       => $prompt->title,
-                'prompt'      => $prompt->prompt,
+            'prompt' => [
+                'id' => $prompt->id,
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
                 'description' => $prompt->description,
             ],
         ]);
@@ -626,7 +628,7 @@ class PromptController extends Controller
 
         // Only allow the owner to compare versions
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {
@@ -642,12 +644,12 @@ class PromptController extends Controller
         // If no second version, compare with current
         if ($versionId2 === null) {
             $version2 = [
-                'id'             => $prompt->id,
+                'id' => $prompt->id,
                 'version_number' => 'current',
-                'title'          => $prompt->title,
-                'prompt'         => $prompt->prompt,
-                'description'    => $prompt->description,
-                'created_at'     => $prompt->updated_at->toIso8601String(),
+                'title' => $prompt->title,
+                'prompt' => $prompt->prompt,
+                'description' => $prompt->description,
+                'created_at' => $prompt->updated_at->toIso8601String(),
             ];
         } else {
             $version2Model = PromptVersion::where('id', $versionId2)
@@ -655,24 +657,24 @@ class PromptController extends Controller
                 ->firstOrFail();
 
             $version2 = [
-                'id'             => $version2Model->id,
+                'id' => $version2Model->id,
                 'version_number' => $version2Model->version_number,
-                'title'          => $version2Model->title,
-                'prompt'         => $version2Model->prompt,
-                'description'    => $version2Model->description,
-                'created_at'     => $version2Model->created_at->toIso8601String(),
+                'title' => $version2Model->title,
+                'prompt' => $version2Model->prompt,
+                'description' => $version2Model->description,
+                'created_at' => $version2Model->created_at->toIso8601String(),
                 'formatted_date' => $version2Model->formatted_date,
             ];
         }
 
         return response()->json([
             'version1' => [
-                'id'             => $version1->id,
+                'id' => $version1->id,
                 'version_number' => $version1->version_number,
-                'title'          => $version1->title,
-                'prompt'         => $version1->prompt,
-                'description'    => $version1->description,
-                'created_at'     => $version1->created_at->toIso8601String(),
+                'title' => $version1->title,
+                'prompt' => $version1->prompt,
+                'description' => $version1->description,
+                'created_at' => $version1->created_at->toIso8601String(),
                 'formatted_date' => $version1->formatted_date,
             ],
             'version2' => $version2,
@@ -688,7 +690,7 @@ class PromptController extends Controller
 
         // Only allow the owner to delete versions
         if (
-            ! $user ||
+            !$user ||
             $prompt->promptable_id !== $user->id ||
             $prompt->promptable_type !== $user->getMorphClass()
         ) {

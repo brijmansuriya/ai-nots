@@ -18,6 +18,8 @@ interface EditPromptProps {
         platforms: { id: number; name: string }[];
         variables?: { name: string }[];
         image_url?: string | null;
+        status?: string | number;
+        is_public?: number | boolean;
     };
 }
 
@@ -90,7 +92,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
     const abortRef = useRef<AbortController | null>(null);
     const platformsInitialized = useRef(false);
 
-    const { data, setData, post, processing, errors, clearErrors } = useForm({
+    const { data, setData, post, processing, errors, clearErrors, transform } = useForm({
         title: prompt.title || '',
         prompt: prompt.prompt || '',
         description: prompt.description || '',
@@ -100,8 +102,17 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
         dynamic_variables: prompt.variables?.map((v) => v.name) ?? [],
         image: null as File | null,
         remove_image: false as boolean,
-        status: String(prompt.status || '0'), // 0: pending, 1: active, 2: rejected
+        status: String(prompt.status || '0'),
+        _method: 'PUT', // Method spoofing for Laravel
     });
+
+    // Ensure _method is always preserved if data is transformed
+    useEffect(() => {
+        transform((data) => ({
+            ...data,
+            _method: 'PUT',
+        }));
+    }, [transform]);
 
     const [imagePreview, setImagePreview] = useState<string | null>(prompt.image_url || null);
     const [meta, setMeta] = useState<{
@@ -291,75 +302,30 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
         (e: React.FormEvent) => {
             e.preventDefault();
 
-            // Get current values from state and form data
-            const currentTags = tags.length > 0 ? tags : (data.tags || []);
-            const selectedPlatforms = meta.platforms.filter((p) => p.selected);
-            const currentPlatforms = selectedPlatforms.length > 0
-                ? selectedPlatforms.map((p) => p.id.toString())
-                : (data.platform || []);
+            // Final sync for any derived values before submission
+            const selectedPlatforms = meta.platforms.filter((p) => p.selected).map((p) => p.id.toString());
 
-            // Convert category_id to integer, ensure it's valid
-            let categoryId: number | string = '';
-            const categoryIdValue = data.category_id || prompt.category_id;
-            if (categoryIdValue && String(categoryIdValue).trim() !== '') {
-                const parsed = parseInt(String(categoryIdValue), 10);
-                if (!isNaN(parsed)) {
-                    categoryId = parsed;
-                }
-            }
-
-            // Get title and prompt from form data or prompt prop
-            const formTitle = (data.title || prompt.title || '').trim();
-            const formPrompt = (data.prompt || prompt.prompt || '').trim();
-            const formDescription = (data.description || prompt.description || '').trim();
-
-            // Prepare payload with current form data
-            const payload: any = {
-                _method: 'PUT', // Laravel method spoofing for POST request
-                title: formTitle,
-                prompt: formPrompt,
-                description: formDescription,
-                category_id: categoryId,
-                tags: Array.isArray(currentTags) ? currentTags : [],
-                platform: Array.isArray(currentPlatforms) ? currentPlatforms : [],
-                dynamic_variables: Array.isArray(data.dynamic_variables) ? data.dynamic_variables : [],
-                remove_image: data.image ? false : !imagePreview && prompt.image_url ? true : false,
-                status: data.status || prompt.status || '0', // Include status
-            };
-
-            // Add image file if exists
-            if (data.image) {
-                payload.image = data.image;
-            }
-
-            // Debug log before submission
-            console.log('Submitting form with payload:', {
-                title: payload.title,
-                prompt: payload.prompt,
-                category_id: payload.category_id,
-                tags: payload.tags,
-                platform: payload.platform,
-                hasImage: !!payload.image,
-            });
-
-            // Validate required fields before submission
-            if (!payload.title || !payload.prompt || !categoryId || payload.tags.length === 0 || payload.platform.length === 0) {
-                console.error('Validation failed: Missing required fields', payload);
-                // Don't return, let backend validation handle it and show errors
-            }
-
+            // We use POST with _method spoofing because real PUT with multipart/form-data
+            // is not parsed by PHP/Laravel.
             post(route('prompt.update', prompt.id), {
-                ...payload,
                 forceFormData: true,
                 preserveScroll: true,
+                onBefore: () => {
+                    // Update binary-friendly fields that might have changed
+                    if (data.image) {
+                        setData('remove_image', false);
+                    } else if (!imagePreview && prompt.image_url) {
+                        setData('remove_image', true);
+                    }
+                },
                 onSuccess: () => router.visit(route('home')),
                 onError: (errors) => {
                     console.error('Form update failed:', errors);
-                    console.error('Form data at error:', payload);
+                    console.error('Form data at error:', data);
                 },
             });
         },
-        [data, tags, meta.platforms, imagePreview, prompt, post, setData]
+        [data, imagePreview, prompt.id, prompt.image_url, post]
     );
 
     const categoryOptions = meta.categories.map((category) => ({
@@ -484,14 +450,22 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                         <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                             AI Prompt <span className="text-red-500">*</span>
                                         </label>
-                                        <textarea
-                                            id="prompt-textarea"
-                                            value={data.prompt}
-                                            onChange={(e) => onPromptChange(e.target.value)}
-                                            placeholder="Use [variable_name] inside your prompt..."
-                                            rows={8}
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
-                                        />
+                                        <div className="relative">
+                                            <textarea
+                                                id="prompt-textarea"
+                                                value={data.prompt}
+                                                onChange={(e) => onPromptChange(e.target.value)}
+                                                placeholder="Use [variable_name] inside your prompt..."
+                                                rows={8}
+                                                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 pb-8 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
+                                            />
+                                            <div className={`absolute bottom-3 right-3 text-[10px] font-medium transition-colors ${data.prompt.length > 10000
+                                                    ? 'text-red-500'
+                                                    : 'text-gray-400 dark:text-gray-500'
+                                                }`}>
+                                                {data.prompt.length.toLocaleString()} / 10,000
+                                            </div>
+                                        </div>
                                         {errors.prompt && <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>}
                                     </div>
 
@@ -536,7 +510,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                         availableTags={meta.tags}
                                         setTags={setTags}
                                         setData={(field: string, value: any) => {
-                                            setData(field, value);
+                                            setData(field as any, value);
                                             if (errors.tags && value && value.length > 0) {
                                                 clearErrors('tags');
                                             }
@@ -796,9 +770,9 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData, insert
                             onClick={() => {
                                 const updated = manualVars.filter((_: any, index: number) => index !== i);
                                 setManualVars(updated);
-                                setData('dynamic_variables', updated);
+                                (setData as any)('dynamic_variables', updated);
                                 const newPrompt = data.prompt.replaceAll(`[${v}]`, v);
-                                setData('prompt', newPrompt);
+                                (setData as any)('prompt', newPrompt);
                             }}
                             className="ml-1 text-white dark:text-gray-900 hover:text-gray-300 dark:hover:text-gray-700 transition-colors"
                             aria-label={`Remove ${v}`}
@@ -825,11 +799,11 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData, insert
                             if (!manualVars.includes(newVar)) {
                                 const updated = [...manualVars, newVar];
                                 setManualVars(updated);
-                                setData('dynamic_variables', updated);
+                                (setData as any)('dynamic_variables', updated);
                                 const newPrompt = data.prompt.includes(`[${newVar}]`)
                                     ? data.prompt
                                     : `${data.prompt} [${newVar}]`;
-                                setData('prompt', newPrompt);
+                                (setData as any)('prompt', newPrompt);
                             }
                             e.currentTarget.value = '';
                         }

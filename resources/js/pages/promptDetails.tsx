@@ -1,6 +1,6 @@
 import React from 'react';
 import { Prompt, Tags } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
 import {
     WhatsappShareButton,
@@ -14,8 +14,10 @@ import {
     LinkedinIcon,
     TelegramIcon
 } from 'react-share';
-import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon, Download, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Tag as TagIcon, Share2, ExternalLink, Maximize2, Image as ImageIcon, Download, ChevronDown, Code, Pencil, Trash2, History } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/ui/copy-button';
+import { EmbedModal } from '@/components/embed-modal';
 import { CopyLinkButton } from '@/components/ui/copy-link-button';
 import { SaveButton } from '@/components/ui/save-button';
 import { LikeButton } from '@/components/ui/like-button';
@@ -32,6 +34,16 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PromptDetailsProps {
     prompt: Prompt;
@@ -43,10 +55,14 @@ interface PromptDetailsProps {
 
 export default function PromptDetails({ prompt, recentPrompts = [], index = 0, shareUrl: propShareUrl, ogImageUrl }: PromptDetailsProps) {
     const [imageModalOpen, setImageModalOpen] = React.useState(false);
-    const { auth } = usePage().props;
+    const [embedModalOpen, setEmbedModalOpen] = React.useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+    const { auth } = usePage<any>().props;
     const user = auth?.user;
+    const isOwner = user && prompt.promptable_id === user.id;
     const shareUrl = propShareUrl || window.location.href;
     const shareTitle = `Check out this AI prompt: ${prompt.title}`;
+    const canEmbed = (prompt.is_public == 1 && prompt.status == 1) || isOwner;
     const isDark = document.documentElement.classList.contains('dark');
     const iconColor = isDark ? '#ffffff' : '#000000';
     const imageUrl = (prompt as any).image_url;
@@ -153,12 +169,12 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
             ogImage={ogImageUrl || (prompt as any).image_url}
             ogUrl={shareUrl}
         >
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-black dark:via-gray-950 dark:to-black transition-colors">
+            <div className="min-h-screen bg-background transition-colors">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                     {/* Back Button */}
                     <Link
                         href={route('home')}
-                        className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors group"
+                        className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors group"
                     >
                         <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                         <span>Back to Prompts</span>
@@ -169,29 +185,43 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                         {/* Left Column: Main Content */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Header Card */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
+                            <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
                                 <div className="flex items-start justify-between gap-4 mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-3">
-                                            <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-lg">
+                                            <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-primary-foreground font-bold text-lg shadow-md">
                                                 #{prompt.id}
                                             </span>
                                             <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
-                                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
                                                     {prompt.title}
                                                 </h1>
-                                                <CopyLinkButton url={shareUrl} variant="outline" size="sm" />
+                                                <div className="flex items-center gap-2">
+                                                    {canEmbed && (
+                                                        <Button
+                                                            onClick={() => setEmbedModalOpen(true)}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            title="Embed this prompt"
+                                                            className="gap-2"
+                                                        >
+                                                            <Code className="w-4 h-4" />
+                                                            <span>Embed</span>
+                                                        </Button>
+                                                    )}
+                                                    <CopyLinkButton url={shareUrl} variant="outline" size="sm" />
+                                                </div>
                                             </div>
                                         </div>
 
                                         {prompt.description && (
-                                            <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg mb-4">
+                                            <p className="text-muted-foreground text-base sm:text-lg mb-4">
                                                 {prompt.description}
                                             </p>
                                         )}
 
                                         {/* Meta Information */}
-                                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                                             <div className="flex items-center gap-2">
                                                 <Calendar className="w-4 h-4" />
                                                 <span>Created {new Date(prompt.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
@@ -208,36 +238,36 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                     {/* Share Buttons */}
                                     <div className="flex flex-col items-end gap-2">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <Share2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Share</span>
+                                            <Share2 className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-xs font-medium text-muted-foreground">Share</span>
                                         </div>
                                         <div className="flex gap-2">
                                             <WhatsappShareButton url={shareUrl} title={shareTitle}>
-                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                <div className="p-2 rounded-lg bg-secondary hover:bg-muted transition-all duration-200 hover:scale-110 border border-border">
                                                     <WhatsappIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </WhatsappShareButton>
 
                                             <TwitterShareButton url={shareUrl} title={shareTitle}>
-                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                <div className="p-2 rounded-lg bg-secondary hover:bg-muted transition-all duration-200 hover:scale-110 border border-border">
                                                     <TwitterIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </TwitterShareButton>
 
-                                            <FacebookShareButton url={shareUrl} quote={shareTitle}>
-                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                            <FacebookShareButton url={shareUrl} title={shareTitle}>
+                                                <div className="p-2 rounded-lg bg-secondary hover:bg-muted transition-all duration-200 hover:scale-110 border border-border">
                                                     <FacebookIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </FacebookShareButton>
 
                                             <LinkedinShareButton url={shareUrl} title={shareTitle}>
-                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                <div className="p-2 rounded-lg bg-secondary hover:bg-muted transition-all duration-200 hover:scale-110 border border-border">
                                                     <LinkedinIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </LinkedinShareButton>
 
                                             <TelegramShareButton url={shareUrl} title={shareTitle}>
-                                                <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-950 hover:bg-gray-200 dark:hover:bg-gray-900 transition-all duration-200 hover:scale-110 border border-gray-200 dark:border-gray-800">
+                                                <div className="p-2 rounded-lg bg-secondary hover:bg-muted transition-all duration-200 hover:scale-110 border border-border">
                                                     <TelegramIcon size={18} round bgStyle={{ fill: 'transparent' }} iconFillColor={iconColor} />
                                                 </div>
                                             </TelegramShareButton>
@@ -248,16 +278,16 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
 
                             {/* Image Card - Show if image exists */}
                             {imageUrl && (
-                                <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
-                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                        <ImageIcon className="w-5 h-5" />
+                                <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
+                                    <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                        <ImageIcon className="w-5 h-5 flex-shrink-0" />
                                         Output Image
                                     </h2>
                                     <div className="relative group">
                                         <img
                                             src={imageUrl}
                                             alt={prompt.title}
-                                            className="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-800 shadow-md"
+                                            className="w-full h-auto rounded-lg border border-border shadow-md"
                                         />
                                         <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
                                             <DialogTrigger asChild>
@@ -284,24 +314,24 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                             )}
 
                             {/* Prompt Content Card */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <span className="w-1 h-6 bg-gradient-to-b from-gray-900 dark:from-white to-black dark:to-gray-300 rounded-full"></span>
+                            <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
+                                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                                    <span className="w-1 h-6 bg-gradient-to-b from-primary to-primary/60 rounded-full"></span>
                                     Prompt Content
                                 </h2>
-                                <div className="bg-gray-50 dark:bg-gray-950 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
-                                    <pre className="text-sm sm:text-base text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
+                                <div className="bg-muted/30 rounded-xl p-6 border border-border transition-colors">
+                                    <pre className="text-sm sm:text-base text-foreground whitespace-pre-wrap font-mono leading-relaxed overflow-x-auto">
                                         {prompt.prompt || 'No prompt content available.'}
                                     </pre>
                                 </div>
                             </div>
 
                             {/* Additional Information Card */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Additional Information</h2>
+                            <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
+                                <h2 className="text-xl font-bold text-foreground mb-4">Additional Information</h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
-                                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Status</h3>
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Status</h3>
                                         {prompt.status !== undefined && prompt.status !== null ? (
                                             <span
                                                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${prompt.status === 1
@@ -317,10 +347,10 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                     </div>
 
                                     <div>
-                                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Created By</h3>
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Created By</h3>
                                         <div className="flex items-center gap-2">
-                                            <User className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                                            <span className="text-gray-700 dark:text-gray-300 text-sm">
+                                            <User className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-foreground text-sm">
                                                 {prompt.promptable?.username || prompt.promptable?.name || `User ID: ${prompt.promptable_id}`}
                                             </span>
                                         </div>
@@ -331,8 +361,8 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                             {/* Metrics Display */}
                             {(prompt.save_count !== undefined || prompt.copy_count !== undefined ||
                                 prompt.likes_count !== undefined || prompt.views_count !== undefined) && (
-                                    <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Metrics</h2>
+                                    <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
+                                        <h2 className="text-xl font-bold text-foreground mb-4">Metrics</h2>
                                         <MetricsDisplay
                                             saveCount={prompt.save_count ?? 0}
                                             copyCount={prompt.copy_count ?? 0}
@@ -344,72 +374,120 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                     </div>
                                 )}
 
-                            {/* Action Buttons */}
-                            <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-6 sm:p-8">
-                                <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                                    <CopyButton
-                                        value={prompt.prompt}
-                                        label="Copy Prompt"
-                                        copiedLabel="Copied!"
-                                        promptId={prompt.id}
-                                        className="px-6 py-3"
-                                    />
+                            {/* Action Buttons Section */}
+                            <div className="bg-card rounded-xl border border-border shadow-lg p-4 sm:p-6 transition-colors">
+                                <div className="flex flex-wrap items-center justify-between gap-4">
 
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 transition-all duration-200 shadow-lg hover:shadow-xl">
-                                                <Download className="w-4 h-4" />
-                                                <span>Export</span>
-                                                <ChevronDown className="w-4 h-4" />
+                                    {/* Left Side: Primary Actions & Utilities */}
+                                    <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                                        <CopyButton
+                                            value={prompt.prompt}
+                                            label="Copy Prompt"
+                                            copiedLabel="Copied!"
+                                            promptId={prompt.id}
+                                            className="flex-1 sm:flex-initial"
+                                            variant="primary"
+                                        />
+
+                                        {canEmbed && (
+                                            <button
+                                                onClick={() => setEmbedModalOpen(true)}
+                                                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white transition-all duration-200 shadow-md hover:shadow-lg border-none"
+                                            >
+                                                <Code className="w-4 h-4" />
+                                                <span className="hidden sm:inline">Embed Widget</span>
+                                                <span className="sm:hidden">Embed</span>
                                             </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 min-w-[180px]">
-                                            <DropdownMenuItem
-                                                onClick={exportToMarkdown}
-                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
-                                            >
-                                                <span className="text-sm">Export as Markdown (.md)</span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={exportToJSON}
-                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
-                                            >
-                                                <span className="text-sm">Export as JSON (.json)</span>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                onClick={exportToTXT}
-                                                className="cursor-pointer focus:bg-gray-100 dark:focus:bg-gray-800"
-                                            >
-                                                <span className="text-sm">Export as Text (.txt)</span>
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                        )}
+                                    </div>
 
-                                    {user && (
-                                        <>
-                                            <SaveButton
-                                                promptId={prompt.id}
-                                                isSaved={prompt.is_saved ?? false}
-                                                saveCount={prompt.save_count ?? 0}
-                                                className="px-6 py-3"
-                                            />
-                                            <LikeButton
-                                                promptId={prompt.id}
-                                                isLiked={prompt.is_liked ?? false}
-                                                likesCount={prompt.likes_count ?? 0}
-                                                className="px-6 py-3"
-                                            />
-                                        </>
-                                    )}
+                                    {/* Middle Section: Interactions & Owner Tools */}
+                                    <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:justify-center flex-1">
+                                        {isOwner && (
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    href={route('prompt.versions', prompt.id)}
+                                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-card border border-amber-500/50 dark:border-amber-400/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+                                                >
+                                                    <History className="w-4 h-4" />
+                                                    <span className="hidden md:inline">Versions</span>
+                                                </Link>
+                                                <Link
+                                                    href={route('prompt.edit', prompt.id)}
+                                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-md dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 dark:border dark:border-zinc-700"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                    <span className="hidden md:inline">Edit</span>
+                                                </Link>
+                                            </div>
+                                        )}
 
-                                    <Link
-                                        href={route('home')}
-                                        className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm bg-white dark:bg-gray-950 border-2 border-gray-900 dark:border-white text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200 shadow-md hover:shadow-lg"
-                                    >
-                                        <ArrowLeft className="w-5 h-5" />
-                                        Back to Home
-                                    </Link>
+                                        <div className="flex items-center gap-2 ml-auto lg:ml-0">
+                                            {user && (
+                                                <>
+                                                    <SaveButton
+                                                        promptId={prompt.id}
+                                                        isSaved={prompt.is_saved ?? false}
+                                                        saveCount={prompt.save_count ?? 0}
+                                                        className="h-9 px-3"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                    />
+                                                    <LikeButton
+                                                        promptId={prompt.id}
+                                                        isLiked={prompt.is_liked ?? false}
+                                                        likesCount={prompt.likes_count ?? 0}
+                                                        className="h-9 px-3"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                    />
+                                                </>
+                                            )}
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="h-9 inline-flex items-center justify-center gap-2 px-3 rounded-lg font-semibold text-sm bg-card border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200">
+                                                        <Download className="w-4 h-4" />
+                                                        <span className="hidden sm:inline">Export</span>
+                                                        <ChevronDown className="w-4 h-4" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="bg-card border border-border min-w-[180px]">
+                                                    <DropdownMenuItem onClick={exportToMarkdown} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
+                                                        <span className="text-sm">Export as Markdown (.md)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={exportToJSON} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
+                                                        <span className="text-sm">Export as JSON (.json)</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator className="bg-border" />
+                                                    <DropdownMenuItem onClick={exportToTXT} className="cursor-pointer focus:bg-accent focus:text-accent-foreground">
+                                                        <span className="text-sm">Export as Text (.txt)</span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side: Navigation & Delete */}
+                                    <div className="flex items-center gap-2 w-full lg:w-auto lg:justify-end">
+                                        <Link
+                                            href={route('home')}
+                                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm bg-card border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-200"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" />
+                                            <span>Back to Home</span>
+                                        </Link>
+
+                                        {isOwner && (
+                                            <button
+                                                onClick={() => setDeleteDialogOpen(true)}
+                                                className="inline-flex items-center justify-center p-2 rounded-lg bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all duration-200 border border-red-200 dark:border-red-900/30 shadow-sm"
+                                                title="Delete Prompt"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -485,6 +563,40 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                     </div>
                 </div>
             </div>
+
+            <EmbedModal
+                promptId={prompt.id}
+                open={embedModalOpen}
+                onOpenChange={setEmbedModalOpen}
+            />
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent className="bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-gray-900 dark:text-white">Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-500 dark:text-gray-400">
+                            This action cannot be undone. This will permanently delete your prompt
+                            <span className="font-semibold px-1 text-gray-900 dark:text-white">"{prompt.title}"</span>
+                            and remove all its data from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                router.delete(route('prompt.destroy', prompt.id), {
+                                    onSuccess: () => {
+                                        setDeleteDialogOpen(false);
+                                    }
+                                });
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white border-none"
+                        >
+                            Delete Prompt
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </WebLayout>
     );
 }

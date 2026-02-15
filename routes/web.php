@@ -8,9 +8,20 @@ use App\Http\Controllers\PromptMetricsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Api\Extension\AuthRedirectController;
+use App\Http\Controllers\EmbedController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'home'])->name('homedata'); // Ensure this route is correct
+
+// Embed routes (public, rate-limited)
+Route::middleware('throttle:60,1')->prefix('embed')->group(function () {
+    Route::get('prompt.js', [EmbedController::class, 'script'])->name('embed.script');
+    Route::get('prompt/{id}', [EmbedController::class, 'show'])->name('embed.show');
+    Route::get('prompt/{id}/json', [EmbedController::class, 'json'])->name('embed.json');
+    Route::get('prompt/{id}/md', [EmbedController::class, 'markdown'])->name('embed.markdown');
+    Route::get('prompt/{id}/txt', [EmbedController::class, 'text'])->name('embed.text');
+});
+
 Route::get('/extension-login', [AuthRedirectController::class, 'redirect'])->name('extension.login');
 
 Route::get('/about', [AboutController::class, 'index'])->name('about');

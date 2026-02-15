@@ -25,8 +25,8 @@ class StorePromptRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'max:255'],
-            'prompt' => ['required', 'string', 'max:1000'],
-            'description' => ['nullable', 'string', 'max:500'],
+            'prompt' => ['required', 'string', 'max:10000'],
+            'description' => ['nullable', 'string', 'max:1000'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'tags' => ['required', 'array', 'min:1'],
             'tags.*' => ['required', 'string', 'max:50'],

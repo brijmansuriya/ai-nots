@@ -19,7 +19,7 @@ class HomeController extends Controller
     public function index(Request $request)
     {
         // Get statistics for the home page
-        $totalPrompts = PromptNote::active()->count();
+        $totalPrompts = PromptNote::active()->where('is_public', '1')->count();
         $totalCategories = Category::count();
         $totalTags = Tag::count();
         $totalPlatforms = Platform::where('status', 'active')->count();
@@ -27,6 +27,7 @@ class HomeController extends Controller
         // Get popular/top prompts (most saved/liked)
         $popularPrompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active()
+            ->where('is_public', '1')
             ->orderByRaw('(COALESCE(save_count, 0) + COALESCE(likes_count, 0) + COALESCE(copy_count, 0)) DESC')
             ->limit(6)
             ->get();
@@ -34,6 +35,7 @@ class HomeController extends Controller
         // Get recent prompts
         $recentPrompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active()
+            ->where('is_public', '1')
             ->latest()
             ->limit(6)
             ->get();
@@ -41,7 +43,8 @@ class HomeController extends Controller
         // Get popular categories (categories with most active prompts)
         $popularCategories = Category::withCount([
             'promptNotes' => function ($query) {
-                $query->where('status', '1')
+                $query->active()
+                    ->where('is_public', '1')
                     ->whereNull('deleted_at');
             }
         ])
@@ -71,6 +74,7 @@ class HomeController extends Controller
 
         $prompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
             ->active() // Only show active/approved prompts
+            ->where('is_public', '1')
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")

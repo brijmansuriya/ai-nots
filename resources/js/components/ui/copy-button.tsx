@@ -98,10 +98,10 @@ export function CopyButton({
 
     const variantClasses =
         variant === 'ghost'
-            ? 'bg-transparent border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            ? 'bg-transparent border border-border text-foreground hover:bg-accent hover:text-accent-foreground'
             : isCopied
                 ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg'
-                : 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5';
+                : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 dark:border dark:border-zinc-700';
 
     return (
         <button

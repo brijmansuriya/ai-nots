@@ -24,3 +24,7 @@ php artisan migrate:reset
 
 
 Client secret : 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
+
+
+---------------------------------------------
+- buttom bar ma tocken counter and coloer persentege 100% red green yellow 

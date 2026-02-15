@@ -418,14 +418,22 @@ export default function AddPrompt() {
                     <label htmlFor="prompt-textarea" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                       AI Prompt <span className="text-red-500">*</span>
                     </label>
-                    <textarea
-                      id="prompt-textarea"
-                      value={data.prompt}
-                      onChange={(e) => handlePromptChange(e.target.value)}
-                      placeholder="Use [variable_name] inside your prompt..."
-                      rows={8}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
-                    />
+                    <div className="relative">
+                      <textarea
+                        id="prompt-textarea"
+                        value={data.prompt}
+                        onChange={(e) => handlePromptChange(e.target.value)}
+                        placeholder="Use [variable_name] inside your prompt..."
+                        rows={8}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 pb-8 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
+                      />
+                      <div className={`absolute bottom-3 right-3 text-[10px] font-medium transition-colors ${data.prompt.length > 10000
+                        ? 'text-red-500'
+                        : 'text-gray-400 dark:text-gray-500'
+                        }`}>
+                        {data.prompt.length.toLocaleString()} / 10,000
+                      </div>
+                    </div>
                     {errors.prompt && <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>}
                   </div>
 
@@ -467,7 +475,7 @@ export default function AddPrompt() {
                     availableTags={availableTags}
                     setTags={setTags}
                     setData={(field: string, value: any) => {
-                      setData(field, value);
+                      (setData as any)(field, value);
                       if (errors.tags && value && value.length > 0) {
                         clearErrors('tags');
                       }

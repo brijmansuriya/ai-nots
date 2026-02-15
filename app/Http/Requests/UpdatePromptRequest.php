@@ -13,11 +13,11 @@ class UpdatePromptRequest extends FormRequest
     public function authorize(): bool
     {
         $prompt = $this->route('prompt');
-        $user   = auth()->user();
+        $user = auth()->user();
 
         return $user &&
-        $prompt->promptable_id === $user->id &&
-        $prompt->promptable_type === $user->getMorphClass();
+            $prompt->promptable_id === $user->id &&
+            $prompt->promptable_type === $user->getMorphClass();
     }
 
     /**
@@ -46,7 +46,7 @@ class UpdatePromptRequest extends FormRequest
         }
 
         // Ensure platform is an array
-        if ($this->has('platform') && ! is_array($this->input('platform'))) {
+        if ($this->has('platform') && !is_array($this->input('platform'))) {
             $platform = $this->input('platform');
             if (is_string($platform)) {
                 $this->merge([
@@ -60,7 +60,7 @@ class UpdatePromptRequest extends FormRequest
         }
 
         // Ensure tags is an array
-        if ($this->has('tags') && ! is_array($this->input('tags'))) {
+        if ($this->has('tags') && !is_array($this->input('tags'))) {
             $tags = $this->input('tags');
             if (is_string($tags)) {
                 $this->merge([
@@ -74,7 +74,7 @@ class UpdatePromptRequest extends FormRequest
         }
 
         // Ensure dynamic_variables is an array if provided
-        if ($this->has('dynamic_variables') && ! is_array($this->input('dynamic_variables'))) {
+        if ($this->has('dynamic_variables') && !is_array($this->input('dynamic_variables'))) {
             $this->merge([
                 'dynamic_variables' => [],
             ]);
@@ -90,25 +90,25 @@ class UpdatePromptRequest extends FormRequest
     {
         // Debug: Log received data
         \Log::info('UpdatePromptRequest - Received data:', [
-            'all'            => $this->all(),
+            'all' => $this->all(),
             'has_file_image' => $this->hasFile('image'),
-            'input_keys'     => array_keys($this->all()),
+            'input_keys' => array_keys($this->all()),
         ]);
 
         return [
-            'title'               => ['required', 'string', 'max:255'],
-            'prompt'              => ['required', 'string', 'max:1000'],
-            'description'         => ['nullable', 'string', 'max:500'],
-            'category_id'         => ['required', 'integer', 'exists:categories,id'],
-            'tags'                => ['required', 'array', 'min:1'],
-            'tags.*'              => ['required', 'string', 'max:50'],
-            'platform'            => ['required', 'array', 'min:1'],
-            'platform.*'          => ['required', 'string', 'max:50'],
-            'dynamic_variables'   => ['nullable', 'array'],
+            'title' => ['required', 'string', 'max:255'],
+            'prompt' => ['required', 'string', 'max:10000'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'tags' => ['required', 'array', 'min:1'],
+            'tags.*' => ['required', 'string', 'max:50'],
+            'platform' => ['required', 'array', 'min:1'],
+            'platform.*' => ['required', 'string', 'max:50'],
+            'dynamic_variables' => ['nullable', 'array'],
             'dynamic_variables.*' => ['required', 'string', 'max:50'],
-            'image'               => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'],     // Max 2MB before conversion
-            'remove_image'        => ['nullable', 'boolean'],                                              // Flag to remove existing image
-            'status'              => ['nullable', 'string', 'in:' . implode(',', PromptStatus::values())], // Use enum values
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:2048'],     // Max 2MB before conversion
+            'remove_image' => ['nullable', 'boolean'],                                              // Flag to remove existing image
+            'status' => ['nullable', 'string', 'in:' . implode(',', PromptStatus::values())], // Use enum values
         ];
     }
 
@@ -120,13 +120,13 @@ class UpdatePromptRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'title.required'       => 'The title field is required.',
-            'prompt.required'      => 'The prompt field is required.',
+            'title.required' => 'The title field is required.',
+            'prompt.required' => 'The prompt field is required.',
             'category_id.required' => 'Please select a category.',
-            'tags.required'        => 'At least one tag is required.',
-            'tags.min'             => 'At least one tag is required.',
-            'platform.required'    => 'At least one platform is required.',
-            'platform.min'         => 'At least one platform is required.',
+            'tags.required' => 'At least one tag is required.',
+            'tags.min' => 'At least one tag is required.',
+            'platform.required' => 'At least one platform is required.',
+            'platform.min' => 'At least one platform is required.',
         ];
     }
 }

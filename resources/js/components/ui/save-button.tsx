@@ -70,11 +70,11 @@ export function SaveButton({
     const variantClasses =
         variant === 'ghost'
             ? isSaved
-                ? 'bg-blue-50 dark:bg-blue-950 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900'
-                : 'bg-transparent border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ? 'bg-blue-50 dark:bg-blue-950/50 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900'
+                : 'bg-transparent border border-border text-foreground hover:bg-accent hover:text-accent-foreground'
             : isSaved
                 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
-                : 'bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 hover:from-black hover:to-gray-900 dark:hover:from-gray-100 dark:hover:to-gray-300 shadow-lg hover:shadow-xl';
+                : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-100 dark:border dark:border-zinc-700';
 
     return (
         <button
