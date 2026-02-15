@@ -11,6 +11,7 @@ import { debug } from './utils/debug';
 import { ThemeProvider } from './context/ThemeContext';
 import { queryClient, chromeStoragePersister } from './lib/queryClient';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { getPlatformConfig } from './config/platforms';
 
 // Function to inject styles
 const injectStyles = () => {
@@ -34,38 +35,17 @@ injectStyles();
 // Store root reference to avoid recreating it
 let rootInstance: ReturnType<typeof createRoot> | null = null;
 
-// Check if we're on a ChatGPT page
-const isChatGPTPage = (): boolean => {
-    const hostname = window.location.hostname.toLowerCase();
-    const isChatGPT = hostname.includes('chat.openai.com') ||
-        hostname.includes('chatgpt.com') ||
-        hostname.includes('openai.com');
-
-    debug.info(`Checking if ChatGPT page: ${hostname} → ${isChatGPT}`, 'ContentScript');
-    return isChatGPT;
-};
-
-// Check if we're on a Gemini page
-const isGeminiPage = (): boolean => {
-    const hostname = window.location.hostname.toLowerCase();
-    const isGemini = hostname.includes('gemini.google.com');
-
-    debug.info(`Checking if Gemini page: ${hostname} → ${isGemini}`, 'ContentScript');
-    return isGemini;
-};
-
 // Function to render or re-render the component
 const renderComponent = (container: HTMLElement) => {
-    const isChatGPT = isChatGPTPage();
-    const isGemini = isGeminiPage();
+    const config = getPlatformConfig();
 
-    // For ChatGPT/Gemini pages, render AIBottomBar
+    // For supported AI pages, render AIBottomBar
     // For other pages, render nothing
     let ComponentToRender;
     let componentName;
 
-    if (isChatGPT || isGemini) {
-        componentName = 'AIBottomBar';
+    if (config) {
+        componentName = `AIBottomBar (${config.name})`;
         ComponentToRender = AIBottomBar;
     } else {
         // Don't render anything for non-AI pages
@@ -73,7 +53,7 @@ const renderComponent = (container: HTMLElement) => {
         ComponentToRender = () => null;
     }
 
-    debug.render(componentName, { isChatGPT, isGemini, hostname: window.location.hostname });
+    debug.render(componentName, { platform: config?.id, hostname: window.location.hostname });
 
     try {
         if (!rootInstance) {
@@ -111,18 +91,17 @@ const initExtension = () => {
     }
 
     try {
-        const isChatGPT = isChatGPTPage();
-        const isGemini = isGeminiPage();
+        const config = getPlatformConfig();
 
         // ONLY inject and initialize if we are on a supported AI page
-        if (!isChatGPT && !isGemini) {
+        if (!config) {
             debug.info('Not on a supported AI page, skipping initialization', 'ContentScript', {
                 hostname: window.location.hostname
             });
             return;
         }
 
-        console.log('🔵 [Content Script] Initializing extension for', isChatGPT ? 'ChatGPT' : 'Gemini');
+        console.log('🔵 [Content Script] Initializing extension for', config.name);
 
         // Inject styles only when we are sure we're on a supported page
         injectStyles();
@@ -154,10 +133,6 @@ const initExtension = () => {
 
             document.body.appendChild(container);
             console.log('🔵 [Content Script] Container appended to body', {
-                containerId: container.id,
-                bodyChildren: document.body.children.length,
-            });
-            debug.info('Container appended to body', 'ContentScript', {
                 containerId: container.id,
                 bodyChildren: document.body.children.length,
             });
@@ -260,7 +235,7 @@ if (chrome.runtime?.id) {
                 debug.error('Failed to toggle bottom bar', 'ContentScript', error);
                 sendResponse({ success: false, error: error });
             }
-            return true; // Keep the message channel open for async response
+            return true; // Keep the message channel channel open for async response
         }
 
         return false;
@@ -275,10 +250,9 @@ new MutationObserver(() => {
         lastUrl = currentUrl;
 
         // Only re-initialize if we are on a supported AI site or moving to one
-        const isChatGPT = isChatGPTPage();
-        const isGemini = isGeminiPage();
+        const config = getPlatformConfig();
 
-        if (isChatGPT || isGemini) {
+        if (config) {
             debug.info('URL changed, reinitializing extension', 'ContentScript', {
                 from: lastUrl,
                 to: currentUrl,

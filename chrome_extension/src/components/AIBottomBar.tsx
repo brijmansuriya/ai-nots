@@ -5,6 +5,7 @@ import { waitForPromptInput } from '../utils/waitForPromptInput';
 import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
 import { useTheme } from '../context/ThemeContext';
+import { getPlatformConfig } from '../config/platforms';
 import './AIBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -170,15 +171,25 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
 // ... insertTextIntoAI function remains the same ...
 function insertTextIntoAI(input: HTMLElement | null, text: string) {
+  const config = getPlatformConfig();
+
   // Always attempt to find the latest VISIBLE input if current is stale
-  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
-    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
-    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
-    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
-    Array.from(document.querySelectorAll('textarea'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
-  );
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (() => {
+    if (config) {
+      const specificInput = document.querySelector(config.selectors.input) as HTMLElement;
+      if (specificInput && specificInput.offsetParent !== null) return specificInput;
+    }
+
+    // Fallbacks
+    return (
+      document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+      document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+      Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+      Array.from(document.querySelectorAll('textarea'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+    );
+  })();
 
   if (!currentInput) {
     console.error('❌ [AIBottomBar] Could not find any valid prompt input.');
@@ -303,14 +314,23 @@ const FeedbackModal = ({ onClose, onSuccess }: { onClose: () => void; onSuccess:
 };
 
 function clearAIInput(input: HTMLElement | null) {
-  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
-    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
-    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
-    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
-    Array.from(document.querySelectorAll('textarea'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
-  );
+  const config = getPlatformConfig();
+
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (() => {
+    if (config) {
+      const specificInput = document.querySelector(config.selectors.input) as HTMLElement;
+      if (specificInput && specificInput.offsetParent !== null) return specificInput;
+    }
+
+    return (
+      document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+      document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+      Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+      Array.from(document.querySelectorAll('textarea'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+    );
+  })();
 
   if (!currentInput) return;
 
@@ -340,14 +360,23 @@ function clearAIInput(input: HTMLElement | null) {
 }
 
 function getAIInputValue(input: HTMLElement | null): string {
-  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (
-    document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
-    document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
-    Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
-    Array.from(document.querySelectorAll('textarea'))
-      .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
-  );
+  const config = getPlatformConfig();
+
+  const currentInput = (input && input.isConnected && (input as HTMLElement).offsetParent !== null) ? input : (() => {
+    if (config) {
+      const specificInput = document.querySelector(config.selectors.input) as HTMLElement;
+      if (specificInput && specificInput.offsetParent !== null) return specificInput;
+    }
+
+    return (
+      document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+      document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+      Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement ||
+      Array.from(document.querySelectorAll('textarea'))
+        .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement
+    );
+  })();
 
   if (!currentInput) return '';
 
@@ -417,31 +446,54 @@ const AIBottomBar = () => {
     const attachContainer = (foundInput: HTMLElement) => {
       if (!chrome.runtime?.id) return;
 
-      let parent: HTMLElement | null = foundInput.closest('form') as HTMLElement | null;
+      const config = getPlatformConfig();
+      let parent: HTMLElement | null = null;
 
-      // Better Gemini Detection & Positioning
-      const isGemini = window.location.hostname.includes('gemini.google.com');
-      if (isGemini) {
-        // Gemini's structure is complex and changes. 
-        // We want to be *outside* the specific input implementation but *inside* the main chat input wrapper.
-        // Based on user snippet, .input-area-container is the moving wrapper (absolute positioned).
-        // We should append INSIDE it so we move with it.
-        const inputAreaContainer = foundInput.closest('.input-area-container') as HTMLElement | null;
-        const inputArea = foundInput.closest('.input-area') as HTMLElement | null;
+      if (config) {
+        parent = foundInput.closest(config.selectors.container) as HTMLElement | null;
+        console.log(`[AIBottomBar] Found config for ${config.id}, parent from selector:`, parent);
 
-        if (inputAreaContainer) {
-          // Append INSIDE the main container so we move with the float
-          parent = inputAreaContainer;
-        } else if (inputArea) {
-          // Fallback: adjacent to input-area
-          parent = inputArea.parentElement;
-        } else {
-          // Fallback: Go up a few levels to find a block level wrapper
-          parent = foundInput.parentElement?.parentElement as HTMLElement | null;
+        // Specific fallback for Gemini as its container is highly dynamic
+        if (config.id === 'gemini' && !parent) {
+          parent = foundInput.closest('.input-area-container') as HTMLElement | null ||
+            foundInput.closest('.input-area')?.parentElement as HTMLElement | null;
+          console.log('[AIBottomBar] Gemini fallback parent:', parent);
         }
       }
 
-      if (!parent) parent = foundInput.parentElement;
+      if (!parent) {
+        parent = foundInput.closest('form') as HTMLElement | null || foundInput.parentElement;
+
+        // If the immediate parent is too small or is a form, try to go higher
+        if (parent && (parent.offsetHeight < 60 || parent.tagName === 'FORM') && parent.parentElement) {
+          console.log('[AIBottomBar] Parent seems too small or is a form, attempting to escape higher');
+
+          const config = getPlatformConfig();
+
+          // DeepSeek specific: Always escape form and composer boxes
+          if (config?.id === 'deepseek') {
+            const innerBox = parent.closest('form, [class*="composer"], [class*="input-container"]');
+            if (innerBox && innerBox.parentElement) {
+              console.log('[AIBottomBar] DeepSeek forcing escape to main area');
+              parent = (innerBox.parentElement.closest('main, [role="main"], #root > div') as HTMLElement) || innerBox.parentElement;
+            } else {
+              parent = parent.parentElement;
+            }
+          }
+          // Perplexity: Find centered wrapper
+          else if (config?.id === 'perplexity') {
+            const centeredWrapper = parent.closest('.max-w-3xl, .mx-auto, [class*="centering"]') as HTMLElement | null;
+            if (centeredWrapper) {
+              console.log('[AIBottomBar] Perplexity moving to centered wrapper');
+              parent = centeredWrapper;
+            } else {
+              parent = parent.parentElement;
+            }
+          } else {
+            parent = parent.parentElement;
+          }
+        }
+      }
       if (!parent) return;
 
       // Check if we already have a valid container attached to this parent
@@ -450,11 +502,12 @@ const AIBottomBar = () => {
       }
 
       let toolbarRoot = document.getElementById('ai-nots-toolbar-portal');
+      const portalClass = config?.selectors?.portalClass || 'chatgpt-portal';
 
       if (!toolbarRoot) {
         toolbarRoot = document.createElement('div');
         toolbarRoot.id = 'ai-nots-toolbar-portal';
-        toolbarRoot.className = `ainots-bottom-bar-root ${isGemini ? 'gemini-portal' : 'chatgpt-portal'}`;
+        toolbarRoot.className = `ainots-bottom-bar-root ${portalClass}`;
         parent.appendChild(toolbarRoot);
       } else {
         // Re-use logic
@@ -462,7 +515,7 @@ const AIBottomBar = () => {
         if (toolbarRoot.parentElement !== parent) {
           console.log('[AIBottomBar] Moving portal to new parent');
           parent.appendChild(toolbarRoot);
-          toolbarRoot.className = `ainots-bottom-bar-root ${isGemini ? 'gemini-portal' : 'chatgpt-portal'}`;
+          toolbarRoot.className = `ainots-bottom-bar-root ${portalClass}`;
         }
 
         // Ensure it's visible (in case it was hidden)
@@ -483,11 +536,21 @@ const AIBottomBar = () => {
     let inputCleanup = waitForPromptInput(attachContainer);
 
     const observer = new MutationObserver(() => {
-      // Use more robust detection for SPA navigations and Custom GPTs
-      const currentInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
-        document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement || // Gemini
-        document.querySelector('textarea#prompt-textarea') as HTMLElement ||
-        document.querySelector('textarea') as HTMLElement;
+      // Use registry selectors for detection
+      const config = getPlatformConfig();
+      let currentInput: HTMLElement | null = null;
+
+      if (config) {
+        currentInput = document.querySelector(config.selectors.input) as HTMLElement;
+      }
+
+      // Fallbacks
+      if (!currentInput) {
+        currentInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement ||
+          document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement ||
+          document.querySelector('textarea#prompt-textarea') as HTMLElement ||
+          document.querySelector('textarea') as HTMLElement;
+      }
 
       if (currentInput && inputRef.current !== currentInput) {
         inputCleanup = attachContainer(currentInput);

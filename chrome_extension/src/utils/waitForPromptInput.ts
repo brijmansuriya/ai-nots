@@ -1,45 +1,41 @@
-// Utility to wait for ChatGPT prompt input using MutationObserver
-// ChatGPT now uses contenteditable div instead of textarea
+// Utility to wait for AI prompt input using MutationObserver
 import { debug } from './debug';
+import { getPlatformConfig } from '../config/platforms';
 
 export function waitForPromptInput(callback: (input: HTMLElement) => void): (() => void) | undefined {
-  console.log('🔵 [waitForPromptInput] Starting to wait for ChatGPT prompt input...');
+  console.log('🔵 [waitForPromptInput] Starting to wait for prompt input...');
 
-  // ChatGPT uses contenteditable div, not textarea
   const findPromptInput = (): HTMLElement | null => {
-    // 1. Specific ChatGPT Selector (Contenteditable) - Most reliable
-    const chatgptInput = document.querySelector('#prompt-textarea[contenteditable="true"]') as HTMLElement;
-    if (chatgptInput && chatgptInput.offsetParent !== null) {
-      return chatgptInput;
+    const config = getPlatformConfig();
+
+    // 1. Try Platform Specific Selector from registry
+    if (config) {
+      const specificInput = document.querySelector(config.selectors.input) as HTMLElement;
+      if (specificInput && specificInput.offsetParent !== null) {
+        return specificInput;
+      }
     }
 
-    // 2. Specific Gemini Selector
-    const geminiInput = document.querySelector('div[contenteditable="true"][role="textbox"]') as HTMLElement;
-    if (geminiInput && geminiInput.offsetParent !== null) {
-      return geminiInput;
-    }
-
-    // 3. Primary fallback: any visible contenteditable div with role="textbox"
-    const input = Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
+    // 2. Fallback: any visible contenteditable div with role="textbox" (covers many AIs)
+    const textbox = Array.from(document.querySelectorAll('div[contenteditable="true"][role="textbox"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
-    if (input) {
-      return input;
+    if (textbox) {
+      return textbox;
     }
 
-    // 4. Fallback: any visible contenteditable div
-    const fallback = Array.from(document.querySelectorAll('div[contenteditable="true"]'))
+    // 3. Fallback: any visible contenteditable div
+    const contentEditable = Array.from(document.querySelectorAll('div[contenteditable="true"]'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLElement;
-    if (fallback) {
-      return fallback;
+    if (contentEditable) {
+      return contentEditable;
     }
 
-    // 5. Visible Textarea fallback
+    // 4. Visible Textarea fallback
     const textarea = Array.from(document.querySelectorAll('textarea'))
       .find(el => (el as HTMLElement).offsetParent !== null) as HTMLTextAreaElement;
 
     return textarea || null;
   };
-
 
   // Try to find immediately first
   const input = findPromptInput();
@@ -50,7 +46,7 @@ export function waitForPromptInput(callback: (input: HTMLElement) => void): (() 
       contenteditable: input.getAttribute('contenteditable'),
       role: input.getAttribute('role'),
     });
-    debug.info('Found ChatGPT prompt input immediately', 'waitForPromptInput', {
+    debug.info('Found prompt input immediately', 'waitForPromptInput', {
       tagName: input.tagName,
       contenteditable: input.getAttribute('contenteditable'),
       role: input.getAttribute('role'),
@@ -72,7 +68,7 @@ export function waitForPromptInput(callback: (input: HTMLElement) => void): (() 
         contenteditable: foundInput.getAttribute('contenteditable'),
         role: foundInput.getAttribute('role'),
       });
-      debug.info('Found ChatGPT prompt input via MutationObserver', 'waitForPromptInput', {
+      debug.info('Found prompt input via MutationObserver', 'waitForPromptInput', {
         tagName: foundInput.tagName,
         contenteditable: foundInput.getAttribute('contenteditable'),
         role: foundInput.getAttribute('role'),
@@ -94,4 +90,5 @@ export function waitForPromptInput(callback: (input: HTMLElement) => void): (() 
     observer.disconnect();
   };
 }
+
 
