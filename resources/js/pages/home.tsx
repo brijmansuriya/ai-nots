@@ -52,7 +52,7 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
       console.log('Already fetching, skipping...');
       return;
     }
-    
+
     // Check if page is valid using ref to avoid stale closure
     const currentLastPage = lastPageRef.current;
     if (page > currentLastPage && currentLastPage > 0 && page > 1) {
@@ -66,18 +66,18 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
 
     try {
       const response = await axios.get(route('homedata'), {
-        params: { 
-          page, 
+        params: {
+          page,
           search: searchQuery,
           category_id: categoryId || undefined,
         },
       });
-      
+
       console.log('Home API Response:', response.data);
-      
+
       const newPrompts = Array.isArray(response.data.data) ? response.data.data : [];
       console.log('Parsed prompts:', newPrompts.length, newPrompts);
-      
+
       setPrompts(prev => {
         const prevArray = Array.isArray(prev) ? prev : [];
         if (page === 1) {
@@ -85,7 +85,7 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
         }
         return [...prevArray, ...newPrompts.filter((p: Prompt) => !prevArray.some(existing => existing.id === p.id))];
       });
-      
+
       const newCurrentPage = response.data.current_page || 1;
       const newLastPage = response.data.last_page || 1;
       setCurrentPage(newCurrentPage);
@@ -157,9 +157,9 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
 
   return (
     <WebLayout title="Home">
-      <div className="min-h-screen bg-background">
+      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
         {/* Hero Section */}
-        <div className="bg-background border-b border-border shadow-sm">
+        <div className="bg-transparent border-b border-border shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
@@ -231,32 +231,30 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
                       setSelectedCategory(null);
                       setQuery(''); // Clear search when showing all
                     }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedCategory === null
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === null
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-card border border-border text-foreground hover:bg-accent'
-                    }`}
+                      }`}
                   >
                     All Categories
                   </button>
                   {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => {
-                      setSelectedCategory(category.id);
-                      setQuery(''); // Clear search when category is selected
-                    }}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedCategory === category.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border border-border text-foreground hover:bg-accent'
-                    }`}
-                  >
-                    {category.name}
-                    {(category.prompt_notes_count !== undefined || category.prompt_count !== undefined) && (
-                      <span className="ml-1 text-xs opacity-75">({category.prompt_notes_count ?? category.prompt_count ?? 0})</span>
-                    )}
-                  </button>
+                    <button
+                      key={category.id}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        setQuery(''); // Clear search when category is selected
+                      }}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === category.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card border border-border text-foreground hover:bg-accent'
+                        }`}
+                    >
+                      {category.name}
+                      {(category.prompt_notes_count !== undefined || category.prompt_count !== undefined) && (
+                        <span className="ml-1 text-xs opacity-75">({category.prompt_notes_count ?? category.prompt_count ?? 0})</span>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>

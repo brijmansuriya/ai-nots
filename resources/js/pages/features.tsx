@@ -211,7 +211,7 @@ export default function Features() {
 
     return (
         <WebLayout title="Features - AI Nots">
-            <div className="bg-background min-h-screen">
+            <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
                 {/* Hero Section */}
                 <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -244,7 +244,7 @@ export default function Features() {
                 </section>
 
                 {/* Quick Stats */}
-                <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-950 border-y border-gray-200 dark:border-gray-800">
+                <section className="py-12 px-4 sm:px-6 lg:px-8 bg-transparent border-y border-gray-200 dark:border-gray-800">
                     <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                             {[
@@ -281,7 +281,7 @@ export default function Features() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {features.map((feature, idx) => (
-                                <div key={idx} className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all group">
+                                <div key={idx} className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all group">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="p-2 bg-gray-900 dark:bg-white rounded-lg group-hover:scale-110 transition-transform">
                                             <feature.icon className="w-6 h-6 text-white dark:text-gray-900" />
@@ -324,7 +324,7 @@ export default function Features() {
                                 {howToUse.map((item, index) => (
                                     <div
                                         key={index}
-                                        className="flex flex-col sm:flex-row gap-6 items-start bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-lg transition-all"
+                                        className="flex flex-col sm:flex-row gap-6 items-start bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-lg transition-all"
                                     >
                                         <div className="flex-shrink-0">
                                             <div className="w-16 h-16 bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 rounded-lg flex items-center justify-center text-white dark:text-gray-900 font-bold text-2xl">
@@ -394,7 +394,7 @@ export default function Features() {
                             ))}
                         </div>
 
-                        <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-8 shadow-md">
+                        <div className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-8 shadow-md">
                             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Export Scopes</h3>
                             <p className="text-gray-600 dark:text-gray-400 mb-6">Choose what to export based on your needs</p>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -403,7 +403,7 @@ export default function Features() {
                                     { name: 'Prompts Only', desc: 'Just your prompts data', icon: FileText },
                                     { name: 'Folders Only', desc: 'Folder structure only', icon: FolderOpen }
                                 ].map((scope, idx) => (
-                                    <div key={idx} className="p-4 rounded-lg bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800">
+                                    <div key={idx} className="p-4 rounded-lg bg-gray-50/50 dark:bg-gray-950/50 backdrop-blur-sm border border-gray-200 dark:border-gray-800">
                                         <div className="p-2 bg-gray-900 dark:bg-white rounded-lg w-fit mb-3">
                                             <scope.icon className="w-5 h-5 text-white dark:text-gray-900" />
                                         </div>

@@ -20,7 +20,7 @@ import { Link } from '@inertiajs/react';
 export default function About() {
   return (
     <WebLayout title="About AI-Nots">
-      <div className="bg-background min-h-screen">
+      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -184,7 +184,7 @@ export default function About() {
                 ].map((item, index) => (
                   <div
                     key={index}
-                    className="flex flex-col sm:flex-row gap-6 items-start bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-lg transition-all"
+                    className="flex flex-col sm:flex-row gap-6 items-start bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-lg transition-all"
                   >
                     <div className="flex-shrink-0">
                       <div className="w-16 h-16 bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 rounded-lg flex items-center justify-center text-white dark:text-gray-900 font-bold text-2xl">
@@ -314,7 +314,7 @@ export default function About() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all group">
+    <div className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all group">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-gray-900 dark:bg-white rounded-lg group-hover:scale-110 transition-transform">
           <div className="text-white dark:text-gray-900">
@@ -332,7 +332,7 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
 
 function UseCaseCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all">
+    <div className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all">
       <div className="mb-4 text-gray-900 dark:text-white">
         {icon}
       </div>
