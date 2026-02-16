@@ -460,8 +460,8 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 pb-8 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
                                             />
                                             <div className={`absolute bottom-3 right-3 text-[10px] font-medium transition-colors ${data.prompt.length > 10000
-                                                    ? 'text-red-500'
-                                                    : 'text-gray-400 dark:text-gray-500'
+                                                ? 'text-red-500'
+                                                : 'text-gray-400 dark:text-gray-500'
                                                 }`}>
                                                 {data.prompt.length.toLocaleString()} / 10,000
                                             </div>
@@ -544,29 +544,13 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                         {errors.platform && <span className="mt-1 block text-sm text-red-500">{errors.platform}</span>}
                                     </div>
 
-                                    {/* Status Toggle */}
+                                    {/* Visibility toggle (is_public) */}
                                     <div>
                                         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Status
                                         </label>
                                         <div className="flex items-center gap-6">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="status"
-                                                    value="0"
-                                                    checked={data.status === '0'}
-                                                    onChange={(e) => {
-                                                        setData('status', e.target.value);
-                                                        if (errors.status) {
-                                                            clearErrors('status');
-                                                        }
-                                                    }}
-                                                    className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
-                                                />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">Pending</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
                                                 <input
                                                     type="radio"
                                                     name="status"
@@ -580,14 +564,14 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                                     }}
                                                     className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
                                                 />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Public</span>
                                             </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
                                                 <input
                                                     type="radio"
                                                     name="status"
-                                                    value="2"
-                                                    checked={data.status === '2'}
+                                                    value="0"
+                                                    checked={data.status === '0'}
                                                     onChange={(e) => {
                                                         setData('status', e.target.value);
                                                         if (errors.status) {
@@ -596,7 +580,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                                     }}
                                                     className="w-4 h-4 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 focus:ring-gray-900 dark:focus:ring-white"
                                                 />
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">Rejected</span>
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Private</span>
                                             </label>
                                         </div>
                                         {errors.status && <span className="mt-1 block text-sm text-red-500">{errors.status}</span>}

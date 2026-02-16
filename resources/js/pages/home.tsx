@@ -157,7 +157,7 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
 
   return (
     <WebLayout title="Home">
-      <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
+      <div className="bg-transparent dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
         {/* Hero Section */}
         <div className="bg-transparent border-b border-border shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
@@ -232,8 +232,8 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
                       setQuery(''); // Clear search when showing all
                     }}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === null
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border border-border text-foreground hover:bg-accent'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card border border-border text-foreground hover:bg-accent'
                       }`}
                   >
                     All Categories
@@ -246,8 +246,8 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
                         setQuery(''); // Clear search when category is selected
                       }}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === category.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-card border border-border text-foreground hover:bg-accent'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-card border border-border text-foreground hover:bg-accent'
                         }`}
                     >
                       {category.name}
@@ -276,21 +276,12 @@ export default function Home({ search = '', statistics, popular_prompts, recent_
         {/* Popular Prompts Section */}
         {!query && !selectedCategory && popularPrompts.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Popular Prompts</h2>
-              </div>
-              <Link
-                href={route('home')}
-                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-              >
-                View all
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Popular Prompts</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {popularPrompts.slice(0, 6).map((prompt, i) => (
+              {popularPrompts.slice(0, 3).map((prompt, i) => (
                 <NoteCard
                   key={prompt.id}
                   prompt={prompt}

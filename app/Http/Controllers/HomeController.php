@@ -29,7 +29,7 @@ class HomeController extends Controller
             ->active()
             ->where('is_public', '1')
             ->orderByRaw('(COALESCE(save_count, 0) + COALESCE(likes_count, 0) + COALESCE(copy_count, 0)) DESC')
-            ->limit(6)
+            ->limit(3)
             ->get();
 
         // Get recent prompts
