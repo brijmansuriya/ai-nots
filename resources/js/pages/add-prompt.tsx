@@ -3,8 +3,9 @@ import { useForm, router } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
 import WebLayout from '@/layouts/web-layout';
-import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Image as ImageIcon, Upload } from 'lucide-react';
+import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Image as ImageIcon, Upload, Zap } from 'lucide-react';
 import type { Tag, Platform } from '@/types';
+import { TokenCounter } from '@/components/token-counter';
 
 export default function AddPrompt() {
   const [tags, setTags] = useState<string[]>([]);
@@ -434,6 +435,13 @@ export default function AddPrompt() {
                         {data.prompt.length.toLocaleString()} / 10,000
                       </div>
                     </div>
+
+                    <TokenCounter
+                      text={data.prompt}
+                      selectedPlatformIds={data.platform}
+                      platforms={platforms}
+                    />
+
                     {errors.prompt && <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>}
                   </div>
 

@@ -3,9 +3,10 @@ import { useForm, router } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
 import WebLayout from '@/layouts/web-layout';
-import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Upload } from 'lucide-react';
+import { ArrowLeft, X, Clock, Tag as TagIcon, Layers, FileText, Upload, Zap } from 'lucide-react';
 import type { Tag, Platform } from '@/types';
 import { VersionHistory } from '@/components/version-history';
+import { TokenCounter } from '@/components/token-counter';
 
 interface EditPromptProps {
     prompt: {
@@ -466,6 +467,13 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                                 {data.prompt.length.toLocaleString()} / 10,000
                                             </div>
                                         </div>
+
+                                        <TokenCounter
+                                            text={data.prompt}
+                                            selectedPlatformIds={data.platform}
+                                            platforms={meta.platforms}
+                                        />
+
                                         {errors.prompt && <span className="mt-1 block text-sm text-red-500">{errors.prompt}</span>}
                                     </div>
 
