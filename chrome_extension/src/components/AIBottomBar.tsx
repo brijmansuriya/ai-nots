@@ -6,6 +6,7 @@ import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
 import { useTheme } from '../context/ThemeContext';
 import { getPlatformConfig } from '../config/platforms';
+import { TokenCounter } from './TokenCounter';
 import './AIBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -60,12 +61,20 @@ interface ToolbarUIProps {
   onClear: () => void;
   onFeedback: () => void;
   onAddPrompt: () => void;
+  inputValue: string;
+  platforms: any[];
 }
 
-const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear, onFeedback, onAddPrompt }: ToolbarUIProps) => {
+const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, user, onLogout, onClear, onFeedback, onAddPrompt, inputValue, platforms }: ToolbarUIProps) => {
   const [activeTool, setActiveTool] = useState<string>('generate');
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // Constants for token calculation (mirrored from TokenCounter)
+  const tokenCount = Math.ceil(inputValue.length / 4);
+  const activeLimit = 8000; // Simplified for the toolbar border
+  const progress = Math.min((tokenCount / activeLimit) * 100, 100);
+  const statusColor = tokenCount > activeLimit * 0.9 ? 'danger' : (tokenCount > activeLimit * 0.7 ? 'warning' : 'success');
 
   // Apply hidden class based on visibility settings
   const isHidden = !isVisible;
@@ -84,6 +93,7 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
   return (
     <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'} ${isHidden ? 'hidden' : ''}`}>
+      <div className={`ainots-border-progress ${statusColor}`} style={{ width: `${progress}%` }} />
       <div className="ainots-left-section">
         {isExpanded ? (
           <>
@@ -110,6 +120,13 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
             })}
 
             <div className="ainots-separator" />
+
+            <TokenCounter
+              text={inputValue}
+              compact={true}
+              platforms={platforms}
+              selectedPlatformIds={[]} // Will use default/heuristic matching
+            />
           </>
         ) : null}
 
@@ -398,6 +415,7 @@ const AIBottomBar = () => {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [popupConfig, setPopupConfig] = useState<{ mode: 'list' | 'create', text?: string } | null>(null);
+  const [currentInputValue, setCurrentInputValue] = useState('');
   const inputRef = useRef<HTMLElement | null>(null);
   // Use a ref to track the current container to avoid stale closures in the observer
   const containerRef = useRef<HTMLElement | null>(null);
@@ -406,6 +424,11 @@ const AIBottomBar = () => {
     queryKey: ['user'],
     queryFn: () => apiService.getCurrentUser(),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const { data: platforms = [] } = useQuery({
+    queryKey: ['platforms'],
+    queryFn: () => apiService.getPlatforms(),
   });
 
   useEffect(() => {
@@ -530,7 +553,18 @@ const AIBottomBar = () => {
 
       inputRef.current = foundInput;
 
-      return () => { };
+      // Update initial value
+      setCurrentInputValue(getAIInputValue(foundInput));
+
+      // Add input listener
+      const handleInput = () => {
+        setCurrentInputValue(getAIInputValue(foundInput));
+      };
+      foundInput.addEventListener('input', handleInput);
+
+      return () => {
+        foundInput.removeEventListener('input', handleInput);
+      };
     };
 
     let inputCleanup = waitForPromptInput(attachContainer);
@@ -599,6 +633,8 @@ const AIBottomBar = () => {
               setPopupConfig({ mode: 'create', text: val });
               setShowTemplates(true);
             }}
+            inputValue={currentInputValue}
+            platforms={platforms}
           />
         </div>,
         container

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
+import { TokenCounter } from './TokenCounter';
 import type { Category, Tag, Platform } from '../services/api';
 import './SavePromptModal.css';
 
@@ -190,6 +191,12 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
               maxLength={500}
               placeholder="Optional description"
               rows={3}
+            />
+
+            <TokenCounter
+              text={promptText}
+              selectedPlatformIds={selectedPlatforms}
+              platforms={platforms}
             />
           </div>
 

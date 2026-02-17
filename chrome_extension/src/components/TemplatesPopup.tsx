@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
+import { TokenCounter } from './TokenCounter';
 
 
 import './TemplatesPopup.css';
@@ -126,6 +127,11 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
         queryKey: ['folders'],
         queryFn: () => apiService.getFolders(),
         enabled: isAuthenticated,
+    });
+
+    const { data: platforms = [] } = useQuery({
+        queryKey: ['platforms'],
+        queryFn: () => apiService.getPlatforms(),
     });
 
 
@@ -1125,6 +1131,12 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                                 <div className="m-field">
                                     <label>Prompt</label>
                                     <textarea required value={formData.prompt} onChange={e => setFormData({ ...formData, prompt: e.target.value })} placeholder="AI instructions go here..." />
+
+                                    <TokenCounter
+                                        text={formData.prompt}
+                                        selectedPlatformIds={formData.platform}
+                                        platforms={platforms}
+                                    />
                                 </div>
                                 <div className="m-field">
                                     <label>Category</label>

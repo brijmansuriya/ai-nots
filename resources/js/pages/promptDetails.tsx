@@ -332,18 +332,40 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
                                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Status</h3>
-                                        {prompt.status !== undefined && prompt.status !== null ? (
-                                            <span
-                                                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${prompt.status === 1
+                                        {(() => {
+                                            const s = (prompt as any).status;
+                                            const v = s === 1 || s === '1' ? 'Active' : s === 0 || s === '0' ? 'Pending' : s === 2 || s === '2' ? 'Rejected' : 'Unknown';
+                                            const cls =
+                                                v === 'Active'
                                                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                                    }`}
-                                            >
-                                                {prompt.status === 1 ? 'Active' : 'Inactive'}
-                                            </span>
-                                        ) : (
-                                            <span className="text-gray-500 dark:text-gray-400 text-sm">N/A</span>
-                                        )}
+                                                    : v === 'Pending'
+                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+                                            return s !== undefined && s !== null ? (
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls}`}>{v}</span>
+                                            ) : (
+                                                <span className="text-gray-500 dark:text-gray-400 text-sm">N/A</span>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Visibility</h3>
+                                        {(() => {
+                                            const p = (prompt as any).is_public;
+                                            const v = p === 1 || p === '1' ? 'Public' : p === 2 || p === '2' ? 'Unlisted' : 'Private';
+                                            const cls =
+                                                v === 'Public'
+                                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                                                    : v === 'Unlisted'
+                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                                    : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
+                                            return p !== undefined && p !== null ? (
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls}`}>{v}</span>
+                                            ) : (
+                                                <span className="text-gray-500 dark:text-gray-400 text-sm">N/A</span>
+                                            );
+                                        })()}
                                     </div>
 
                                     <div>
