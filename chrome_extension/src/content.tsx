@@ -30,10 +30,72 @@ const injectStyles = () => {
     debug.info('Styles injected', 'ContentScript');
 };
 
+const debounce = <T extends (...args: any[]) => void>(fn: T, wait: number) => {
+    let t: number | undefined;
+    return (...args: Parameters<T>) => {
+        if (t) window.clearTimeout(t);
+        t = window.setTimeout(() => fn(...args), wait);
+    };
+};
+
+const getEditableRoot = (el: Element | null): HTMLElement | null => {
+    if (!el) return null;
+    if ((el as HTMLElement).isContentEditable) {
+        return (el as HTMLElement).closest('[contenteditable="true"]') as HTMLElement || (el as HTMLElement);
+    }
+    return (el as HTMLElement);
+};
+
+const extractTextFromTarget = (target: EventTarget | null): string => {
+    const el = getEditableRoot(target as Element);
+    if (!el) return '';
+    if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+        return el.value || '';
+    }
+    if ((el as HTMLElement).getAttribute && (el as HTMLElement).getAttribute('contenteditable') === 'true') {
+        return (el as HTMLElement).innerText || '';
+    }
+    return '';
+};
+
+const fastTokenEstimate = (text: string): number => Math.ceil(text.length / 4);
+
+let lastPayloadHash = '';
+const sendInputUpdate = debounce((text: string) => {
+    if (!chrome.runtime?.id) return;
+    const tokens = fastTokenEstimate(text);
+    const hash = `${text.length}:${tokens}`;
+    if (hash === lastPayloadHash) return;
+    lastPayloadHash = hash;
+    chrome.runtime.sendMessage({
+        type: 'TEXT_INPUT_UPDATE',
+        text,
+        meta: { chars: text.length, tokens }
+    }).catch(() => {});
+}, 350);
+
+const setupGlobalInputListeners = () => {
+    const onInput = (e: Event) => {
+        const text = extractTextFromTarget(e.target);
+        sendInputUpdate(text);
+    };
+    const onPaste = (e: ClipboardEvent) => {
+        const text = extractTextFromTarget(e.target) || e.clipboardData?.getData('text') || '';
+        sendInputUpdate(text);
+    };
+    document.addEventListener('input', onInput, true);
+    document.addEventListener('paste', onPaste, true);
+
+    const mo = new MutationObserver(() => {});
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+};
+
 // Inject immediately
 injectStyles();
 // Store root reference to avoid recreating it
 let rootInstance: ReturnType<typeof createRoot> | null = null;
+
+setupGlobalInputListeners();
 
 // Function to render or re-render the component
 const renderComponent = (container: HTMLElement) => {
@@ -262,4 +324,3 @@ new MutationObserver(() => {
         }
     }
 }).observe(document, { subtree: true, childList: true });
-

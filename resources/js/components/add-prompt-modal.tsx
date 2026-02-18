@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/react';
 import axios from 'axios';
 import Select from 'react-select';
 import type { Tag, Platform } from '@/types';
+import { TokenCounter } from '@/components/token-counter';
 
 interface AddPromptModalProps {
   onClose: () => void;
@@ -200,6 +201,13 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
               {errors.prompt && (
                 <span className="block text-sm text-red-500">{errors.prompt}</span>
               )}
+              <div className="mt-2">
+                <TokenCounter
+                  text={data.prompt}
+                  selectedPlatformIds={data.platform}
+                  platforms={platforms}
+                />
+              </div>
             </div>
 
             {/* Dynamic Variables */}

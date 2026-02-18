@@ -74,27 +74,53 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   height: 52px;
   min-width: 60px;
-  overflow: hidden;
+  overflow: visible;
+  /* Changed from hidden to show progress bar on top */
+  position: relative;
 }
 
-.ainots-border-progress {
+.ainots-bottom-bar.collapsed {
+  width: 52px;
+  min-width: 52px;
+  padding: 4px;
+  border-radius: 50%;
+  justify-content: center;
+}
+
+.ainots-bottom-bar.collapsed .ainots-left-section {
+  gap: 0;
+}
+
+.ainots-bottom-bar.collapsed .ainots-right-section,
+.ainots-bottom-bar.collapsed .ainots-separator {
+  display: none;
+}
+
+.ainots-border-progress-container {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: -1px;
+  left: 20px;
+  right: 20px;
   height: 2px;
-  transition: width 0.3s ease, background-color 0.3s ease;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: none;
 }
 
-.ainots-border-progress.success {
+.ainots-border-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 999px;
+}
+
+.ainots-border-progress-fill.success {
   background-color: #10b981;
 }
 
-.ainots-border-progress.warning {
+.ainots-border-progress-fill.warning {
   background-color: #f59e0b;
 }
 
-.ainots-border-progress.danger {
+.ainots-border-progress-fill.danger {
   background-color: #ef4444;
 }
 

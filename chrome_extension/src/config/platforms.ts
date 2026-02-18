@@ -21,6 +21,26 @@ export const PLATFORMS: PlatformConfig[] = [
         }
     },
     {
+        id: 'gmail',
+        name: 'Gmail',
+        hostnames: ['mail.google.com'],
+        selectors: {
+            input: 'div[aria-label="Message Body"][contenteditable="true"], div[contenteditable="true"][role="textbox"]',
+            container: 'div[role="dialog"], form',
+            portalClass: 'gmail-portal'
+        }
+    },
+    {
+        id: 'notion',
+        name: 'Notion',
+        hostnames: ['notion.so'],
+        selectors: {
+            input: 'div[contenteditable="true"][role="textbox"], div[contenteditable="true"]',
+            container: '#notion-app, main, form',
+            portalClass: 'notion-portal'
+        }
+    },
+    {
         id: 'gemini',
         name: 'Gemini',
         hostnames: ['gemini.google.com'],

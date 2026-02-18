@@ -25,7 +25,7 @@ const Icons = {
     )
 };
 
-const PLATFORM_CONFIGS: Record<string, { limit: number; costPer1k: number }> = {
+export const PLATFORM_CONFIGS: Record<string, { limit: number; costPer1k: number }> = {
     'ChatGPT': { limit: 16385, costPer1k: 0.002 },
     'GPT-4 Turbo': { limit: 128000, costPer1k: 0.01 },
     'GPT-4': { limit: 8192, costPer1k: 0.03 },
@@ -43,7 +43,40 @@ const PLATFORM_CONFIGS: Record<string, { limit: number; costPer1k: number }> = {
     'Bing AI': { limit: 4000, costPer1k: 0 },
 };
 
-const DEFAULT_CONFIG = { limit: 8000, costPer1k: 0.002 };
+export const DEFAULT_CONFIG = { limit: 8000, costPer1k: 0.002 };
+
+/**
+ * Utility to find matching platform config based on platform name
+ */
+export const getPlatformMatch = (platformName: string) => {
+    const match = Object.keys(PLATFORM_CONFIGS).find(name =>
+        platformName.toLowerCase().includes(name.toLowerCase())
+    );
+    return match ? PLATFORM_CONFIGS[match] : DEFAULT_CONFIG;
+};
+
+/**
+ * Utility to get active limit from a list of platforms or selection
+ */
+export const getActiveLimit = (platforms: Platform[], selectedPlatformIds: (number | string)[] = []) => {
+    if (!selectedPlatformIds.length) {
+        // Try to guess from the current URL if no selection
+        const hostname = window.location.hostname.toLowerCase();
+        const match = Object.keys(PLATFORM_CONFIGS).find(name =>
+            hostname.includes(name.toLowerCase().replace(' ', ''))
+        );
+        if (match) return PLATFORM_CONFIGS[match].limit;
+        return DEFAULT_CONFIG.limit;
+    }
+
+    const limits = selectedPlatformIds.map(id => {
+        const platform = platforms.find(p => String(p.id) === String(id) || p.name === id);
+        if (!platform) return DEFAULT_CONFIG.limit;
+        return getPlatformMatch(platform.name).limit;
+    });
+
+    return Math.min(...limits);
+};
 
 export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatformIds = [], platforms = [], compact = false }) => {
     const charCount = text.length;
@@ -56,12 +89,7 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatfo
         return selectedPlatformIds.map(id => {
             const platform = platforms.find(p => String(p.id) === String(id) || p.name === id);
             if (!platform) return DEFAULT_CONFIG;
-
-            const match = Object.keys(PLATFORM_CONFIGS).find(name =>
-                platform.name.toLowerCase().includes(name.toLowerCase())
-            );
-
-            return match ? PLATFORM_CONFIGS[match] : DEFAULT_CONFIG;
+            return getPlatformMatch(platform.name);
         });
     }, [selectedPlatformIds, platforms]);
 

@@ -21,6 +21,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
 
         sendResponse({ status: 'received' });
+        return true;
     }
-    return true; // Keep channel open for async response
+    if (message.type === 'TEXT_INPUT_UPDATE') {
+        if (sender.tab && sender.tab.id) {
+            chrome.tabs.sendMessage(sender.tab.id, {
+                type: 'TEXT_INPUT_UPDATE',
+                text: message.text,
+                meta: message.meta || {}
+            }).catch(() => {});
+        }
+        sendResponse({ status: 'relayed' });
+        return true;
+    }
+    return true;
 });

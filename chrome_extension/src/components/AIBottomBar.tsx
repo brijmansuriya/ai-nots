@@ -6,7 +6,7 @@ import { apiService } from '../services/api';
 import TemplatesPopup from './TemplatesPopup';
 import { useTheme } from '../context/ThemeContext';
 import { getPlatformConfig } from '../config/platforms';
-import { TokenCounter } from './TokenCounter';
+import { TokenCounter, getActiveLimit } from './TokenCounter';
 import './AIBottomBar.css';
 
 // SVG Icons (Lucide style)
@@ -70,11 +70,18 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
   const [isExpanded, setIsExpanded] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Constants for token calculation (mirrored from TokenCounter)
-  const tokenCount = Math.ceil(inputValue.length / 4);
-  const activeLimit = 8000; // Simplified for the toolbar border
+  const tokenCount = Math.ceil((inputValue || '').length / 4);
+  const activeLimit = getActiveLimit(platforms);
   const progress = Math.min((tokenCount / activeLimit) * 100, 100);
-  const statusColor = tokenCount > activeLimit * 0.9 ? 'danger' : (tokenCount > activeLimit * 0.7 ? 'warning' : 'success');
+  const statusColor =
+    tokenCount > activeLimit * 0.9 || tokenCount > 4000
+      ? 'danger'
+      : tokenCount > activeLimit * 0.7 || tokenCount > 2000
+        ? 'warning'
+        : 'success';
+
+  // Better hue calculation for smooth transitions
+  const hue = Math.max(0, Math.min(120, 120 - (progress * 1.2)));
 
   // Apply hidden class based on visibility settings
   const isHidden = !isVisible;
@@ -93,7 +100,16 @@ const ToolbarUI = ({ onInsertText: _onInsertText, isVisible, onOpenTemplates, us
 
   return (
     <div className={`ainots-bottom-bar ${isExpanded ? '' : 'collapsed'} ${isHidden ? 'hidden' : ''}`}>
-      <div className={`ainots-border-progress ${statusColor}`} style={{ width: `${progress}%` }} />
+      <div className="ainots-border-progress-container">
+        <div
+          className={`ainots-border-progress-fill ${statusColor}`}
+          style={{
+            width: `${progress}%`,
+            backgroundColor: `hsl(${hue} 80% 45%)`,
+            minWidth: progress > 0 ? '4px' : '0'
+          }}
+        />
+      </div>
       <div className="ainots-left-section">
         {isExpanded ? (
           <>
@@ -456,6 +472,9 @@ const AIBottomBar = () => {
         queryClient.invalidateQueries({ queryKey: ['user'] });
         // Force refetch to be sure
         queryClient.refetchQueries({ queryKey: ['user'] });
+      } else if (message.type === 'TEXT_INPUT_UPDATE') {
+        const next = typeof message.text === 'string' ? message.text : '';
+        setCurrentInputValue(next);
       }
     };
 
@@ -551,20 +570,35 @@ const AIBottomBar = () => {
         containerRef.current = toolbarRoot;
       }
 
-      inputRef.current = foundInput;
+      // 4. Input listener logic - ALWAYS re-attach if input element changed
+      if (inputRef.current !== foundInput) {
+        console.log('[AIBottomBar] Attaching listeners to new input');
 
-      // Update initial value
-      setCurrentInputValue(getAIInputValue(foundInput));
+        // Remove old listener if it exists
+        if (inputRef.current) {
+          inputRef.current.removeEventListener('input', handleInputChange, true);
+        }
 
-      // Add input listener
-      const handleInput = () => {
+        inputRef.current = foundInput;
+
+        // Update initial value
         setCurrentInputValue(getAIInputValue(foundInput));
-      };
-      foundInput.addEventListener('input', handleInput);
+
+        // Add input listener with capture: true to be more robust
+        foundInput.addEventListener('input', handleInputChange, true);
+      }
 
       return () => {
-        foundInput.removeEventListener('input', handleInput);
+        if (foundInput) {
+          foundInput.removeEventListener('input', handleInputChange, true);
+        }
       };
+    };
+
+    // Define outside to keep reference stable
+    const handleInputChange = (e: Event) => {
+      const input = e.target as HTMLElement;
+      setCurrentInputValue(getAIInputValue(input));
     };
 
     let inputCleanup = waitForPromptInput(attachContainer);
