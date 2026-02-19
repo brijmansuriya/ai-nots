@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { router, usePage, Link } from '@inertiajs/react';
-import Header from '@/components/header';
+import Header from '@/components/Header';
 import NoteCard from '@/components/note-card';
 import WebLayout from '@/layouts/web-layout';
 import LoadMoreTrigger from '@/components/LoadMoreTrigger';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import Header from '@/components/header';
+import Header from '@/components/Header';
 import NoteCard from '@/components/note-card';
 import WebLayout from '@/layouts/web-layout';
 import LoadMoreTrigger from '@/components/LoadMoreTrigger';
@@ -70,7 +70,7 @@ export default function SavedPrompts() {
     <WebLayout title="Saved Prompts">
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-black transition-colors">
         <Header />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {/* Header */}
           <div className="mb-8">

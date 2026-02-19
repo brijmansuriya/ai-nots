@@ -442,7 +442,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
         const canDropFolder = draggedFolderId !== null && draggedFolderId !== folder.id && !isDescendant(folder.id, draggedFolderId, folders);
 
         return (
-            <div key={folder.id} className="select-none mb-1">
+            <div key={folder.id} className="select-none mb-1 group/folder">
                 <div
                     draggable={true}
                     onDragStart={(e) => {
@@ -730,8 +730,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 {isExpanded && folder.prompts && folder.prompts.length > 0 && (
                     <div className="mt-0.5 space-y-0.5 relative">
                         <div
-                            className="absolute left-0 top-0 bottom-2 w-px bg-border group-hover:bg-primary/30 transition-colors"
-                            style={{ left: `${level * 0.875 + 1.125}rem` }}
+                            className="absolute top-0 bottom-2 w-px bg-border group-hover/folder:bg-primary/40 transition-colors"
+                            style={{ left: `${level * 0.875 + 1}rem` }}
                         />
                         {folder.prompts.map((prompt) => (
                             <button
@@ -756,8 +756,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 {hasChildren && isExpanded && (
                     <div className="mt-0.5 relative">
                         <div
-                            className="absolute left-0 top-0 bottom-2 w-px bg-border group-hover:bg-primary/30 transition-colors"
-                            style={{ left: `${level * 0.875 + 1.125}rem` }}
+                            className="absolute top-0 bottom-2 w-px bg-border group-hover/folder:bg-primary/40 transition-colors"
+                            style={{ left: `${level * 0.875 + 1}rem` }}
                         />
                         {folder.children!.map(child => renderFolder(child, level + 1))}
                     </div>

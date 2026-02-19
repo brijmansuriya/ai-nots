@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head } from '@inertiajs/react';
-import Header from '@/components/header';
+import Header from '@/components/Header';
 import Footer from '@/components/footer';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { router, useForm } from '@inertiajs/react';
 import WebLayout from '@/layouts/web-layout';
-import Header from '@/components/header';
+import Header from '@/components/Header';
 import NoteCard from '@/components/note-card';
 import LoadMoreTrigger from '@/components/LoadMoreTrigger';
 import FolderTree from '@/components/folder-tree';
@@ -420,7 +420,7 @@ export default function Dashboard({ auth }: any) {
       <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
         {/* Main Content */}
         <main className="py-4 sm:py-6 md:py-8 lg:py-10 px-4 sm:px-6 md:px-8 lg:px-12">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-[1440px] mx-auto">
             {/* Header Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -496,9 +496,9 @@ export default function Dashboard({ auth }: any) {
                 {/* Tab Content */}
                 {/* Prompts Tab */}
                 <TabsContent value="prompts" className="mt-6">
-                  <div className="flex flex-col lg:flex-row gap-6">
+                  <div className="flex flex-col lg:flex-row gap-8">
                     {/* Folder Sidebar - Desktop */}
-                    <aside className="hidden lg:block w-72 flex-shrink-0">
+                    <aside className="hidden lg:block w-[320px] lg:w-[350px] flex-shrink-0">
                       <div className="bg-card border border-border rounded-xl p-4 sticky top-4 shadow-sm">
                         <FolderTree
                           selectedFolderId={selectedFolderId}
