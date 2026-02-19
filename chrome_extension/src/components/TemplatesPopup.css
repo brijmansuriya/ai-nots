@@ -1076,8 +1076,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 16px;
-    border-radius: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--foreground);
@@ -1138,32 +1138,28 @@
     font-weight: 500;
 }
 
-/* Postman-style Guide Lines */
+/* Postman-style Guide Lines - Continuous and refined */
 .folder-item-wrapper {
     position: relative;
-}
-
-.folder-item-wrapper::before {
-    content: '';
-    position: absolute;
-    left: calc(var(--level) * 16px + 20px);
-    top: 36px;
-    bottom: 0;
-    width: 1px;
-    background: var(--border);
-    opacity: 0.5;
-    display: none;
+    --indent-step: 14px;
+    --guide-left-offset: 19px;
 }
 
 .folder-item-wrapper.is-expanded>.folder-content-body::before {
     content: '';
     position: absolute;
-    left: calc(var(--level) * 16px + 20px);
-    top: -4px;
-    bottom: 12px;
+    left: calc(var(--level) * var(--indent-step) + var(--guide-left-offset));
+    top: 0;
+    bottom: 8px;
     width: 1px;
     background: var(--border);
-    opacity: 0.8;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.folder-item-wrapper.is-expanded>.folder-content-body::before {
+    opacity: 0.6;
+    background: var(--primary-muted);
 }
 
 .folder-content-body {
@@ -1261,8 +1257,8 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    padding: 10px 16px;
-    border-radius: 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--muted-foreground);
@@ -1367,7 +1363,7 @@
 .folder-item-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .expand-btn {
@@ -1389,7 +1385,7 @@
 }
 
 .expand-placeholder {
-    width: 20px;
+    width: 16px;
 }
 
 .folder-color-indicator {
@@ -1409,7 +1405,7 @@
     color: var(--muted-foreground);
     background: var(--secondary);
     padding: 2px 8px;
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 .folder-item.active .prompt-count {

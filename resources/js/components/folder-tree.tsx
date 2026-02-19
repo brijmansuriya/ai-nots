@@ -458,13 +458,13 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         // Cleanup is handled by global dragend handler
                     }}
                     className={cn(
-                        'group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
+                        'group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
                         isSelected && 'bg-primary/10 font-semibold border border-primary/30 shadow-sm',
                         isDraggedOver && (canDropFolder || draggedFolderId === null) && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-md',
                         isBeingDragged && 'opacity-50 cursor-grabbing',
                         !isBeingDragged && 'cursor-grab active:cursor-grabbing'
                     )}
-                    style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
+                    style={{ paddingLeft: `${level * 0.875 + 0.5}rem` }}
                     onDragEnter={handleDragEnter}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -728,7 +728,11 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
 
                 {/* Show prompts when folder is expanded */}
                 {isExpanded && folder.prompts && folder.prompts.length > 0 && (
-                    <div className="ml-8 mt-1 space-y-0.5">
+                    <div className="mt-0.5 space-y-0.5 relative">
+                        <div
+                            className="absolute left-0 top-0 bottom-2 w-px bg-border group-hover:bg-primary/30 transition-colors"
+                            style={{ left: `${level * 0.875 + 1.125}rem` }}
+                        />
                         {folder.prompts.map((prompt) => (
                             <button
                                 key={prompt.id}
@@ -736,8 +740,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                     e.stopPropagation();
                                     router.visit(`/prompt/${prompt.id}/edit`);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-accent/50 transition-colors text-left group/prompt"
-                                style={{ paddingLeft: `${(level + 1) * 1.25 + 0.5}rem` }}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/50 transition-colors text-left group/prompt"
+                                style={{ paddingLeft: `${(level + 1) * 0.875 + 0.5}rem` }}
                             >
                                 <FileText className="w-3.5 h-3.5 text-muted-foreground group-hover/prompt:text-primary flex-shrink-0" />
                                 <span className="text-xs text-muted-foreground group-hover/prompt:text-foreground truncate flex-1">
@@ -750,7 +754,11 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
 
                 {/* Show child folders when expanded */}
                 {hasChildren && isExpanded && (
-                    <div className="ml-2 mt-1">
+                    <div className="mt-0.5 relative">
+                        <div
+                            className="absolute left-0 top-0 bottom-2 w-px bg-border group-hover:bg-primary/30 transition-colors"
+                            style={{ left: `${level * 0.875 + 1.125}rem` }}
+                        />
                         {folder.children!.map(child => renderFolder(child, level + 1))}
                     </div>
                 )}
@@ -827,7 +835,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                     <button
                         onClick={() => onFolderSelect('all')}
                         className={cn(
-                            'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-accent/50 transition-all text-base font-medium',
+                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-sm font-medium',
                             selectedFolderId === 'all' && 'bg-primary/10 border border-primary/30 shadow-sm'
                         )}
                     >
@@ -999,7 +1007,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                     }
                                 }}
                                 className={cn(
-                                    'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-accent/50 transition-all text-base font-medium relative group/drop',
+                                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-sm font-medium relative group/drop',
                                     selectedFolderId === 'unfoldered' && 'bg-primary/10 border border-primary/30 shadow-sm',
                                     draggedOverFolderId === 'unfoldered' && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02]'
                                 )}

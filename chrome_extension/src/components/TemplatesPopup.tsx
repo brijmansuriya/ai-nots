@@ -552,7 +552,7 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                 <div key={folder.id} className={`folder-item-wrapper ${isExpanded ? 'is-expanded' : ''}`} style={{ '--level': level } as any}>
                     <div
                         className={`folder-item ${selectedFolderId === folder.id ? 'active' : ''}`}
-                        style={{ paddingLeft: `${level * 16 + 12}px` }}
+                        style={{ paddingLeft: `${level * 14 + 8}px` }}
                         onClick={() => {
                             if (selectedFolderId === folder.id) {
                                 // Toggle expansion if already selected
@@ -611,7 +611,7 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                                         <div
                                             key={p.id}
                                             className="inline-prompt-item"
-                                            style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+                                            style={{ paddingLeft: `${(level + 1) * 14 + 8}px` }}
                                         >
                                             <div className="inline-prompt-content" onClick={(e) => {
                                                 e.stopPropagation();
