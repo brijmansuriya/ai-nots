@@ -583,14 +583,14 @@ export default function Dashboard({ auth }: any) {
                                 <FolderOpen className="w-6 h-6 text-primary" />
                               </div>
                               <div>
-                                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+                                <h2 className="text-[32px] sm:text-4xl font-extrabold text-foreground mb-1 tracking-tight">
                                   {selectedFolderId === 'all' ? 'My Prompts' : selectedFolderId === 'unfoldered' ? 'Unfoldered Prompts' : selectedFolder ? (
                                     <span>{selectedFolder.name}</span>
                                   ) : 'My Prompts'}
                                 </h2>
                                 <div className="flex items-center gap-3">
-                                  <p className="text-sm text-muted-foreground">
-                                    <span className="font-semibold text-foreground">{prompts.length}</span> {prompts.length === 1 ? 'prompt' : 'prompts'}
+                                  <p className="text-[15px] text-muted-foreground">
+                                    <span className="font-bold text-foreground">{prompts.length}</span> {prompts.length === 1 ? 'prompt' : 'prompts'}
                                     {selectedFolderId !== 'all' && selectedFolderId !== 'unfoldered' && selectedFolder && ` in this folder`}
                                   </p>
                                   {prompts.length > 0 && (

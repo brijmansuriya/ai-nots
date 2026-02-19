@@ -458,7 +458,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                         // Cleanup is handled by global dragend handler
                     }}
                     className={cn(
-                        'group flex items-center gap-1.5 px-2 py-2 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
+                        'group flex items-center gap-1.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-accent/50 transition-all relative',
                         isSelected && 'bg-primary/10 font-semibold border border-primary/30 shadow-sm',
                         isDraggedOver && (canDropFolder || draggedFolderId === null) && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02] shadow-md',
                         isBeingDragged && 'opacity-50 cursor-grabbing',
@@ -636,8 +636,8 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                             isSelected ? "text-primary" : "text-muted-foreground"
                         )} />
                         <span className={cn(
-                            "text-sm flex-1 min-w-0 transition-colors truncate",
-                            isSelected ? "text-primary font-semibold" : "text-foreground font-medium"
+                            "text-base flex-1 min-w-0 transition-colors truncate",
+                            isSelected ? "text-primary font-bold" : "text-foreground font-bold"
                         )} title={folder.name}>
                             {folder.name}
                         </span>
@@ -744,7 +744,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 style={{ paddingLeft: `${(level + 1) * 0.875 + 0.5}rem` }}
                             >
                                 <FileText className="w-3.5 h-3.5 text-muted-foreground group-hover/prompt:text-primary flex-shrink-0" />
-                                <span className="text-xs text-muted-foreground group-hover/prompt:text-foreground truncate flex-1">
+                                <span className="text-[14px] text-muted-foreground group-hover/prompt:text-foreground font-medium truncate flex-1">
                                     {prompt.title}
                                 </span>
                             </button>
@@ -798,7 +798,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 {/* Quick Access Section */}
                 <div className="mb-6 space-y-2">
                     <div className="flex items-center justify-between px-2 mb-3">
-                        <span className="text-sm font-bold text-foreground uppercase tracking-wider">
+                        <span className="text-[12px] font-extrabold text-foreground uppercase tracking-[0.05em] opacity-80">
                             Quick Access
                         </span>
                         {folders.length > 0 && (
@@ -835,7 +835,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                     <button
                         onClick={() => onFolderSelect('all')}
                         className={cn(
-                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-sm font-medium',
+                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-base font-medium mb-0.5',
                             selectedFolderId === 'all' && 'bg-primary/10 border border-primary/30 shadow-sm'
                         )}
                     >
@@ -1007,7 +1007,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                     }
                                 }}
                                 className={cn(
-                                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-sm font-medium relative group/drop',
+                                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left hover:bg-accent/50 transition-all text-base font-medium relative group/drop',
                                     selectedFolderId === 'unfoldered' && 'bg-primary/10 border border-primary/30 shadow-sm',
                                     draggedOverFolderId === 'unfoldered' && 'bg-primary/10 ring-2 ring-primary/30 scale-[1.02]'
                                 )}
@@ -1018,7 +1018,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                                 )} />
                                 <span className={cn(
                                     "flex-1",
-                                    selectedFolderId === 'unfoldered' ? "text-primary font-semibold" : "text-foreground font-medium"
+                                    selectedFolderId === 'unfoldered' ? "text-primary font-bold" : "text-foreground font-bold"
                                 )}>
                                     Unfoldered
                                 </span>
@@ -1036,7 +1036,7 @@ function FolderTree({ selectedFolderId, onFolderSelect, onPromptMove, onFoldersR
                 {/* Folders Section */}
                 <div className="pt-4 border-t border-border">
                     <div className="flex items-center justify-between px-1 mb-3">
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">My Folders</span>
+                        <span className="text-[12px] font-extrabold text-foreground uppercase tracking-[0.05em] opacity-80">My Folders</span>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button
