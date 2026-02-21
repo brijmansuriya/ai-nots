@@ -102,27 +102,27 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
   const customStyles = {
     control: (provided: any) => ({
       ...provided,
-      backgroundColor: '', // Dark background
-      borderColor: 'rgba(255, 255, 255, 0.2)', // Light border
-      color: '#fff', // White text
+      backgroundColor: 'transparent',
+      borderColor: 'var(--border)', // Use border variable
+      color: 'var(--foreground)', // Use foreground text
       borderRadius: '0.5rem',
       padding: '0.25rem',
       boxShadow: 'none',
       '&:hover': {
-        borderColor: '#00FFFF', // AI Cyan hover
+        borderColor: 'var(--color-ai-cyan)', // AI Cyan hover
       },
     }),
     menu: (provided: any) => ({
       ...provided,
-      backgroundColor: 'rgba(0, 0, 0, 0.9)', // Dark dropdown menu
+      backgroundColor: 'var(--popover)', // Use popover color
       borderRadius: '0.5rem',
       overflow: 'hidden',
-      color: '#fff', // White text
+      color: 'var(--popover-foreground)', // Use popover text
     }),
     option: (provided: any, state: any) => ({
       ...provided,
-      backgroundColor: state.isFocused ? 'rgba(0, 255, 255, 0.3)' : 'transparent', // AI Cyan hover
-      color: '#fff', // White text
+      backgroundColor: state.isFocused ? 'var(--accent)' : 'transparent',
+      color: 'var(--accent-foreground)',
       padding: '0.5rem',
       cursor: 'pointer',
     }),
@@ -141,7 +141,7 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 p-4 sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -326,7 +326,7 @@ function InputField({
         placeholder={`Enter ${label.toLowerCase()}...`}
       />
       {error && <span className="block text-sm text-red-500">{error}</span>}
-      
+
     </>
   );
 }

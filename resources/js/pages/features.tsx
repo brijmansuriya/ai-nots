@@ -211,30 +211,30 @@ export default function Features() {
 
     return (
         <WebLayout title="Features - AI Nots">
-            <div className="bg-transparent dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black transition-colors min-h-screen">
+            <div className="bg-background text-foreground dark:bg-background transition-colors min-h-screen">
                 {/* Hero Section */}
                 <section className="relative overflow-hidden pt-20 pb-16 sm:pt-24 sm:pb-20">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="text-center">
                             <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold mb-6">
-                                <span className="bg-gradient-to-r from-gray-900 dark:from-white via-gray-800 dark:via-gray-200 to-black dark:to-gray-400 bg-clip-text text-transparent">
+                                <span className="bg-gradient-to-r from-foreground via-muted-foreground to-foreground bg-clip-text text-transparent">
                                     Features Showcase
                                 </span>
                             </h1>
-                            <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
+                            <p className="text-xl sm:text-2xl text-muted-foreground max-w-3xl mx-auto mb-8 leading-relaxed">
                                 Discover all the powerful features that help you organize, manage, and share your AI prompts efficiently
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                                 <Link
                                     href={route('register')}
-                                    className="inline-flex items-center gap-2 bg-gradient-to-r from-gray-900 dark:from-white to-black dark:to-gray-200 text-white dark:text-gray-900 font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
                                 >
                                     Get Started Free
                                     <ArrowRight className="w-5 h-5" />
                                 </Link>
                                 <Link
                                     href={route('dashboard')}
-                                    className="inline-flex items-center gap-2 bg-white dark:bg-gray-950 border-2 border-gray-900 dark:border-white text-gray-900 dark:text-white font-semibold px-8 py-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 transition-all duration-200"
+                                    className="inline-flex items-center gap-2 bg-background border-2 border-border text-foreground font-semibold px-8 py-3 rounded-lg hover:bg-accent hover:text-accent-foreground transition-all duration-200"
                                 >
                                     Go to Dashboard
                                 </Link>
@@ -244,7 +244,7 @@ export default function Features() {
                 </section>
 
                 {/* Quick Stats */}
-                <section className="py-12 px-4 sm:px-6 lg:px-8 bg-transparent border-y border-gray-200 dark:border-gray-800">
+                <section className="py-12 px-4 sm:px-6 lg:px-8 bg-transparent border-y border-border">
                     <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                             {[
@@ -281,7 +281,7 @@ export default function Features() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {features.map((feature, idx) => (
-                                <div key={idx} className="bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-md hover:shadow-xl transition-all group">
+                                <div key={idx} className="bg-card backdrop-blur-sm rounded-xl border border-border p-6 shadow-md hover:shadow-xl transition-all group">
                                     <div className="flex items-center gap-3 mb-4">
                                         <div className="p-2 bg-gray-900 dark:bg-white rounded-lg group-hover:scale-110 transition-transform">
                                             <feature.icon className="w-6 h-6 text-white dark:text-gray-900" />

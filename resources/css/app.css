@@ -77,6 +77,12 @@
     --color-ai-light: #2c5364;
     --color-ai-cyan: #00ddeb;
     --color-ai-coral: #ff6f61;
+
+    /* Functional Theme Variables */
+    --color-page-bg: var(--background);
+    --color-page-foreground: var(--foreground);
+    --color-brand-primary: var(--primary);
+    --color-brand-accent: var(--color-ai-cyan);
 }
 
 /* ==========================
@@ -183,19 +189,19 @@ body:not(.dark) {
     animation: gradientShift 15s ease infinite;
     background: linear-gradient(135deg, var(--color-ai-dark), var(--color-ai-mid), var(--color-ai-light));
     background-size: 300% 300%;
-    color: white;
+    color: var(--color-page-foreground);
     min-height: 100vh;
 }
 
 /* Dark mode background */
 body.dark {
-    background: #030712;
-    color: #f9fafb;
+    background: var(--background);
+    color: var(--foreground);
     min-height: 100vh;
 }
 
 html.dark {
-    background-color: #030712;
+    background-color: var(--background);
 }
 
 /* Modern Black & White Gradient Theme */
