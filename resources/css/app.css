@@ -20,7 +20,10 @@
 ========================== */
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -80,6 +83,7 @@
    Base Styles
 ========================== */
 @layer base {
+
     *,
     ::after,
     ::before,
@@ -204,9 +208,17 @@ body.dark .bg-gradient-to-br {
 }
 
 @keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 /* Hero Section Animation */
@@ -215,8 +227,15 @@ body.dark .bg-gradient-to-br {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Notes Section Animation */
@@ -225,8 +244,15 @@ body.dark .bg-gradient-to-br {
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(50px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Note Card Animation */
@@ -237,8 +263,15 @@ body.dark .bg-gradient-to-br {
 }
 
 @keyframes fadeInCard {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Smooth hover transitions */
@@ -258,8 +291,15 @@ body.dark .bg-gradient-to-br {
 }
 
 @keyframes fadeInModal {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ==========================
@@ -267,7 +307,8 @@ body.dark .bg-gradient-to-br {
 ========================== */
 .themed-scrollbar {
     /* Firefox */
-    scrollbar-color: #00f7ff #1a2a44; /* ai-cyan thumb, ai-dark track */
+    scrollbar-color: #00f7ff #1a2a44;
+    /* ai-cyan thumb, ai-dark track */
     scrollbar-width: thin;
 }
 
@@ -278,17 +319,20 @@ body.dark .bg-gradient-to-br {
 }
 
 .themed-scrollbar::-webkit-scrollbar-track {
-    background: rgba(26, 42, 68, 0.6); /* ai-dark/60 */
+    background: rgba(26, 42, 68, 0.6);
+    /* ai-dark/60 */
     border-radius: 4px;
 }
 
 .themed-scrollbar::-webkit-scrollbar-thumb {
-    background: #00f7ff; /* ai-cyan */
+    background: #00f7ff;
+    /* ai-cyan */
     border-radius: 4px;
 }
 
 .themed-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #00d4e6; /* Slightly darker ai-cyan for hover */
+    background: #00d4e6;
+    /* Slightly darker ai-cyan for hover */
 }
 
 .themed-scrollbar::-webkit-scrollbar-corner {
