@@ -49,18 +49,18 @@ class PromptController extends Controller
     public function store(StorePromptRequest $request)
     {
         $validated = $request->validated();
-        $admin     = auth()->guard('admin')->user();
+        $admin = auth()->guard('admin')->user();
 
         $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
 
         // Set promptable_type to 'admin' for templates
         $promptData['promptable_type'] = 'admin';
-        $promptData['promptable_id']   = $admin->id;
-        $promptData['status']          = $request->input('status', PromptStatus::PENDING->value); // Default to pending if not provided
-        $promptNote                    = PromptNote::create($promptData);
+        $promptData['promptable_id'] = $admin->id;
+        $promptData['status'] = $request->input('status', PromptStatus::PENDING->value); // Default to pending if not provided
+        $promptNote = PromptNote::create($promptData);
 
         // Handle tags - support both existing tags (by name or id) and create new ones
-        $tags   = $validated['tags'];
+        $tags = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
@@ -81,9 +81,9 @@ class PromptController extends Controller
                 $tagIds[] = $existingTag->id;
             } else {
                 // Create new tag if it doesn't exist
-                $slug         = \Str::slug($tag);
+                $slug = \Str::slug($tag);
                 $originalSlug = $slug;
-                $counter      = 1;
+                $counter = 1;
 
                 // Check if the slug already exists and append a number if it does
                 while (Tag::where('slug', $slug)->exists()) {
@@ -92,11 +92,11 @@ class PromptController extends Controller
                 }
 
                 $createdTag = Tag::create([
-                    'name'            => $tag,
-                    'slug'            => $slug,
+                    'name' => $tag,
+                    'slug' => $slug,
                     'created_by_type' => $admin->getMorphClass(),
-                    'created_by_id'   => $admin->id,
-                    'status'          => Tag::STATUS_ACTIVE,
+                    'created_by_id' => $admin->id,
+                    'status' => PromptStatus::ACTIVE->value,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -107,7 +107,7 @@ class PromptController extends Controller
         $promptNote->platforms()->sync($validated['platform']);
 
         // Attach dynamic variables to the prompt variables
-        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
+        if ($request->has('dynamic_variables') && !empty($validated['dynamic_variables'])) {
             $variables = array_map(function ($variable) {
                 return ['name' => $variable];
             }, $validated['dynamic_variables']);
@@ -119,7 +119,7 @@ class PromptController extends Controller
         if ($request->hasFile('image')) {
             try {
                 $imageService = new ImageService();
-                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+                $webpPath = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
                 // Get the full path to the saved file
                 $fullPath = storage_path('app/public/' . $webpPath);
@@ -150,7 +150,7 @@ class PromptController extends Controller
         $prompt->load(['tags', 'platforms', 'category', 'media', 'variables']);
 
         // Add image URL to prompt data
-        $promptData              = $prompt->toArray();
+        $promptData = $prompt->toArray();
         $promptData['image_url'] = $prompt->image_url;
 
         return Inertia::render('admin/prompts/show', ['prompt' => $promptData]);
@@ -169,7 +169,7 @@ class PromptController extends Controller
         $prompt->load(['tags', 'platforms', 'variables', 'media']);
 
         // Add image URL to prompt data
-        $promptData              = $prompt->toArray();
+        $promptData = $prompt->toArray();
         $promptData['image_url'] = $prompt->image_url;
 
         // Load all tags, platforms, and categories for the form
@@ -196,7 +196,7 @@ class PromptController extends Controller
         }
 
         $validated = $request->validated();
-        $admin     = auth()->guard('admin')->user();
+        $admin = auth()->guard('admin')->user();
 
         $promptData = $request->only(['title', 'prompt', 'description', 'category_id', 'status']);
 
@@ -208,7 +208,7 @@ class PromptController extends Controller
         $prompt->update($promptData);
 
         // Handle tags - same logic as store()
-        $tags   = $validated['tags'];
+        $tags = $validated['tags'];
         $tagIds = [];
 
         foreach ($tags as $tag) {
@@ -225,9 +225,9 @@ class PromptController extends Controller
             if ($existingTag) {
                 $tagIds[] = $existingTag->id;
             } else {
-                $slug         = \Str::slug($tag);
+                $slug = \Str::slug($tag);
                 $originalSlug = $slug;
-                $counter      = 1;
+                $counter = 1;
 
                 while (Tag::where('slug', $slug)->exists()) {
                     $slug = "{$originalSlug}-{$counter}";
@@ -235,11 +235,11 @@ class PromptController extends Controller
                 }
 
                 $createdTag = Tag::create([
-                    'name'            => $tag,
-                    'slug'            => $slug,
+                    'name' => $tag,
+                    'slug' => $slug,
                     'created_by_type' => $admin->getMorphClass(),
-                    'created_by_id'   => $admin->id,
-                    'status'          => Tag::STATUS_ACTIVE,
+                    'created_by_id' => $admin->id,
+                    'status' => PromptStatus::ACTIVE->value,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -251,7 +251,7 @@ class PromptController extends Controller
 
         // Sync dynamic variables
         $prompt->variables()->delete();
-        if ($request->has('dynamic_variables') && ! empty($validated['dynamic_variables'])) {
+        if ($request->has('dynamic_variables') && !empty($validated['dynamic_variables'])) {
             $variables = array_map(function ($variable) {
                 return ['name' => $variable];
             }, $validated['dynamic_variables']);
@@ -271,7 +271,7 @@ class PromptController extends Controller
                 $prompt->clearMediaCollection('prompt_images');
 
                 $imageService = new ImageService();
-                $webpPath     = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
+                $webpPath = $imageService->convertToWebP($request->file('image'), 90, 1048576); // 1MB max, quality 90
 
                 // Get the full path to the saved file
                 $fullPath = storage_path('app/public/' . $webpPath);

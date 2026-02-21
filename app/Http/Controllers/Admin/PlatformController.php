@@ -34,6 +34,22 @@ class PlatformController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:platforms,slug',
+            'description' => 'nullable|string',
+            'provider_type' => 'required|string|in:' . implode(',', \App\Enums\ProviderType::values()),
+            'api_base_url' => 'nullable|url',
+            'is_active' => 'required|boolean',
+            'max_prompt_length' => 'required|integer|min:1',
+            'max_output_tokens' => 'required|integer|min:1',
+            'supports_system_prompt' => 'required|boolean',
+            'supports_temperature' => 'required|boolean',
+            'supports_top_p' => 'required|boolean',
+            'supports_streaming' => 'required|boolean',
+            'supports_frequency_penalty' => 'required|boolean',
+            'supports_presence_penalty' => 'required|boolean',
+            'variable_pattern' => 'required|string',
+            'default_temperature' => 'required|numeric|between:0,2',
+            'default_max_tokens' => 'required|integer|min:1',
             'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
@@ -46,7 +62,11 @@ class PlatformController extends Controller
      */
     public function edit(Platform $platform)
     {
-        return Inertia::render('admin/platforms/edit', ['platform' => $platform]);
+        $platform->load('models');
+        return Inertia::render('admin/platforms/edit', [
+            'platform' => $platform,
+            'providerTypes' => \App\Enums\ProviderType::cases(),
+        ]);
     }
 
     /**
@@ -56,6 +76,22 @@ class PlatformController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:platforms,slug,' . $platform->id,
+            'description' => 'nullable|string',
+            'provider_type' => 'required|string|in:' . implode(',', \App\Enums\ProviderType::values()),
+            'api_base_url' => 'nullable|url',
+            'is_active' => 'required|boolean',
+            'max_prompt_length' => 'required|integer|min:1',
+            'max_output_tokens' => 'required|integer|min:1',
+            'supports_system_prompt' => 'required|boolean',
+            'supports_temperature' => 'required|boolean',
+            'supports_top_p' => 'required|boolean',
+            'supports_streaming' => 'required|boolean',
+            'supports_frequency_penalty' => 'required|boolean',
+            'supports_presence_penalty' => 'required|boolean',
+            'variable_pattern' => 'required|string',
+            'default_temperature' => 'required|numeric|between:0,2',
+            'default_max_tokens' => 'required|integer|min:1',
             'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 

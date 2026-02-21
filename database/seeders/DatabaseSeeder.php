@@ -8,6 +8,8 @@ use App\Models\Tag;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
+use App\Enums\PromptStatus;
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -30,16 +32,17 @@ class DatabaseSeeder extends Seeder
         $this->call(TagSeeder::class);
 
         // Seed platforms
-        $this->call(PlatformsTableSeeder::class);
+        $this->call(PlatformSeeder::class);
+        $this->call(PlatformModelSeeder::class);
 
         // Get seeded tags for prompt notes
-        $tags = Tag::where('status', Tag::STATUS_ACTIVE)->get();
+        $tags = Tag::where('status', PromptStatus::ACTIVE)->get();
 
         // Get seeded platforms for prompt notes
-        $platforms = Platform::where('status', '1')->get();
+        $platforms = Platform::where('is_active', true)->get();
 
         // Get seeded categories for prompt notes
-        $categories = \App\Models\Category::where('status', \App\Models\Category::STATUS_ACTIVE)->get();
+        $categories = \App\Models\Category::where('status', PromptStatus::ACTIVE)->get();
 
         // Seed prompt notes and attach tags, platforms, and categories
         PromptNote::factory(20)->create()->each(function ($promptNote) use ($tags, $platforms, $categories) {

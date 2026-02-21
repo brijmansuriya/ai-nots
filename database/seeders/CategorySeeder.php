@@ -34,9 +34,9 @@ class CategorySeeder extends Seeder
         ];
 
         foreach ($categories as $categoryName) {
-            $slug         = Str::slug($categoryName);
+            $slug = Str::slug($categoryName);
             $originalSlug = $slug;
-            $counter      = 1;
+            $counter = 1;
 
             // Check if the slug already exists and append a number if it does
             while (Category::where('slug', $slug)->exists()) {
@@ -45,9 +45,9 @@ class CategorySeeder extends Seeder
             }
 
             Category::create([
-                'name'   => $categoryName,
-                'slug'   => $slug,
-                'status' => Category::STATUS_ACTIVE,
+                'name' => $categoryName,
+                'slug' => $slug,
+                'status' => \App\Enums\PromptStatus::ACTIVE,
             ]);
         }
     }

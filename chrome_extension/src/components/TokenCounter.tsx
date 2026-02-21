@@ -4,6 +4,8 @@ import './TokenCounter.css';
 interface Platform {
     id: number | string;
     name: string;
+    max_prompt_length?: number | null;
+    cost?: string | number | null;
 }
 
 interface TokenCounterProps {
@@ -25,54 +27,20 @@ const Icons = {
     )
 };
 
-export const PLATFORM_CONFIGS: Record<string, { limit: number; costPer1k: number }> = {
-    'ChatGPT': { limit: 16385, costPer1k: 0.002 },
-    'GPT-4 Turbo': { limit: 128000, costPer1k: 0.01 },
-    'GPT-4': { limit: 8192, costPer1k: 0.03 },
-    'GPT-3.5 Turbo': { limit: 16385, costPer1k: 0.002 },
-    'GPT-3.5': { limit: 16385, costPer1k: 0.002 },
-    'Claude 3 Opus': { limit: 200000, costPer1k: 0.015 },
-    'Claude 3 Sonnet': { limit: 200000, costPer1k: 0.003 },
-    'Claude 3 Haiku': { limit: 200000, costPer1k: 0.00025 },
-    'Claude 2': { limit: 100000, costPer1k: 0.008 },
-    'Gemini 1.5 Pro': { limit: 1000000, costPer1k: 0.0035 },
-    'Gemini 1.0 Pro': { limit: 30720, costPer1k: 0.0005 },
-    'Midjourney': { limit: 1000, costPer1k: 0 },
-    'DALL·E': { limit: 1000, costPer1k: 0.02 },
-    'Stable Diffusion': { limit: 1000, costPer1k: 0 },
-    'Bing AI': { limit: 4000, costPer1k: 0 },
-};
-
-export const DEFAULT_CONFIG = { limit: 8000, costPer1k: 0.002 };
-
-/**
- * Utility to find matching platform config based on platform name
- */
-export const getPlatformMatch = (platformName: string) => {
-    const match = Object.keys(PLATFORM_CONFIGS).find(name =>
-        platformName.toLowerCase().includes(name.toLowerCase())
-    );
-    return match ? PLATFORM_CONFIGS[match] : DEFAULT_CONFIG;
-};
+const DEFAULT_LIMIT = 8000;
+const DEFAULT_COST = 0.002;
 
 /**
  * Utility to get active limit from a list of platforms or selection
  */
 export const getActiveLimit = (platforms: Platform[], selectedPlatformIds: (number | string)[] = []) => {
     if (!selectedPlatformIds.length) {
-        // Try to guess from the current URL if no selection
-        const hostname = window.location.hostname.toLowerCase();
-        const match = Object.keys(PLATFORM_CONFIGS).find(name =>
-            hostname.includes(name.toLowerCase().replace(' ', ''))
-        );
-        if (match) return PLATFORM_CONFIGS[match].limit;
-        return DEFAULT_CONFIG.limit;
+        return DEFAULT_LIMIT;
     }
 
     const limits = selectedPlatformIds.map(id => {
         const platform = platforms.find(p => String(p.id) === String(id) || p.name === id);
-        if (!platform) return DEFAULT_CONFIG.limit;
-        return getPlatformMatch(platform.name).limit;
+        return platform?.max_prompt_length || DEFAULT_LIMIT;
     });
 
     return Math.min(...limits);
@@ -84,14 +52,35 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatfo
     const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
 
     const selectedConfigs = useMemo(() => {
-        if (!selectedPlatformIds.length) return [DEFAULT_CONFIG];
+        if (!selectedPlatformIds.length) return [{ limit: DEFAULT_LIMIT, costPer1k: DEFAULT_COST }];
 
         return selectedPlatformIds.map(id => {
             const platform = platforms.find(p => String(p.id) === String(id) || p.name === id);
-            if (!platform) return DEFAULT_CONFIG;
-            return getPlatformMatch(platform.name);
+            if (!platform) return { limit: DEFAULT_LIMIT, costPer1k: DEFAULT_COST };
+            return {
+                limit: platform.max_prompt_length || DEFAULT_LIMIT,
+                costPer1k: typeof platform.cost === 'string' ? parseFloat(platform.cost) : (platform.cost || DEFAULT_COST)
+            };
         });
     }, [selectedPlatformIds, platforms]);
+
+    const variableCount = useMemo(() => {
+        const defaultPatterns = [
+            '\\{\\{([^{}]+)\\}\\}',
+            '\\[([^\\[\\]]+)\\]',
+            '\\{([^{}]+)\\}'
+        ];
+        const allVariables = new Set<string>();
+        defaultPatterns.forEach(pattern => {
+            const regex = new RegExp(pattern, 'g');
+            const matches = [...text.matchAll(regex)];
+            matches.forEach(m => {
+                const val = m[1] || m[0];
+                if (val) allVariables.add(val.trim());
+            });
+        });
+        return allVariables.size;
+    }, [text]);
 
     const activeLimit = Math.min(...selectedConfigs.map(c => c.limit));
     const activeCostPer1k = Math.max(...selectedConfigs.map(c => c.costPer1k));
@@ -144,6 +133,12 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatfo
                     <Icons.DollarSign />
                     <span>${estimatedCost.toFixed(4)}</span>
                 </div>
+                {variableCount > 0 && (
+                    <div className="ainots-stat-badge variables" style={{ backgroundColor: 'rgba(99, 102, 241, 0.1)', color: 'rgb(99, 102, 241)' }}>
+                        <Icons.AlertCircle />
+                        <span>{variableCount} Variables</span>
+                    </div>
+                )}
             </div>
 
             <div className="ainots-progress-section">

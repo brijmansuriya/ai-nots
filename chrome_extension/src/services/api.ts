@@ -20,6 +20,10 @@ interface Tag {
 interface Platform {
   id: number;
   name: string;
+  slug: string;
+  variable_pattern: string | null;
+  max_prompt_length: number | null;
+  cost: number | string | null;
 }
 
 interface Folder {

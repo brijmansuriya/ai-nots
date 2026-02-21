@@ -139,9 +139,38 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
 
     // Helper to extract variables from prompt
     const extractVars = useCallback((text: string): string[] => {
-        const matches = [...text.matchAll(/\[([^\]]+)\]/g)];
-        return Array.from(new Set(matches.map((m) => m[1].trim())));
-    }, []);
+        // Collect all unique patterns from selected platforms
+        const selectedPlatforms = meta.platforms.filter(p => data.platform.includes(p.id.toString()));
+        const platformPatterns = selectedPlatforms
+            .map(p => p.variable_pattern)
+            .filter(Boolean) as string[];
+
+        // Default patterns to support: {{}}, [], {}
+        const defaultPatterns = [
+            '\\{\\{([^{}]+)\\}\\}',
+            '\\[([^\\[\\]]+)\\]',
+            '\\{([^{}]+)\\}'
+        ];
+
+        // Combine platform patterns with default patterns
+        const allPatterns = [...platformPatterns, ...defaultPatterns];
+        const allVariables = new Set<string>();
+
+        allPatterns.forEach(pattern => {
+            try {
+                const regex = new RegExp(pattern, 'g');
+                const matches = [...text.matchAll(regex)];
+                matches.forEach(m => {
+                    const val = m[1] || m[0];
+                    if (val) allVariables.add(val.trim());
+                });
+            } catch (e) {
+                console.error('Invalid regex pattern:', pattern, e);
+            }
+        });
+
+        return Array.from(allVariables);
+    }, [meta.platforms, data.platform]);
 
     // Load all meta in parallel (tags, categories, platforms)
     useEffect(() => {
@@ -244,13 +273,19 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                 p.id.toString() === id ? { ...p, selected: !p.selected } : p
             );
             setMeta((prev) => ({ ...prev, platforms: updated }));
-            const selectedPlatforms = updated.filter((p) => p.selected).map((p) => p.id.toString());
-            setData('platform', selectedPlatforms);
-            if (errors.platform && selectedPlatforms.length > 0) {
+            const selectedPlatformIds = updated.filter((p) => p.selected).map((p) => p.id.toString());
+            setData('platform', selectedPlatformIds);
+            if (errors.platform && selectedPlatformIds.length > 0) {
                 clearErrors('platform');
             }
+
+            // Note: extractVars depends on meta.platforms and data.platform, 
+            // but setData is async. We might need to manually trigger extraction.
+            const variables = extractVars(data.prompt);
+            setManualVars(variables);
+            setData('dynamic_variables', variables);
         },
-        [meta.platforms, setData, errors.platform, clearErrors]
+        [meta.platforms, setData, errors.platform, clearErrors, data.prompt, extractVars]
     );
 
     // Image upload handler
@@ -456,7 +491,7 @@ export default function EditPrompt({ prompt }: EditPromptProps) {
                                                 id="prompt-textarea"
                                                 value={data.prompt}
                                                 onChange={(e) => onPromptChange(e.target.value)}
-                                                placeholder="Use [variable_name] inside your prompt..."
+                                                placeholder="Use [variable], {variable}, or {{variable}} in your prompt..."
                                                 rows={8}
                                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 pb-8 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-900 dark:focus:border-white focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:outline-none resize-y font-mono"
                                             />
@@ -763,7 +798,12 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData, insert
                                 const updated = manualVars.filter((_: any, index: number) => index !== i);
                                 setManualVars(updated);
                                 (setData as any)('dynamic_variables', updated);
-                                const newPrompt = data.prompt.replaceAll(`[${v}]`, v);
+
+                                // Remove variable from prompt if it exists in common formats
+                                let newPrompt = data.prompt;
+                                [`[${v}]`, `{{${v}}}`, `{${v}}`].forEach(pattern => {
+                                    newPrompt = newPrompt.replaceAll(pattern, '');
+                                });
                                 (setData as any)('prompt', newPrompt);
                             }}
                             className="ml-1 text-white dark:text-gray-900 hover:text-gray-300 dark:hover:text-gray-700 transition-colors"
@@ -792,20 +832,26 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData, insert
                                 const updated = [...manualVars, newVar];
                                 setManualVars(updated);
                                 (setData as any)('dynamic_variables', updated);
-                                const newPrompt = data.prompt.includes(`[${newVar}]`)
-                                    ? data.prompt
-                                    : `${data.prompt} [${newVar}]`;
-                                (setData as any)('prompt', newPrompt);
+
+                                // Check if already in prompt in any format
+                                const exists = [`[${newVar}]`, `{{${newVar}}}`, `{${newVar}}`].some(p => data.prompt.includes(p));
+
+                                if (!exists) {
+                                    const newPrompt = data.prompt.trim()
+                                        ? `${data.prompt} [${newVar}]`
+                                        : `[${newVar}]`;
+                                    (setData as any)('prompt', newPrompt);
+                                }
                             }
                             e.currentTarget.value = '';
                         }
                     }}
-                    placeholder="Type variable name and press Enter"
-                    className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-[150px] text-sm"
+                    placeholder="Type and press Enter (Auto-adds to prompt)"
+                    className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none min-w-[200px] text-sm"
                 />
             </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Variables detected from your prompt (wrapped in [brackets]) or add manually
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Variables are detected automatically. Adding manually will append to the prompt.
             </p>
         </div>
     );

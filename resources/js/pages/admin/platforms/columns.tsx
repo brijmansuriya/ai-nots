@@ -20,6 +20,13 @@ export const columns: ColumnDef<any>[] = [
     header: "Name",
   },
   {
+    accessorKey: "provider_type",
+    header: "Provider",
+    cell: ({ row }) => (
+      <span className="capitalize">{row.getValue("provider_type")}</span>
+    ),
+  },
+  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {

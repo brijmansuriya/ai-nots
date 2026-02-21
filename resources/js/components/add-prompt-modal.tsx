@@ -48,8 +48,38 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
   }, []);
 
   const extractDynamicVariables = (promptText: string): string[] => {
-    const matches = [...promptText.matchAll(/\[([^\]]+)\]/g)];
-    return Array.from(new Set(matches.map((m) => m[1].trim())));
+    // Collect all unique patterns from selected platforms
+    const selectedPlatforms = platforms.filter(p => data.platform.includes(p.id.toString()));
+    const platformPatterns = selectedPlatforms
+      .map(p => p.variable_pattern)
+      .filter(Boolean) as string[];
+
+    // Default patterns to support: {{}}, [], {}
+    const defaultPatterns = [
+      '\\{\\{([^{}]+)\\}\\}',
+      '\\[([^\\[\\]]+)\\]',
+      '\\{([^{}]+)\\}'
+    ];
+
+    // Combine platform patterns with default patterns
+    const allPatterns = [...platformPatterns, ...defaultPatterns];
+    const allVariables = new Set<string>();
+
+    allPatterns.forEach(pattern => {
+      try {
+        const regex = new RegExp(pattern, 'g');
+        const matches = [...promptText.matchAll(regex)];
+        matches.forEach(m => {
+          // Use the first capturing group if it exists, otherwise the whole match
+          const val = m[1] || m[0];
+          if (val) allVariables.add(val.trim());
+        });
+      } catch (e) {
+        console.error('Invalid regex pattern:', pattern, e);
+      }
+    });
+
+    return Array.from(allVariables);
   };
 
   const handlePromptChange = (text: string) => {
@@ -80,7 +110,13 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
       p.id.toString() === id ? { ...p, selected: !p.selected } : p
     );
     setPlatforms(updated);
-    setData('platform', updated.filter((p) => p.selected).map((p) => p.id.toString()));
+    const selectedIds = updated.filter((p) => p.selected).map((p) => p.id.toString());
+    setData('platform', selectedIds);
+
+    // Re-extract variables when platform changes as pattern might change
+    const variables = extractDynamicVariables(data.prompt);
+    setManualVars(variables);
+    setData('dynamic_variables', variables);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -195,7 +231,7 @@ export default function AddPromptModal({ onClose, onSuccess }: AddPromptModalPro
                 id="prompt-textarea"
                 value={data.prompt}
                 onChange={(e) => handlePromptChange(e.target.value)}
-                placeholder="Use [variable_name] inside your prompt..."
+                placeholder="Use [variable], {variable}, or {{variable}} in your prompt..."
                 className="min-h-[120px] w-full rounded-lg border border-white/20 bg-transparent px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-ai-cyan focus:outline-none resize-y"
               />
               {errors.prompt && (
@@ -426,7 +462,12 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData }: any)
                 const updated = manualVars.filter((_: any, index: number) => index !== i);
                 setManualVars(updated);
                 setData('dynamic_variables', updated);
-                const newPrompt = data.prompt.replaceAll(`[${v}]`, v);
+
+                // Remove variable from prompt if it exists in common formats
+                let newPrompt = data.prompt;
+                [`[${v}]`, `{{${v}}}`, `{${v}}`].forEach(pattern => {
+                  newPrompt = newPrompt.replaceAll(pattern, '');
+                });
                 setData('prompt', newPrompt);
               }}
               className="ml-1 text-white hover:text-red-400 transition-colors"
@@ -447,18 +488,27 @@ function DynamicVariableInput({ manualVars, setManualVars, data, setData }: any)
                 const updated = [...manualVars, newVar];
                 setManualVars(updated);
                 setData('dynamic_variables', updated);
-                const newPrompt = data.prompt.includes(`[${newVar}]`)
-                  ? data.prompt
-                  : `${data.prompt} [${newVar}]`;
-                setData('prompt', newPrompt);
+
+                // Check if already in prompt in any format
+                const exists = [`[${newVar}]`, `{{${newVar}}}`, `{${newVar}}`].some(p => data.prompt.includes(p));
+
+                if (!exists) {
+                  const newPrompt = data.prompt.trim()
+                    ? `${data.prompt} [${newVar}]`
+                    : `[${newVar}]`;
+                  setData('prompt', newPrompt);
+                }
               }
               e.currentTarget.value = '';
             }
           }}
-          placeholder="Type and press Enter"
-          className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none min-w-[150px]"
+          placeholder="Type and press Enter (Auto-adds to prompt)"
+          className="flex-1 bg-transparent text-white placeholder:text-white/40 focus:outline-none min-w-[200px]"
         />
       </div>
+      <p className="mt-1 text-xs text-white/50">
+        Variables are detected automatically. Adding manually will append to the prompt.
+      </p>
     </div>
   );
 }

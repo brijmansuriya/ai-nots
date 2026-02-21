@@ -12,43 +12,26 @@ interface TokenCounterProps {
     platforms: Platform[];
 }
 
-const PLATFORM_CONFIGS: Record<string, { limit: number; costPer1k: number }> = {
-    'ChatGPT': { limit: 16385, costPer1k: 0.002 },
-    'GPT-4 Turbo': { limit: 128000, costPer1k: 0.01 },
-    'GPT-4': { limit: 8192, costPer1k: 0.03 },
-    'GPT-3.5 Turbo': { limit: 16385, costPer1k: 0.002 },
-    'GPT-3.5': { limit: 16385, costPer1k: 0.002 },
-    'Claude 3 Opus': { limit: 200000, costPer1k: 0.015 },
-    'Claude 3 Sonnet': { limit: 200000, costPer1k: 0.003 },
-    'Claude 3 Haiku': { limit: 200000, costPer1k: 0.00025 },
-    'Claude 2': { limit: 100000, costPer1k: 0.008 },
-    'Gemini 1.5 Pro': { limit: 1000000, costPer1k: 0.0035 },
-    'Gemini 1.0 Pro': { limit: 30720, costPer1k: 0.0005 },
-    'Midjourney': { limit: 1000, costPer1k: 0 }, // Often based on jobs, but we'll set a low "token" limit for prompts
-    'DALL·E': { limit: 1000, costPer1k: 0.02 }, // Cost per image, but we'll approximate
-    'Stable Diffusion': { limit: 1000, costPer1k: 0 },
-    'Bing AI': { limit: 4000, costPer1k: 0 },
-};
-
-const DEFAULT_CONFIG = { limit: 8000, costPer1k: 0.002 };
+const DEFAULT_LIMIT = 8000;
+const DEFAULT_COST = 0.002;
 
 export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatformIds, platforms }) => {
     const charCount = text.length;
     const tokenCount = Math.ceil(charCount / 4); // Basic estimation
 
     const selectedConfigs = useMemo(() => {
-        if (!selectedPlatformIds.length) return [DEFAULT_CONFIG];
+        if (!selectedPlatformIds || !selectedPlatformIds.length) {
+            return [{ limit: DEFAULT_LIMIT, costPer1k: DEFAULT_COST }];
+        }
 
         return selectedPlatformIds.map(id => {
-            const platform = platforms.find(p => String(p.id) === String(id));
-            if (!platform) return DEFAULT_CONFIG;
+            const platform = platforms.find(p => String(p.id) === String(id)) as any;
+            if (!platform) return { limit: DEFAULT_LIMIT, costPer1k: DEFAULT_COST };
 
-            // Try to match platform name with config
-            const match = Object.keys(PLATFORM_CONFIGS).find(name =>
-                platform.name.toLowerCase().includes(name.toLowerCase())
-            );
-
-            return match ? PLATFORM_CONFIGS[match] : DEFAULT_CONFIG;
+            return {
+                limit: platform.max_prompt_length || DEFAULT_LIMIT,
+                costPer1k: parseFloat(String(platform.cost)) || DEFAULT_COST
+            };
         });
     }, [selectedPlatformIds, platforms]);
 
@@ -67,6 +50,24 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatfo
 
     const textColorClass = colorClass.split(' ')[0];
     const bgColorClass = colorClass.split(' ')[1];
+
+    const variableCount = useMemo(() => {
+        const defaultPatterns = [
+            '\\{\\{([^{}]+)\\}\\}',
+            '\\[([^\\[\\]]+)\\]',
+            '\\{([^{}]+)\\}'
+        ];
+        const allVariables = new Set<string>();
+        defaultPatterns.forEach(pattern => {
+            const regex = new RegExp(pattern, 'g');
+            const matches = [...text.matchAll(regex)];
+            matches.forEach(m => {
+                const val = m[1] || m[0];
+                if (val) allVariables.add(val.trim());
+            });
+        });
+        return allVariables.size;
+    }, [text]);
 
     const warnings = useMemo(() => {
         const msgs = [];
@@ -105,6 +106,12 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ text, selectedPlatfo
                     <DollarSign className="w-3.5 h-3.5 text-green-500" />
                     <span>Est. Cost: ${estimatedCost.toFixed(4)}</span>
                 </div>
+                {variableCount > 0 && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                        <Info className="w-3.5 h-3.5" />
+                        <span>{variableCount} Variables</span>
+                    </div>
+                )}
             </div>
 
             <div className="space-y-1.5">

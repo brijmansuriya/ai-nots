@@ -57,6 +57,12 @@ export interface Tag {
 export interface Platform {
     id: number;
     name: string;
+    slug: string;
+    variable_pattern: string | null;
+    max_prompt_length: number | null;
+    cost: number | string | null;
+    provider_type: string | null;
+    feature_flags: Record<string, any> | null;
     selected?: boolean;
     [key: string]: unknown;
 }

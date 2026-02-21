@@ -172,14 +172,18 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
         category_id: string;
         tags: string[];
         platform: string[];
+        dynamic_variables: string[];
     }>({
         title: '',
         description: '',
         prompt: '',
         category_id: '',
         tags: ['ai', 'prompts'],
-        platform: ['ChatGPT'],
+        platform: [],
+        dynamic_variables: [] as string[],
     });
+
+    const [variableInput, setVariableInput] = useState('');
 
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [folderFormData, setFolderFormData] = useState<{ id?: number; name: string; parent_id: string; color: string }>({
@@ -283,6 +287,84 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
         return () => window.removeEventListener('click', h);
     }, []);
 
+    const extractVariables = (text: string, selectedPlatformNames: string[]) => {
+        const selectedPlatforms = platforms.filter(p => selectedPlatformNames.includes(p.name));
+        const platformPatterns = selectedPlatforms.map(p => p.variable_pattern).filter(Boolean) as string[];
+
+        const defaultPatterns = [
+            '\\{\\{([^{}]+)\\}\\}',
+            '\\[([^\\[\\]]+)\\]',
+            '\\{([^{}]+)\\}'
+        ];
+
+        const allPatterns = [...platformPatterns, ...defaultPatterns];
+        const allVars = new Set<string>();
+
+        allPatterns.forEach(pattern => {
+            try {
+                const regex = new RegExp(pattern, 'g');
+                const matches = [...text.matchAll(regex)];
+                matches.forEach(m => {
+                    const val = m[1] || m[0];
+                    if (val) allVars.add(val.trim());
+                });
+            } catch (e) {
+                console.error('Invalid regex pattern:', pattern, e);
+            }
+        });
+
+        return Array.from(allVars);
+    };
+
+    const handlePromptChange = (text: string) => {
+        const vars = extractVariables(text, formData.platform);
+        setFormData(prev => ({
+            ...prev,
+            prompt: text,
+            dynamic_variables: vars
+        }));
+    };
+
+    const handleVariableAdd = (varName: string) => {
+        const trimmed = varName.trim();
+        if (trimmed && !formData.dynamic_variables.includes(trimmed)) {
+            const updatedVars = [...formData.dynamic_variables, trimmed];
+
+            // Check if already in prompt in any format
+            const exists = [`[${trimmed}]`, `{{${trimmed}}}`, `{${trimmed}}`].some(p => formData.prompt.includes(p));
+
+            let newPrompt = formData.prompt;
+            if (!exists) {
+                newPrompt = formData.prompt.trim()
+                    ? `${formData.prompt} [${trimmed}]`
+                    : `[${trimmed}]`;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                prompt: newPrompt,
+                dynamic_variables: updatedVars
+            }));
+            setVariableInput('');
+        }
+    };
+
+    const handleVariableRemove = (varName: string) => {
+        const updatedVars = formData.dynamic_variables.filter(v => v !== varName);
+
+        // Remove from prompt if exists in common formats
+        let newPrompt = formData.prompt;
+        [`[${varName}]`, `{{${varName}}}`, `{${varName}}`].forEach(pattern => {
+            newPrompt = newPrompt.replaceAll(pattern, '');
+        });
+
+        setFormData(prev => ({
+            ...prev,
+            prompt: newPrompt,
+            dynamic_variables: updatedVars
+        }));
+    };
+
     const loading = templatesLoading || categoriesLoading || tagsLoading || (isAuthenticated && promptsLoading) || (isAuthenticated && foldersLoading) || userLoading;
 
     // Debounce search query
@@ -295,9 +377,13 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
 
     // Initialize form when creating or when initialPromptText changes
     useEffect(() => {
-        if ((initialMode === 'create' || isCreating) && categories.length > 0) {
-            const isGemini = window.location.hostname.includes('gemini.google.com');
-            const defaultPlatform = isGemini ? 'Gemini' : 'ChatGPT';
+        if ((isCreating || isEditing) && categories.length > 0 && platforms.length > 0) {
+            const hostname = window.location.hostname.toLowerCase();
+            const currentPlatform = (platforms as any[]).find(p =>
+                hostname.includes(p.slug.toLowerCase()) ||
+                p.name.toLowerCase().includes('chatgpt')
+            );
+            const defaultPlatformName = currentPlatform ? currentPlatform.name : (platforms[0]?.name || 'ChatGPT');
 
             if (initialPromptText && !formData.prompt) {
                 setFormData(prev => ({
@@ -305,19 +391,19 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                     prompt: initialPromptText,
                     title: initialPromptText.trim().slice(0, 50).replace(/\n/g, ' ') || 'Untitled Prompt',
                     category_id: prev.category_id || String(categories[0].id),
-                    platform: [defaultPlatform],
+                    platform: [defaultPlatformName],
                     tags: ['ai', 'prompts']
                 }));
-            } else if (!formData.category_id) {
+            } else if (!formData.category_id || formData.platform.length === 0) {
                 setFormData(prev => ({
                     ...prev,
-                    category_id: String(categories[0].id),
-                    platform: [defaultPlatform],
-                    tags: ['ai', 'prompts']
+                    category_id: prev.category_id || String(categories[0].id),
+                    platform: prev.platform.length > 0 ? prev.platform : [defaultPlatformName],
+                    tags: prev.tags.length > 0 ? prev.tags : ['ai', 'prompts']
                 }));
             }
         }
-    }, [isCreating, categories, initialPromptText, initialMode]);
+    }, [isCreating, categories, platforms, initialPromptText]);
 
     // Optimize Folder Search: Pre-calculate folder -> prompts map
     const folderPromptsMap = useMemo(() => {
@@ -440,8 +526,12 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
     };
 
     const resetForm = () => {
-        const isGemini = window.location.hostname.includes('gemini.google.com');
-        const defaultPlatform = isGemini ? 'Gemini' : 'ChatGPT';
+        const hostname = window.location.hostname.toLowerCase();
+        const currentPlatform = (platforms as any[]).find(p =>
+            hostname.includes(p.slug.toLowerCase()) ||
+            p.name.toLowerCase().includes('chatgpt')
+        );
+        const defaultPlatformName = currentPlatform ? currentPlatform.name : (platforms[0]?.name || 'ChatGPT');
 
         setFormData({
             title: '',
@@ -449,7 +539,8 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
             prompt: '',
             category_id: categories.length > 0 ? String(categories[0].id) : '',
             tags: ['ai', 'prompts'],
-            platform: [defaultPlatform],
+            platform: [defaultPlatformName],
+            dynamic_variables: [],
         });
         setIsCreating(false);
         setIsEditing(false);
@@ -469,6 +560,7 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                 category_id: Number(formData.category_id),
                 tags: formData.tags,
                 platform: formData.platform,
+                dynamic_variables: formData.dynamic_variables,
                 status: '1',
                 folder_id: null,
             };
@@ -1130,7 +1222,45 @@ const TemplatesPopup = ({ onSelect, onClose, initialMode = 'list', initialPrompt
                                 </div>
                                 <div className="m-field">
                                     <label>Prompt</label>
-                                    <textarea required value={formData.prompt} onChange={e => setFormData({ ...formData, prompt: e.target.value })} placeholder="AI instructions go here..." />
+                                    <textarea
+                                        required
+                                        value={formData.prompt}
+                                        onChange={e => handlePromptChange(e.target.value)}
+                                        placeholder="Use [variable], {variable} or {{variable}}..."
+                                    />
+
+                                    <div className="m-field-nested">
+                                        <label className="sub-label">Dynamic Variables</label>
+                                        <div className="variable-input-row">
+                                            <input
+                                                type="text"
+                                                value={variableInput}
+                                                onChange={e => setVariableInput(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleVariableAdd(variableInput);
+                                                    }
+                                                }}
+                                                placeholder="Add variable name..."
+                                            />
+                                            <button
+                                                type="button"
+                                                className="add-var-btn"
+                                                onClick={() => handleVariableAdd(variableInput)}
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                        <div className="variable-chips">
+                                            {formData.dynamic_variables.map(v => (
+                                                <span key={v} className="v-chip">
+                                                    {v}
+                                                    <button type="button" onClick={() => handleVariableRemove(v)}>×</button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
 
                                     <TokenCounter
                                         text={formData.prompt}

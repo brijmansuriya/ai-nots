@@ -15,9 +15,15 @@ class PlatformResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'   => $this->id,
+            'id' => $this->id,
             'name' => $this->name,
+            'slug' => $this->slug,
+            'variable_pattern' => $this->variable_pattern,
+            'max_prompt_length' => $this->max_prompt_length,
+            'cost' => $this->cost,
+            'provider_type' => $this->provider_type,
+            'feature_flags' => $this->feature_flags,
+            'status' => $this->status,
         ];
     }
 }
-

@@ -186,7 +186,7 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                         <div className="lg:col-span-2 space-y-6">
                             {/* Header Card */}
                             <div className="bg-card rounded-xl border border-border shadow-lg p-6 sm:p-8 transition-colors">
-                                <div className="flex items-start justify-between gap-4 mb-4">
+                                <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-6">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-3">
                                             <span className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary text-primary-foreground font-bold text-lg shadow-md">
@@ -236,7 +236,7 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                     </div>
 
                                     {/* Share Buttons */}
-                                    <div className="flex flex-col items-end gap-2">
+                                    <div className="flex flex-col items-start sm:items-end gap-2 w-full sm:w-auto pt-6 sm:pt-0 border-t sm:border-none border-border/50">
                                         <div className="flex items-center gap-2 mb-2">
                                             <Share2 className="w-4 h-4 text-muted-foreground" />
                                             <span className="text-xs font-medium text-muted-foreground">Share</span>
@@ -339,8 +339,8 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                                 v === 'Active'
                                                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                                                     : v === 'Pending'
-                                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+                                                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
                                             return s !== undefined && s !== null ? (
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls}`}>{v}</span>
                                             ) : (
@@ -358,8 +358,8 @@ ${prompt.updated_at && prompt.updated_at !== prompt.created_at ? `- Updated: ${n
                                                 v === 'Public'
                                                     ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                                                     : v === 'Unlisted'
-                                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                                                    : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
+                                                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                                        : 'bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
                                             return p !== undefined && p !== null ? (
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls}`}>{v}</span>
                                             ) : (

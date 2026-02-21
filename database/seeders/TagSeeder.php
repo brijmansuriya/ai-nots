@@ -23,10 +23,10 @@ class TagSeeder extends Seeder
         $admin = Admin::first();
 
         // If no admin exists, create one
-        if (! $admin) {
+        if (!$admin) {
             $admin = Admin::create([
-                'name'     => 'System Admin',
-                'email'    => 'admin@system.com',
+                'name' => 'System Admin',
+                'email' => 'admin@system.com',
                 'password' => 'password', // The 'hashed' cast in Admin model will automatically hash this
             ]);
         }
@@ -42,9 +42,9 @@ class TagSeeder extends Seeder
         ];
 
         foreach ($tags as $tagName) {
-            $slug         = Str::slug($tagName);
+            $slug = Str::slug($tagName);
             $originalSlug = $slug;
-            $counter      = 1;
+            $counter = 1;
 
             // Check if the slug already exists and append a number if it does
             while (Tag::where('slug', $slug)->exists()) {
@@ -53,11 +53,11 @@ class TagSeeder extends Seeder
             }
 
             Tag::create([
-                'name'            => $tagName,
-                'slug'            => $slug,
+                'name' => $tagName,
+                'slug' => $slug,
                 'created_by_type' => Admin::class,
-                'created_by_id'   => $admin->id,
-                'status'          => Tag::STATUS_ACTIVE,
+                'created_by_id' => $admin->id,
+                'status' => \App\Enums\PromptStatus::ACTIVE,
             ]);
         }
     }

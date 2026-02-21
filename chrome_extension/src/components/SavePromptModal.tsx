@@ -15,14 +15,17 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState<number>(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['ChatGPT']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [dynamicVariables, setDynamicVariables] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editablePrompt, setEditablePrompt] = useState(promptText);
   const [tagInput, setTagInput] = useState('');
+  const [variableInput, setVariableInput] = useState('');
 
   useEffect(() => {
     // Auto-generate title from prompt (first 50 chars)
@@ -51,12 +54,15 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
           setError('No categories available. Please configure your backend API.');
         }
 
-        // Ensure ChatGPT platform is selected
-        const chatGPTPlatform = platformList.find(p =>
-          p.name.toLowerCase().includes('chatgpt') || p.name.toLowerCase() === 'chatgpt'
+        // Detect current platform based on URL
+        const hostname = window.location.hostname.toLowerCase();
+        const currentPlatform = platformList.find(p =>
+          hostname.includes(p.slug.toLowerCase()) ||
+          p.name.toLowerCase().includes('chatgpt')
         );
-        if (chatGPTPlatform) {
-          setSelectedPlatforms([chatGPTPlatform.name]);
+
+        if (currentPlatform) {
+          setSelectedPlatforms([currentPlatform.name]);
         } else if (platformList.length > 0) {
           setSelectedPlatforms([platformList[0].name]);
         }
@@ -70,6 +76,41 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
 
     loadData();
   }, []);
+
+  // Helper to extract variables dynamic patterns
+  const extractVariables = (text: string, selectedPlatformNames: string[]) => {
+    const selectedPlatforms = platforms.filter(p => selectedPlatformNames.includes(p.name));
+    const platformPatterns = selectedPlatforms.map(p => p.variable_pattern).filter(Boolean) as string[];
+
+    const defaultPatterns = [
+      '\\{\\{([^{}]+)\\}\\}',
+      '\\[([^\\[\\]]+)\\]',
+      '\\{([^{}]+)\\}'
+    ];
+
+    const allPatterns = [...platformPatterns, ...defaultPatterns];
+    const allVars = new Set<string>();
+
+    allPatterns.forEach(pattern => {
+      try {
+        const regex = new RegExp(pattern, 'g');
+        const matches = [...text.matchAll(regex)];
+        matches.forEach(m => {
+          const val = m[1] || m[0];
+          if (val) allVars.add(val.trim());
+        });
+      } catch (e) {
+        console.error('Invalid regex pattern:', pattern, e);
+      }
+    });
+
+    return Array.from(allVars);
+  };
+
+  useEffect(() => {
+    const vars = extractVariables(editablePrompt, selectedPlatforms);
+    setDynamicVariables(vars);
+  }, [editablePrompt, selectedPlatforms, platforms]);
 
   const handleTagAdd = (tagName: string) => {
     const trimmed = tagName.trim();
@@ -96,6 +137,35 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
     } else {
       setSelectedPlatforms([...selectedPlatforms, platformName]);
     }
+  };
+
+  const handleVariableAdd = (varName: string) => {
+    const trimmed = varName.trim();
+    if (trimmed && !dynamicVariables.includes(trimmed)) {
+      setDynamicVariables([...dynamicVariables, trimmed]);
+
+      // Check if already in prompt in any format
+      const exists = [`[${trimmed}]`, `{{${trimmed}}}`, `{${trimmed}}`].some(p => editablePrompt.includes(p));
+
+      if (!exists) {
+        const newPrompt = editablePrompt.trim()
+          ? `${editablePrompt} [${trimmed}]`
+          : `[${trimmed}]`;
+        setEditablePrompt(newPrompt);
+      }
+      setVariableInput('');
+    }
+  };
+
+  const handleVariableRemove = (varName: string) => {
+    setDynamicVariables(dynamicVariables.filter(v => v !== varName));
+
+    // Remove from prompt if exists in common formats
+    let newPrompt = editablePrompt;
+    [`[${varName}]`, `{{${varName}}}`, `{${varName}}`].forEach(pattern => {
+      newPrompt = newPrompt.replaceAll(pattern, '');
+    });
+    setEditablePrompt(newPrompt);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,11 +204,12 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
 
       await apiService.savePrompt({
         title: title.trim(),
-        prompt: promptText.trim(),
+        prompt: editablePrompt.trim(),
         description: description.trim() || undefined,
         category_id: finalCategoryId,
         tags: selectedTags,
         platform: selectedPlatforms,
+        dynamic_variables: dynamicVariables,
       });
 
       onSuccess();
@@ -183,6 +254,67 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
           </div>
 
           <div className="save-prompt-modal-field">
+            <label htmlFor="prompt">AI Prompt *</label>
+            <textarea
+              id="prompt"
+              value={editablePrompt}
+              onChange={(e) => setEditablePrompt(e.target.value)}
+              placeholder="Use [variable], {variable}, or {{variable}}..."
+              rows={6}
+              required
+            />
+            <TokenCounter
+              text={editablePrompt}
+              selectedPlatformIds={selectedPlatforms}
+              platforms={platforms}
+            />
+          </div>
+
+          <div className="save-prompt-modal-field">
+            <label>Dynamic Variables</label>
+            <div className="save-prompt-modal-tags">
+              <div className="save-prompt-modal-tags-input">
+                <input
+                  type="text"
+                  value={variableInput}
+                  onChange={(e) => setVariableInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && variableInput.trim()) {
+                      e.preventDefault();
+                      handleVariableAdd(variableInput);
+                    }
+                  }}
+                  placeholder="Add variable (Auto-adds to prompt)"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleVariableAdd(variableInput)}
+                  disabled={!variableInput.trim()}
+                >
+                  Add
+                </button>
+              </div>
+              <div className="save-prompt-modal-tags-list">
+                {dynamicVariables.map((v) => (
+                  <span key={v} className="save-prompt-modal-tag var-tag">
+                    {v}
+                    <button
+                      type="button"
+                      onClick={() => handleVariableRemove(v)}
+                      className="save-prompt-modal-tag-remove"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1 text-xs opacity-60">
+              Detected automatically. Added manually will append to prompt.
+            </p>
+          </div>
+
+          <div className="save-prompt-modal-field">
             <label htmlFor="description">Description</label>
             <textarea
               id="description"
@@ -190,13 +322,7 @@ const SavePromptModal = ({ promptText, onSuccess, onCancel }: SavePromptModalPro
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
               placeholder="Optional description"
-              rows={3}
-            />
-
-            <TokenCounter
-              text={promptText}
-              selectedPlatformIds={selectedPlatforms}
-              platforms={platforms}
+              rows={2}
             />
           </div>
 
