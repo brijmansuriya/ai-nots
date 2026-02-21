@@ -25,11 +25,11 @@ class Tag extends Model
         'is_public',
     ];
 
-    const STATUS_PENDING = 'pending';
-    const STATUS_ACTIVE = 'active';
-    const STATUS_DEACTIVE = 'deactive';
- 
-   
+    protected $casts = [
+        'status' => \App\Enums\PromptStatus::class,
+    ];
+
+
 
     public function createdBy(): MorphTo
     {

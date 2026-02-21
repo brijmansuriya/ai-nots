@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use App\Enums\PromptStatus;
 use Inertia\Inertia;
 
 class HomeController extends Controller
@@ -22,7 +23,7 @@ class HomeController extends Controller
         $totalPrompts = PromptNote::active()->where('is_public', '1')->count();
         $totalCategories = Category::count();
         $totalTags = Tag::count();
-        $totalPlatforms = Platform::where('status', 'active')->count();
+        $totalPlatforms = Platform::where('status', PromptStatus::ACTIVE->value)->count();
 
         // Get popular/top prompts (most saved/liked)
         $popularPrompts = PromptNote::with(['tags', 'platforms', 'media', 'promptable'])
@@ -802,7 +803,7 @@ class HomeController extends Controller
                                     [
                                         'name' => $promptData['category_name'],
                                         'slug' => Str::slug($promptData['category_name']),
-                                        'status' => Category::STATUS_ACTIVE,
+                                        'status' => PromptStatus::ACTIVE,
                                     ]
                                 );
                                 $categoryId = $category->id;
@@ -845,7 +846,7 @@ class HomeController extends Controller
                                             'slug' => $slug,
                                             'created_by_type' => $user->getMorphClass(),
                                             'created_by_id' => $user->id,
-                                            'status' => Tag::STATUS_ACTIVE,
+                                            'status' => PromptStatus::ACTIVE,
                                         ]);
                                     }
                                     $tagIds[] = $tag->id;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Tag;
+use App\Enums\PromptStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
@@ -35,7 +36,7 @@ class TagController extends Controller
             'name' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:tags,slug|regex:/^[a-zA-Z0-9\-]+$/',
             'description' => 'nullable|string|max:500',
-            'status' => 'required|in:' . Tag::STATUS_PENDING . ',' . Tag::STATUS_ACTIVE . ',' . Tag::STATUS_DEACTIVE,
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
         $tag = auth()->user()->tags()->create($validated);
@@ -57,14 +58,12 @@ class TagController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:tags,slug,' . $tag->id . '|regex:/^[a-zA-Z0-9\-]+$/', 
+            'slug' => 'required|string|max:255|unique:tags,slug,' . $tag->id . '|regex:/^[a-zA-Z0-9\-]+$/',
             'description' => 'nullable|string|max:500',
-            'status' => 'required|in:' . Tag::STATUS_PENDING . ',' . Tag::STATUS_ACTIVE . ',' . Tag::STATUS_DEACTIVE,
-
-
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
-       $tag->update($validated);
+        $tag->update($validated);
 
         return redirect()->route('admin.tags.index')->with('success', 'Tag updated successfully!');
     }

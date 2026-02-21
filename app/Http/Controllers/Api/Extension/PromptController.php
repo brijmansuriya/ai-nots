@@ -93,7 +93,7 @@ class PromptController extends Controller
                     'slug' => $slug,
                     'created_by_type' => $user->getMorphClass(),
                     'created_by_id' => $user->id,
-                    'status' => 'active',
+                    'status' => PromptStatus::ACTIVE->value,
                 ]);
                 $tagIds[] = $createdTag->id;
             }
@@ -174,7 +174,7 @@ class PromptController extends Controller
                         'slug' => Str::slug($tagName),
                         'created_by_type' => $user->getMorphClass(),
                         'created_by_id' => $user->id,
-                        'status' => 'active'
+                        'status' => PromptStatus::ACTIVE->value
                     ]
                 );
                 $tagIds[] = $tag->id;

@@ -20,12 +20,12 @@ class Category extends Model
     protected $fillable = [
         'name',
         'slug',
-        'status', //'pending', 'active', 'deactive'
+        'status', //'0', '1', '2'
     ];
 
-    const STATUS_PENDING = 'pending';
-    const STATUS_ACTIVE = 'active';
-    const STATUS_DEACTIVE = 'deactive';
+    protected $casts = [
+        'status' => \App\Enums\PromptStatus::class,
+    ];
 
     /**
      * Get the prompts for this category.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Enums\PromptStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -34,7 +35,7 @@ class CategorieController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:categories,slug|regex:/^[a-zA-Z0-9\-]+$/',
-            'status' => 'required|in:' . Category::STATUS_PENDING . ',' . Category::STATUS_ACTIVE . ',' . Category::STATUS_DEACTIVE,
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
         $category = Category::create($validated);
@@ -56,8 +57,8 @@ class CategorieController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:categories,slug,' . $category->id . '|regex:/^[a-zA-Z0-9\-]+$/', 
-            'status' => 'required|in:' . Category::STATUS_PENDING . ',' . Category::STATUS_ACTIVE . ',' . Category::STATUS_DEACTIVE,
+            'slug' => 'required|string|max:255|unique:categories,slug,' . $category->id . '|regex:/^[a-zA-Z0-9\-]+$/',
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
         $category->update($validated);

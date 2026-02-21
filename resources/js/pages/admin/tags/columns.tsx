@@ -24,6 +24,28 @@ export const columns: ColumnDef<any>[] = [
     header: "Slug",
   },
   {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const status = String(row.getValue("status"));
+      const statusColors: Record<string, string> = {
+        "1": "bg-green-100 text-green-800", // active
+        "0": "bg-yellow-100 text-yellow-800", // pending
+        "2": "bg-red-100 text-red-800", // deactive
+      };
+      const statusLabels: Record<string, string> = {
+        "1": "Active",
+        "0": "Pending",
+        "2": "Inactive",
+      };
+      return (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status] || "bg-gray-100 text-gray-800"}`}>
+          {statusLabels[status] || status}
+        </span>
+      );
+    },
+  },
+  {
     accessorKey: "created_at",
     header: "Created At",
     cell: ({ row }) =>
@@ -50,4 +72,3 @@ export const columns: ColumnDef<any>[] = [
     ),
   },
 ]
- 

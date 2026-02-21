@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Extension;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\PlatformResource;
 use App\Models\Platform;
+use App\Enums\PromptStatus;
 use Illuminate\Http\JsonResponse;
 
 class PlatformController extends Controller
@@ -13,7 +14,7 @@ class PlatformController extends Controller
      */
     public function index(): JsonResponse
     {
-        $platforms = Platform::where('status', 'active')
+        $platforms = Platform::where('status', PromptStatus::ACTIVE->value)
             ->orderBy('name')
             ->get();
 

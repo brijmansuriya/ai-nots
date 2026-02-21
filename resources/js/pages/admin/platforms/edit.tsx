@@ -29,7 +29,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function EditPlatform({ platform }: EditPlatformProps) {
     const { data, setData, put, processing, errors } = useForm({
         name: platform.name || '',
-        status: platform.status || 'active',
+        status: platform.status || '1',
     });
 
     const submit = (e: React.FormEvent) => {
@@ -67,9 +67,9 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                             <input
                                 type="radio"
                                 name="status"
-                                value="active"
-                                checked={data.status === 'active'}
-                                onChange={() => setData('status', 'active')}
+                                value="1"
+                                checked={data.status === '1'}
+                                onChange={() => setData('status', '1')}
                                 disabled={processing}
                                 className="form-radio text-foreground"
                             />
@@ -79,9 +79,9 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                             <input
                                 type="radio"
                                 name="status"
-                                value="pending"
-                                checked={data.status === 'pending'}
-                                onChange={() => setData('status', 'pending')}
+                                value="0"
+                                checked={data.status === '0'}
+                                onChange={() => setData('status', '0')}
                                 disabled={processing}
                                 className="form-radio text-foreground"
                             />
@@ -91,9 +91,9 @@ export default function EditPlatform({ platform }: EditPlatformProps) {
                             <input
                                 type="radio"
                                 name="status"
-                                value="deactive"
-                                checked={data.status === 'deactive'}
-                                onChange={() => setData('status', 'deactive')}
+                                value="2"
+                                checked={data.status === '2'}
+                                onChange={() => setData('status', '2')}
                                 disabled={processing}
                                 className="form-radio text-foreground"
                             />

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\PromptResource;
 use App\Models\PromptNote;
 use Illuminate\Http\Request;
+use App\Enums\PromptStatus;
 
 class TemplateController extends Controller
 {
@@ -87,7 +88,7 @@ class TemplateController extends Controller
                     'slug' => $slug,
                     'created_by_type' => $user->getMorphClass(),
                     'created_by_id' => $user->id,
-                    'status' => 'active',
+                    'status' => PromptStatus::ACTIVE->value,
                 ]);
                 $tagIds[] = $createdTag->id;
             }

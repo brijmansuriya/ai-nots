@@ -26,7 +26,7 @@ export default function CreateCategory() {
         name: '',
         slug: '',
         description: '',
-        status: 'active',  // Assuming `status` is an integer (active = 1, inactive = 0)
+        status: '1',  // Assuming `status` is an integer (active = 1, inactive = 0)
     });
 
     const submit = (e: React.FormEvent) => {
@@ -73,7 +73,7 @@ export default function CreateCategory() {
                     <InputError message={errors.slug} className="mt-2" />
                 </div>
 
-            
+
 
                 {/* Status */}
                 <div className="grid gap-2">
@@ -83,9 +83,9 @@ export default function CreateCategory() {
                             <input
                                 type="radio"
                                 name="status"
-                                value="active"
-                                checked={data.status === 'active'}
-                                onChange={() => setData('status', 'active')}
+                                value="1"
+                                checked={data.status === '1'}
+                                onChange={() => setData('status', '1')}
                                 disabled={processing}
                                 className="form-radio text-foreground"
                             />
@@ -95,9 +95,9 @@ export default function CreateCategory() {
                             <input
                                 type="radio"
                                 name="status"
-                                value="deactive"
-                                checked={data.status == 'deactive'}
-                                onChange={() => setData('status', 'deactive')}
+                                value="2"
+                                checked={data.status == '2'}
+                                onChange={() => setData('status', '2')}
                                 disabled={processing}
                                 className="form-radio text-foreground"
                             />

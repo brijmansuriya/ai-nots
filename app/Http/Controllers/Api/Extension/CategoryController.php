@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Extension;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\CategoryResource;
 use App\Models\Category;
+use App\Enums\PromptStatus;
 use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
@@ -13,7 +14,7 @@ class CategoryController extends Controller
      */
     public function index(): JsonResponse
     {
-        $categories = Category::where('status', 'active')
+        $categories = Category::where('status', PromptStatus::ACTIVE->value)
             ->orderBy('name')
             ->get();
 

@@ -33,7 +33,7 @@ export default function EditTag({ tag }: EditTagProps) {
     name: tag.name || '',
     slug: tag.slug || '',
     description: tag.description || '',
-    status: tag.status || 'active',
+    status: tag.status || '1',
   });
 
   const submit = (e: React.FormEvent) => {
@@ -101,9 +101,9 @@ export default function EditTag({ tag }: EditTagProps) {
               <input
                 type="radio"
                 name="status"
-                value="active"
-                checked={data.status === 'active'}
-                onChange={() => setData('status', 'active')}
+                value="1"
+                checked={data.status === '1'}
+                onChange={() => setData('status', '1')}
                 disabled={processing}
                 className="form-radio text-foreground"
               />
@@ -113,9 +113,9 @@ export default function EditTag({ tag }: EditTagProps) {
               <input
                 type="radio"
                 name="status"
-                value="deactive"
-                checked={data.status === 'deactive'}
-                onChange={() => setData('status', 'deactive')}
+                value="2"
+                checked={data.status === '2'}
+                onChange={() => setData('status', '2')}
                 disabled={processing}
                 className="form-radio text-foreground"
               />

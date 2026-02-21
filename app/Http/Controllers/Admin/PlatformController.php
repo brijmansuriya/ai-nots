@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Platform;
+use App\Enums\PromptStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -33,7 +34,7 @@ class PlatformController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'status' => 'required|in:' . Platform::STATUS_PENDING . ',' . Platform::STATUS_ACTIVE . ',' . Platform::STATUS_DEACTIVE,
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
         $platform = Platform::create($validated);
@@ -55,7 +56,7 @@ class PlatformController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'status' => 'required|in:' . Platform::STATUS_PENDING . ',' . Platform::STATUS_ACTIVE . ',' . Platform::STATUS_DEACTIVE,
+            'status' => 'required|in:' . implode(',', PromptStatus::values()),
         ]);
 
         $platform->update($validated);
